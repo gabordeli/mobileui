@@ -1,0 +1,124 @@
+# Telepítés és üzemeltetés
+
+## Kompatibilitás
+
+- **Deluge 2.x** (Python 3.10+); a fejlesztés és az éles telepítés
+  **Deluge 2.2.0**-val, Python 3.11-en fut.
+- **Deluge 1.x nem támogatott** (Python 2, eltérő plugin API).
+- A 2.0/2.1 ugyanazt a plugin API-t használja, de nincs élesben tesztelve; a
+  futó Deluge verziója a `/api/session` válaszának `version` mezőjéből
+  ellenőrizhető.
+- A plugin **core plugin** a `deluged` reactorjában; nem kell külön service.
+  A saját API/SPA a 8113-on figyel, a gyári `deluge-web` (8112) érintetlen.
+- Az egg pure Python; a Deluge pluginmanager a `py3.x` taget nem szűri, ezért a
+  kicsomagolt egg a támogatott Python-verziókon betöltődik.
+
+## Telepítés (cél: cirice, 192.168.2.27)
+
+A hoston, rootként, a repó checkoutjából:
+
+```bash
+./scripts/install.sh
+```
+
+A script a Deluge venv Pythonjával épít egg-et, **kicsomagolja** a
+`deluge.plugins` könyvtárba (`MobileUi-<verzió>-py3.x.egg/`), újraindítja a
+`deluged`-et, `deluge-console`-lal engedélyezi a plugint, majd ellenőrzi a
+`/health`-t. A kicsomagolt forma kell a `data/` statikus kiszolgálásához.
+Felülírható: `EGG`, `DELUGE_VENV`, `DELUGE_CONFIG_DIR`, `DELUGE_USER`, `SERVICE`,
+`PORT`.
+
+## Hordozható egg
+
+A release-hez csatolt `MobileUi-<verzió>-py3.x.egg` és a hozzá tartozó
+`.sha256` önállóan is telepíthető. Repóval:
+
+```bash
+sha256sum -c MobileUi-*.egg.sha256
+EGG=/path/MobileUi-*.egg ./scripts/install.sh
+```
+
+A kicsomagolás kötelező, mert a `static.File` nem tud zipből szolgálni. A Deluge
+pluginmanager `pkg_resources.Environment(..., python=None)`-t használ, ezért a
+runneren épült py3.13 tagű, pure-Python egg a 3.11-es célon is betöltődik (a
+stock pluginek is py3.10/py3.12 eggek a 3.11-en).
+
+Repó nélkül ugyanez kézzel: az egg tartalmát a
+`.../site-packages/deluge/plugins/MobileUi-<verzió>-py3.x.egg/` könyvtárba kell
+kicsomagolni, majd `systemctl restart deluged` és
+`deluge-console ... "plugin -e MobileUi"`.
+
+## Jelenlegi telepítés (2026-11-17)
+
+- Host: `cirice` (192.168.2.27), `deluged` systemd alatt; a plugin **enabled**,
+  a 8113 LAN-on figyel, a 8112-es `deluge-web` változatlanul fut.
+- Publikus: `https://cirice.ddns.net:8113/` a `.228` nginx TLS proxy mögött
+  (router WAN TCP 8113 → `192.168.2.228:8113`), token-kapuval.
+- SPA: `http://192.168.2.27:8113/` LAN-on, ugyanaz az API a `/api/*` alatt.
+- A generált API-token a hoston a `/root/mobileui-token` fájlban van (600);
+  a `mobileui.conf` a `debian-deluged` tulajdona, 600.
+- A token nem szerepel a daemon logban, és a `.228` nginx access logja is
+  `$uri`-t ír, így a `?token=` sem kerül bele.
+
+## Konfiguráció
+
+`mobileui.conf` a Deluge config könyvtárában (600, a daemon user tulajdona):
+
+```json
+{
+  "enabled": true,
+  "port": 8113,
+  "token": "",
+  "sentry_dsn": ""
+}
+```
+
+A `/api/*` végpontok `Authorization: Bearer <token>`-t kérnek; üres token esetén
+minden `/api/*` 401-et ad. A `/health` mindig publikus. A token nem kerül logba.
+Az SSE (`/api/events`) az `EventSource` miatt `?token=<token>` query paramétert is
+elfogad (a header az elsődleges).
+
+A `sentry_dsn` üresen hagyva nem küld eseményt; kitöltve a plugin a Bugsinkbe
+küldi a Twisted kivételeket (`release` = plugin verzió, `environment=production`).
+A DSN nem kerül a logba; a `set_config` élőben átállítja, a `sentry-sdk`-t az
+`install.sh` telepíti a Deluge venvbe.
+
+Élő átállítás a `mobileui.set_config` RPC-vel (a `deluge.ui.client`-en vagy a
+WebUI-n át); a token, a port, az `enabled` és a `sentry_dsn` azonnal érvényesül,
+restart nem kell.
+Ha az új port nem bindolható, a plugin visszaállítja a régi portot és hibát ad.
+
+```python
+from twisted.internet import defer, reactor
+from deluge.ui.client import client
+
+
+@defer.inlineCallbacks
+def main():
+    yield client.connect('127.0.0.1', 58846, 'localclient', '<auth-jelszó>')
+    print((yield client.mobileui.set_config({'token': '<új-token>'})))
+    yield client.disconnect()
+    reactor.stop()
+
+
+reactor.callWhenRunning(main)
+reactor.run()
+```
+
+A `<auth-jelszó>` a Deluge config `auth` fájljából való (`localclient` sor).
+Új egg telepítése után viszont kell a `deluged` restart (a plugin kódja csak
+indításkor töltődik be).
+
+## Visszaállítás
+
+A plugin letiltása a daemonban:
+
+```bash
+runuser -u debian-deluged -- /opt/deluge-2.2.0/bin/deluge-console \
+  -c /var/lib/deluged/config "plugin -d MobileUi"
+```
+
+Majd a telepített `MobileUi-*.egg/` **könyvtár** törlése a
+`/opt/deluge-2.2.0/lib/python3.11/site-packages/deluge/plugins/` alól és
+`systemctl restart deluged`. A fenti utak a 2.2.0-s telepítésre vonatkoznak;
+más 2.x verzióhoz igazítsd a venv/site-packages útvonalat.
