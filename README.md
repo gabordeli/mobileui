@@ -24,6 +24,13 @@ HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n
   `v0.1.1` release, deploy job a .27-re; a #9 public HTTPS később.
 - **M3 / #11 kész:** runner toolchain (python/venv, node/npm, git, jq, curl,
   rsync, docker/trivy), `--check --diff` changed=0, runner restart.
+- **M3 / #13 kész:** teljes plugin metadata (author email, URL, license,
+  classifiers) az egg/wheel `PKG-INFO`-ban.
+- **M3 / #14 implementálva:** hordozható `.egg` + sha256 a release-en,
+  `scripts/install.sh` `EGG=...` támogatással; a release job első futása és a
+  .27-es telepítés validálja.
+- **M3 / #15 kész:** a SPA a `/health` válaszából jeleníti meg a plugin
+  verzióját (token-kapu + footer); release bump után automatikus.
 - Következik: M3 / #9 public HTTPS, ha kell.
 
 ## Felépítés
@@ -39,6 +46,8 @@ deluge_mobileui/     Deluge core plugin (Twisted Site a daemon reactorjában)
 webui/                Vue 3 + Vite + TS SPA (M2)
   src/                App, API-kliens, virtuális lista, sheet
 scripts/dev-daemon.sh Helyi, eldobható konfiggal futó deluged
+scripts/package.sh    Hordozható egg + sha256 (SPA-val)
+scripts/publish_release.sh  GitLab Release + Generic Package feltöltés
 scripts/install.sh    Telepítés/újraépítés a Deluge hoston (root)
 tests/                pytest (mock core, valódi Twisted resource-ok)
 docs/                 API és döntések
@@ -52,7 +61,7 @@ python3 -m venv --system-site-packages .venv
 
 .venv/bin/pytest
 .venv/bin/ruff check .
-.venv/bin/python setup.py bdist_egg   # dist/MobileUi-<verzió>-py3.x.egg
+./scripts/package.sh   # dist/MobileUi-<verzió>-py3.x.egg + .sha256
 
 # Helyi smoke: saját config a .dev/ alatt, a felhasználói Deluge-hoz nem nyúl
 ./scripts/dev-daemon.sh
@@ -101,10 +110,31 @@ A hoston, rootként, a repó checkoutjából:
 ```
 
 A script a Deluge venv Pythonjával épít egg-et, **kicsomagolja** a
-`deluge.plugins` könyvtárba (`MobileUi-<verzió>-py3.11.egg/`), újraindítja a
+`deluge.plugins` könyvtárba (`MobileUi-<verzió>-py3.x.egg/`), újraindítja a
 `deluged`-et, `deluge-console`-lal engedélyezi a plugint, majd ellenőrzi a
 `/health`-t. A kicsomagolt forma kell a `data/` statikus kiszolgálásához.
-Felülírható: `DELUGE_VENV`, `DELUGE_CONFIG_DIR`, `DELUGE_USER`, `SERVICE`, `PORT`.
+Felülírható: `EGG`, `DELUGE_VENV`, `DELUGE_CONFIG_DIR`, `DELUGE_USER`, `SERVICE`,
+`PORT`.
+
+### Hordozható egg
+
+A release-hez csatolt `MobileUi-<verzió>-py3.x.egg` és a hozzá tartozó
+`.sha256` önállóan is telepíthető. Repóval:
+
+```bash
+sha256sum -c MobileUi-*.egg.sha256
+EGG=/path/MobileUi-*.egg ./scripts/install.sh
+```
+
+A kicsomagolás kötelező, mert a `static.File` nem tud zipből szolgálni. A Deluge
+pluginmanager `pkg_resources.Environment(..., python=None)`-t használ, ezért a
+runneren épült py3.13 tagű, pure-Python egg a 3.11-es célon is betöltődik (a
+stock pluginek is py3.10/py3.12 eggek a 3.11-en).
+
+Repó nélkül ugyanez kézzel: az egg tartalmát a
+`.../site-packages/deluge/plugins/MobileUi-<verzió>-py3.x.egg/` könyvtárba kell
+kicsomagolni, majd `systemctl restart deluged` és
+`deluge-console ... "plugin -e MobileUi"`.
 
 ### Jelenlegi telepítés (2026-11-17)
 

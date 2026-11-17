@@ -7,6 +7,7 @@ const props = defineProps<{
   initialToken: string;
   error: string;
   cancelable: boolean;
+  pluginVersion: string;
 }>();
 const emit = defineEmits<{ submit: [token: string]; cancel: [] }>();
 
@@ -38,6 +39,7 @@ const token = ref(props.initialToken);
           {{ t("token.cancel") }}
         </button>
       </div>
+      <p v-if="pluginVersion" class="gate-version">MobileUi v{{ pluginVersion }}</p>
     </form>
   </div>
 </template>

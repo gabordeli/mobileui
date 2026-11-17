@@ -48,7 +48,7 @@ build:
     - npm run build
     - cd ..
     - .ci-venv/bin/python -m build
-    - .ci-venv/bin/python setup.py -q bdist_egg
+    - SKIP_WEBUI=1 PYTHON=.ci-venv/bin/python ./scripts/package.sh
   artifacts:
     paths:
       - dist/
@@ -58,6 +58,7 @@ build:
 release:
   stage: release
   extends: .python_job
+  dependencies: [build]
   before_script: *python_setup
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
@@ -67,11 +68,14 @@ release:
     - git config user.name "GitLab CI"
     - VERSION=$(./scripts/release.sh "$RELEASE_TYPE")
     - test -n "$VERSION"
+    - EGG=$(SKIP_WEBUI=1 PYTHON=.ci-venv/bin/python ./scripts/package.sh)
+    - test -n "$EGG"
     - git add deluge_mobileui/version.py webui/package.json webui/package-lock.json CHANGELOG.md
     - git commit -m "chore(release) v${VERSION}"
     - git tag -f "v${VERSION}"
     - git remote set-url origin "$CI_REPOSITORY_URL"
     - git push origin "HEAD:${CI_DEFAULT_BRANCH}" --tags
+    - ./scripts/publish_release.sh "$VERSION" "$EGG"
 
 deploy:
   stage: deploy

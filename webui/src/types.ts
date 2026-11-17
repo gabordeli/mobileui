@@ -29,6 +29,12 @@ export interface Labels {
   no_label: number;
 }
 
+export interface Health {
+  ok: boolean;
+  version: string;
+  port: number | null;
+}
+
 export interface Session {
   download_rate: number;
   upload_rate: number;

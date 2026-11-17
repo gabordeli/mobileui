@@ -42,6 +42,7 @@ const online = ref(navigator.onLine);
 const toast = ref("");
 const sseState = ref<"off" | "live" | "reconnecting">("off");
 const tokenInitial = ref(api.getToken());
+const pluginVersion = ref("");
 const filters = reactive<TorrentFilters>({
   q: "",
   state: "",
@@ -95,6 +96,15 @@ function reportError(error: unknown, inList = false): void {
     listError.value = message;
   } else {
     showToast(message);
+  }
+}
+
+async function loadPluginVersion(): Promise<void> {
+  try {
+    const health = await api.getHealth();
+    pluginVersion.value = health.version;
+  } catch {
+    pluginVersion.value = "";
   }
 }
 
@@ -334,6 +344,7 @@ function updateOnline(): void {
 onMounted(() => {
   window.addEventListener("online", updateOnline);
   window.addEventListener("offline", updateOnline);
+  void loadPluginVersion();
   void bootstrap();
 });
 
@@ -352,6 +363,7 @@ onBeforeUnmount(() => {
     :initial-token="tokenInitial"
     :error="authError"
     :cancelable="Boolean(session)"
+    :plugin-version="pluginVersion"
     @submit="submitToken"
     @cancel="cancelGate"
   />
@@ -453,6 +465,10 @@ onBeforeUnmount(() => {
         {{ t("list.loadMore") }}
       </div>
     </main>
+
+    <footer v-if="pluginVersion" class="app-footer">
+      MobileUi v{{ pluginVersion }}
+    </footer>
 
     <ContextSheet
       v-if="selected"

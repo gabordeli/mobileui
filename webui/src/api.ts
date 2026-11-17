@@ -1,4 +1,5 @@
 import type {
+  Health,
   Labels,
   Session,
   Torrent,
@@ -65,6 +66,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new ApiError(message, response.status);
   }
   return payload as T;
+}
+
+export function getHealth(): Promise<Health> {
+  return request<Health>("/health");
 }
 
 export function getSession(): Promise<Session> {

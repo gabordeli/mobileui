@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,16 +7,38 @@ name = "MobileUi"
 description = "Mobile-first web UI for Deluge, running as a core plugin inside deluged"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "GPL-3.0-or-later" }
-authors = [{ name = "Gabor Deli" }]
+license = "GPL-3.0-or-later"
+authors = [{ name = "Gabor Deli", email = "gabor.deli@gmail.com" }]
+maintainers = [{ name = "Gabor Deli", email = "gabor.deli@gmail.com" }]
+keywords = ["deluge", "torrent", "webui", "mobile", "plugin"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: Twisted",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Internet :: WWW/HTTP",
+]
 dependencies = ["Twisted>=22.4"]
 dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://cirice-gitlab.ddns.net/gabor/webui2"
+Source = "https://cirice-gitlab.ddns.net/gabor/webui2"
+Issues = "https://cirice-gitlab.ddns.net/gabor/webui2/-/issues"
 
 [project.entry-points."deluge.plugin.core"]
 MobileUi = "deluge_mobileui:CorePlugin"
 
 [tool.setuptools]
-packages = ["deluge_mobileui"]
+packages = [
+    "deluge_mobileui",
+    "deluge_mobileui.data",
+    "deluge_mobileui.data.assets",
+    "deluge_mobileui.data.icons",
+]
 include-package-data = true
 
 [tool.setuptools.dynamic]

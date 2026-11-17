@@ -184,6 +184,16 @@ button {
   overflow: hidden;
 }
 
+.app-footer {
+  flex: 0 0 auto;
+  padding: 4px 12px calc(4px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.2px;
+  text-align: center;
+}
+
 .scroller {
   height: 100%;
   overflow-y: auto;
@@ -540,6 +550,13 @@ button {
 .gate-copy code {
   color: var(--text);
   font-size: 12px;
+}
+
+.gate-version {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
 }
 
 .gate-card input {

@@ -23,6 +23,13 @@ A token a `localStorage["mobileui.token"]`-ben van; a token-kapu bekéri, majd
 minden kérés `Authorization: Bearer` headert kap. Az SSE `?token=` queryt használ
 (`EventSource` nem tud headert). 401 esetén a UI visszadobja a kaput.
 
+## Verzió
+
+A token-kapu és a fő nézet footerje a `/health` `version` mezőjét mutatja. A
+frontend nem ágyazza be a `package.json` verzióját, ezért release bump után
+elég az új plugin/daemon; a UI a backend válaszából frissül. Ha a health nem
+érhető el, a felirat elmarad, a UI nem törik el.
+
 ## Lista: lapozás + virtualizáció
 
 - Az API 50 soros lapokat ad (`limit`), a UI `offset`-tel kér tovább; a teljes
