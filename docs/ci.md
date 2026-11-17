@@ -50,7 +50,8 @@ detail, add sheet. Az API-t `page.route` mockolja, ezért Deluge nélkül fut. A
 job a hivatalos `mcr.microsoft.com/playwright:v1.65.1-jammy` image-ben fut
 (Docker), így a runneren nem kell Chromium rendszerlib. Az image tagjét a
 `@playwright/test` verziójához kell igazítani (most 1.65.1); a helyi futtatáshoz
-`npx playwright install chromium` kell.
+`npx playwright install chromium` kell. A konténer `HOME=/tmp`-vel fut, mert a
+runner UID-nak nincs írható home könyvtára (az npm cache emiatt hasalna el).
 
 ## Release
 
