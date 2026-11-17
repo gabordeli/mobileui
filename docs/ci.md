@@ -9,7 +9,7 @@
 | lint | `lint` | `ruff check`, SPA `vue-tsc` |
 | test | `test` | `pytest` + `pytest-cov`; Deluge nélkül a `tests/stubs/` shimek; artifact: `coverage.xml` |
 | test | `webui-test` | Vitest + `@vitest/coverage-v8`; artifact: `webui/coverage/lcov.info` |
-| test | `webui-e2e` | Playwright smoke (mockolt API); Chromium a `webui/.playwright/` cache-ből |
+| test | `webui-e2e` | Playwright smoke a hivatalos Playwright Docker image-ben |
 | quality | `sonar` | SonarQube main-branch elemzés a Docker scannerrel; report-only |
 | build | `build` | `npm run build`, `python -m build`, `package.sh`; artifact: `dist/` (sdist/wheel/egg/sha256), `data/` |
 | release | `release` | manuális; `RELEASE_TYPE=patch|minor|major`; verzióbump + CHANGELOG + tag + egg feltöltés + GitLab Release |
@@ -47,10 +47,10 @@
 
 A `webui-e2e` job a `webui/e2e/smoke.spec.ts`-t futtatja: token-kapu, lista +
 detail, add sheet. Az API-t `page.route` mockolja, ezért Deluge nélkül fut. A
-Chromiumot a `PLAYWRIGHT_BROWSERS_PATH=$CI_PROJECT_DIR/webui/.playwright` alá
-tölti, és a `webui/.playwright/` cache tartja. Ha a runnerről hiányoznak a
-Chromium rendszerlibjei, `npx playwright install --with-deps chromium` kell
-(root/sudo).
+job a hivatalos `mcr.microsoft.com/playwright:v1.65.1-jammy` image-ben fut
+(Docker), így a runneren nem kell Chromium rendszerlib. Az image tagjét a
+`@playwright/test` verziójához kell igazítani (most 1.65.1); a helyi futtatáshoz
+`npx playwright install chromium` kell.
 
 ## Release
 

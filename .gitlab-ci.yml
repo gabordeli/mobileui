@@ -66,14 +66,9 @@ webui-e2e:
     key: "$CI_COMMIT_REF_SLUG"
     paths:
       - webui/node_modules/
-      - webui/.playwright/
-  variables:
-    PLAYWRIGHT_BROWSERS_PATH: "$CI_PROJECT_DIR/webui/.playwright"
   script:
     - cd webui
-    - npm ci --silent
-    - npx playwright install chromium
-    - npm run test:e2e
+    - docker run --rm --ipc=host -u "$(id -u):$(id -g)" -v "$PWD:/work" -w /work mcr.microsoft.com/playwright:v1.65.1-jammy bash -lc "npm ci --silent && npx playwright test"
   artifacts:
     when: on_failure
     paths:
