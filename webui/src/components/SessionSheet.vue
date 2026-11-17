@@ -4,10 +4,13 @@ import { computed, onMounted, ref } from "vue";
 import { formatBytes, formatRate } from "../format";
 import { t } from "../i18n";
 import type { LimitPayload, Session } from "../types";
+import Sparkline from "./Sparkline.vue";
 
 const props = defineProps<{
   session: Session;
   canWrite: boolean;
+  downHistory: number[];
+  upHistory: number[];
 }>();
 const emit = defineEmits<{
   close: [];
@@ -87,6 +90,11 @@ onMounted(() => closeButton.value?.focus());
             <span>{{ t("session.upload") }}</span>
             <strong class="up">{{ formatRate(session.payload_upload_rate) }}</strong>
           </div>
+        </div>
+
+        <div class="sparkline-wrap">
+          <Sparkline :down="downHistory" :up="upHistory" />
+          <span>{{ t("session.history") }}</span>
         </div>
 
         <div v-if="canWrite" class="limits">

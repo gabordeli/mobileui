@@ -1104,6 +1104,42 @@ button {
   font-size: 11px;
 }
 
+.sparkline-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.sparkline-wrap span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.sparkline {
+  width: 100%;
+  height: 40px;
+}
+
+.spark-base {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.spark-down {
+  fill: none;
+  stroke: var(--down);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.spark-up {
+  fill: none;
+  stroke: var(--up);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -64,8 +64,8 @@ Jelenlegi release: **v0.2.0** (GitLab + GitHub), az éles példányon telepítve
   (`auth_mode`), lejáró és visszahívható session tokennel, read-only (1) /
   normal (5) / admin (10) szintekkel; a token break-glass marad.
 - **Session sheet:** a fejléc stats sávjáról nyílik; szabad hely, torrentszám,
-  rate-ek és egy gombbal az összes torrent pause/resume (read-only nézetben
-  gomb nélkül).
+  rate-ek, 60 mp-es sebesség-sparkline és egy gombbal az összes torrent
+  pause/resume (read-only nézetben gomb nélkül).
 - **Bulk selection:** long-press → kijelölés, alsó action barral; pause/resume/
   label/remove N torrentre, „Összes” a szűrőre illeszkedő id-kkel (max 1000).
 - **Fájlprioritás:** a detailben fájlonkénti letöltés-checkbox és „Csak ez”,

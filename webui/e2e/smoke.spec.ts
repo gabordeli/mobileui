@@ -237,6 +237,7 @@ test.describe("authenticated UI", () => {
     const dialog = page.getByRole("dialog", { name: "Munkamenet" });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText("Szabad hely")).toBeVisible();
+    await expect(dialog.locator(".sparkline")).toBeVisible();
     await expect(
       dialog.getByRole("button", { name: "Összes szüneteltetése" }),
     ).toBeVisible();

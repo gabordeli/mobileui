@@ -52,6 +52,9 @@ const addOpen = ref(false);
 const pendingMagnet = ref("");
 const sessionOpen = ref(false);
 const labelsOpen = ref(false);
+const downHistory = ref<number[]>([]);
+const upHistory = ref<number[]>([]);
+const HISTORY_LEN = 60;
 const online = ref(navigator.onLine);
 const toast = ref("");
 const sseState = ref<"off" | "live" | "reconnecting">("off");
@@ -151,6 +154,9 @@ async function bootstrap(): Promise<void> {
       api.getAuthInfo().catch(() => null),
     ]);
     session.value = sessionData;
+    downHistory.value = [];
+    upHistory.value = [];
+    pushSpeedHistory();
     labels.value = labelData.labels;
     noLabelCount.value = labelData.no_label;
     if (info) {
@@ -350,8 +356,23 @@ function handleTorrentEvent(event: TorrentEvent): void {
   }
 }
 
+function pushSpeedHistory(): void {
+  if (!session.value) return;
+  downHistory.value = [
+    ...downHistory.value,
+    session.value.payload_download_rate,
+  ].slice(-HISTORY_LEN);
+  upHistory.value = [
+    ...upHistory.value,
+    session.value.payload_upload_rate,
+  ].slice(-HISTORY_LEN);
+}
+
 function handleSessionEvent(event: TorrentEvent): void {
-  if (session.value) Object.assign(session.value, event.fields);
+  if (session.value) {
+    Object.assign(session.value, event.fields);
+    pushSpeedHistory();
+  }
   const count = event.fields.num_torrents;
   if (
     typeof count === "number" &&
@@ -657,6 +678,8 @@ onBeforeUnmount(() => {
       v-if="sessionOpen && session"
       :session="session"
       :can-write="canWrite"
+      :down-history="downHistory"
+      :up-history="upHistory"
       @close="sessionOpen = false"
       @toggle="toggleSession"
       @limits="applySessionLimits"

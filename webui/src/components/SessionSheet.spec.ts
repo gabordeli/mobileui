@@ -28,6 +28,8 @@ function factory(overrides: Record<string, unknown> = {}) {
     props: {
       session,
       canWrite: true,
+      downHistory: [0, 1024],
+      upHistory: [0, 512],
       ...overrides,
     },
     global: { stubs: { teleport: true } },
@@ -42,6 +44,7 @@ describe("SessionSheet", () => {
     expect(wrapper.text()).toContain("4");
     expect(wrapper.text()).toContain("1.00 KiB/s");
     expect(wrapper.text()).toContain(t("session.pause"));
+    expect(wrapper.find(".sparkline").exists()).toBe(true);
   });
 
   it("shows a dash when the free space is unknown", () => {

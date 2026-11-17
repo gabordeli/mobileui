@@ -21,7 +21,7 @@ hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 ## Tesztek
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, komponensek, theme,
-  api, format, i18n, main); 125 teszt, a coverage threshold a `vite.config.ts`-ben.
+  api, format, i18n, main); 128 teszt, a coverage threshold a `vite.config.ts`-ben.
 - `npm run test:e2e` — Playwright smoke: token-kapu, fiók login, read-only UI,
   lista+detail, fájlprioritás, session sheet, bulk selection, megosztott magnet,
   add sheet. Az API-t `page.route` mockolja, ezért Deluge nélkül fut; az első
@@ -130,8 +130,10 @@ A fejléc stats sávja (↓/↑/darabszám) gomb: session sheetet nyit. Mutatja 
 session állapotát; a gomb az **összes** torrentet szünetelteti vagy folytatja
 (`POST /api/session/pause|resume`). A sheetben **globális sebességkorlát**
 állítható (KiB/s, -1 vagy 0 = korlátlan), **Éjszakai mód** (512/128) és **Korlátlan**
-presetekkel. Read-only fióknál csak a note látszik. A válasz `paused` mezője
-alapján a gomb felirata azonnal vált; a listát az SSE delta frissíti.
+presetekkel, valamint egy **sparkline** mutatja az elmúlt 60 mp le/fel
+sebességét az SSE session deltaiból. Read-only fióknál csak a note látszik. A
+válasz `paused` mezője alapján a gomb felirata azonnal vált; a listát az SSE
+delta frissíti.
 
 ## Megosztás (Android)
 

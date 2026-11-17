@@ -370,6 +370,7 @@ describe("App", () => {
     );
     expect(dialog.text()).toContain("8.00 GiB");
     expect(dialog.text()).toContain(t("session.pause"));
+    expect(dialog.find(".sparkline").exists()).toBe(true);
 
     await dialog.get(".sheet-actions .action").trigger("click");
     await flushPromises();

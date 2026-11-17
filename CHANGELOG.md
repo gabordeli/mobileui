@@ -15,6 +15,8 @@
   status message is not `OK`; the `Error` filter is available in the UI.
 - The add sheet remembers the last path and label (clearable), and the detail
   can copy the magnet link or the infohash to the clipboard.
+- The session sheet draws a download/upload sparkline for the last 60 seconds
+  from the SSE session deltas.
 
 ## [0.2.0] - 2026-11-17
 
