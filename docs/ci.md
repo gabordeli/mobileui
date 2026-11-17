@@ -35,8 +35,8 @@
 - A `test` job `--cov-fail-under=80`-cal fut; a mostani backend fedettség 83%.
   A threshold a mostani érték alatt van, hogy ne törjön el, de a visszaesést
   kiszúrja.
-- A `webui-test` Vitest threshold-jei: statements 85, branches 70, functions 90,
-  lines 88; a mostani 89.47 / 73.46 / 94.59 / 92.3 (34 teszt).
+- A `webui-test` Vitest threshold-jei: statements 75, branches 65, functions 75,
+  lines 78; a mostani 79.17 / 68.69 / 79.42 / 82.21 (70 teszt, `.vue`-kkal).
 - A GitLab a `coverage:` regexszel a joblogból olvassa a számot, és a pipeline /
   MR nézetben jeleníti meg — privát, nincs külső badge.
 - A Sonar továbbra is report-only; a `sonar.qualitygate.wait=true` külön döntés
