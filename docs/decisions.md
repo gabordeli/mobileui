@@ -252,3 +252,13 @@ frontend csak HTTPS-en (secure context) kínálja fel a kapcsolót; a session
 sheetben kap helyet, hogy ne növelje a header ikonjait. A `vapid_subject`
 config adja a VAPID `sub` claimet, mert a szolgáltatások eltérően validálják a
 `mailto:`/URL formátumot.
+
+## D20 – Git history belső IP-k: elfogadás (2026-11-17)
+
+A publikus historyban 6 commitban szerepel `192.168.2.x` (RFC1918, NAT mögött);
+a jelenlegi tracked fában nincs ilyen, és a history nem tartalmaz tokent
+(`glpat-`, `sqp_`, `sntrys_`, `ghp_`). A `git filter-repo` + force-push a teljes
+historyt és a `v0.1.1`–`v0.1.3` tageket újraírná, ami a GitHub release-eket és a
+push mirrort is érinti; a home-lab IP elrejtésének haszna nem éri meg ezt a
+kockázatot. Döntés: **elfogadás**. Ha később mégis kell, külön, jóváhagyott
+force-push issue-ban, a release assetek ellenőrzésével.
