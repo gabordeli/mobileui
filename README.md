@@ -21,17 +21,20 @@ HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n
 - **M2 / #8 kész:** PWA manifest/ikonok/SW, light/dark téma, HU/EN i18n,
   skeleton/offline/error állapotok, safe-area + a11y alapok.
 - **M3 / #10 kész:** GitLab CI (lint/test/build + manuális release/deploy),
-  `v0.1.1` release, deploy job a .27-re; a #9 public HTTPS később.
+  `v0.1.2` release, deploy job a .27-re; a #9 public HTTPS kész.
 - **M3 / #11 kész:** runner toolchain (python/venv, node/npm, git, jq, curl,
   rsync, docker/trivy), `--check --diff` changed=0, runner restart.
 - **M3 / #13 kész:** teljes plugin metadata (author email, URL, license,
   classifiers) az egg/wheel `PKG-INFO`-ban.
-- **M3 / #14 implementálva:** hordozható `.egg` + sha256 a release-en,
-  `scripts/install.sh` `EGG=...` támogatással; a release job első futása és a
-  .27-es telepítés validálja.
+- **M3 / #14 kész:** hordozható `.egg` + sha256 a `v0.1.2` release-en,
+  `scripts/install.sh` `EGG=...` támogatással; a .27-en a release eggből
+  telepítve.
 - **M3 / #15 kész:** a SPA a `/health` válaszából jeleníti meg a plugin
   verzióját (token-kapu + footer); release bump után automatikus.
-- Következik: M3 / #9 public HTTPS, ha kell.
+- **M3 / #9 kész:** `https://cirice.ddns.net:8113/` — `.228` nginx TLS a
+  meglévő certtel, router WAN TCP 8113 → `192.168.2.228:8113`; token auth,
+  SSE, token-mentes access log.
+- Következik: M3 / #12 GitHub tükör, ha kell.
 
 ## Felépítés
 
@@ -139,11 +142,14 @@ kicsomagolni, majd `systemctl restart deluged` és
 ### Jelenlegi telepítés (2026-11-17)
 
 - Host: `cirice` (192.168.2.27), `deluged` systemd alatt; a plugin **enabled**,
-  a 8113 LAN-only, a 8112-es `deluge-web` változatlanul fut.
-- SPA: `http://192.168.2.27:8113/` (token-kapu), ugyanaz az API a `/api/*` alatt.
+  a 8113 LAN-on figyel, a 8112-es `deluge-web` változatlanul fut.
+- Publikus: `https://cirice.ddns.net:8113/` a `.228` nginx TLS proxy mögött
+  (router WAN TCP 8113 → `192.168.2.228:8113`), token-kapuval.
+- SPA: `http://192.168.2.27:8113/` LAN-on, ugyanaz az API a `/api/*` alatt.
 - A generált API-token a hoston a `/root/mobileui-token` fájlban van (600);
   a `mobileui.conf` a `debian-deluged` tulajdona, 600.
-- A token nem szerepel a daemon logban.
+- A token nem szerepel a daemon logban, és a `.228` nginx access logja is
+  `$uri`-t ír, így a `?token=` sem kerül bele.
 
 ### Konfiguráció
 
