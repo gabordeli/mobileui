@@ -4,7 +4,14 @@ Mobil-first web UI Deluge-hez, **core pluginként a `deluged`-ben** futva. A saj
 HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n.
 Deluge **2.x** (Python 3.10+), élesben **2.2.0**-val tesztelve; 1.x nem támogatott.
 
-## Állapot
+[![Release](https://img.shields.io/badge/release-v0.1.3-2ea44f?style=flat-square)](https://github.com/gabordeli/mobileui/releases)
+[![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square)](https://www.python.org/)
+[![Deluge](https://img.shields.io/badge/deluge-2.x-1f6feb?style=flat-square)](https://deluge-torrent.org/)
+[![Node](https://img.shields.io/badge/node-22-339933?style=flat-square)](https://nodejs.org/)
+[![Release workflow](https://github.com/gabordeli/mobileui/actions/workflows/release.yml/badge.svg)](https://github.com/gabordeli/mobileui/actions/workflows/release.yml)
+
+## 📊 Állapot
 
 Jelenlegi release: **v0.1.3** (GitLab + GitHub), a .27-en telepítve.
 
@@ -45,7 +52,7 @@ Jelenlegi release: **v0.1.3** (GitLab + GitHub), a .27-en telepítve.
   mirrorral; `v0.1.3` óta a GitHub Actions release wheel/sdist/egg/sha256
   assetekkel fut, CHANGELOG-alapú note-tal; a GitLab privát marad.
 
-## Felépítés
+## 🧱 Felépítés
 
 ```
 deluge_mobileui/     Deluge core plugin (Twisted Site a daemon reactorjában)
@@ -65,7 +72,25 @@ tests/                pytest (mock core, valódi Twisted resource-ok)
 docs/                 telepítés, API, üzemeltetés és döntések
 ```
 
-## Fejlesztés
+Publikus út (LAN-on a böngésző közvetlenül a `.27:8113`-at éri el):
+
+```mermaid
+flowchart LR
+    B["📱 Mobil böngésző<br/>SPA + SSE"] -->|"HTTPS :8113"| N["nginx (.228)<br/>TLS, $uri log"]
+    N -->|"proxy :8113"| P["deluged (.27)<br/>MobileUi plugin"]
+    P --> C["Deluge core<br/>torrentmanager"]
+    P --> L["Label plugin<br/>(opcionális)"]
+    P --> D["SPA static<br/>data/"]
+    P -.->|"opcionális"| S["Bugsink<br/>Sentry"]
+    classDef edge fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef core fill:#2ea44f,color:#fff,stroke:#2ea44f
+    classDef ext fill:#8250df,color:#fff,stroke:#8250df
+    class N edge
+    class P,C,D core
+    class S ext
+```
+
+## 🛠️ Fejlesztés
 
 ```bash
 python3 -m venv --system-site-packages .venv
@@ -100,7 +125,7 @@ VITE_API_PROXY=http://192.168.2.27:8113 npm run dev
 
 A részletek: [docs/webui.md](docs/webui.md).
 
-## CI / release
+## 🚀 CI / release
 
 A `.gitlab-ci.yml` stage-ei: `lint` (ruff + vue-tsc), `test` (pytest +
 pytest-cov és Vitest + coverage, Deluge nélkül stubokkal, `coverage.xml` +
@@ -117,7 +142,7 @@ elemzés, report-only), `build` (SPA + sdist/wheel/egg, artifact), `release`
 Részletek: [docs/ci.md](docs/ci.md). A deploy jobhoz a runneren
 `DEPLOY_SSH_KEY` és rsync kell (#11).
 
-## Telepítés
+## 📦 Telepítés
 
 A hoston, rootként, a repó checkoutjából:
 
@@ -132,7 +157,7 @@ A script egg-et épít, kicsomagolja a `deluge.plugins` alá, újraindítja a
 Hordozható egg, config/RPC, a jelenlegi telepítés és a visszaállítás:
 [docs/install.md](docs/install.md).
 
-## Dokumentáció
+## 📚 Dokumentáció
 
 - [docs/install.md](docs/install.md) – telepítés, hordozható egg, config, visszaállítás
 - [docs/api.md](docs/api.md) – API séma
