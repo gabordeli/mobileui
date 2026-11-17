@@ -638,7 +638,7 @@ onBeforeUnmount(() => {
         :title="t('header.token')"
         @click="showGate"
       >
-        ⚙
+        👤
       </button>
     </header>
 
