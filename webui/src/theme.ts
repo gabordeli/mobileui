@@ -5,10 +5,10 @@ export type Theme = "dark" | "light";
 const KEY = "mobileui.theme";
 const stored = localStorage.getItem(KEY);
 const systemLight = window.matchMedia?.("(prefers-color-scheme: light)").matches;
+let initial: Theme = systemLight ? "light" : "dark";
+if (stored === "dark" || stored === "light") initial = stored;
 
-export const theme = ref<Theme>(
-  stored === "dark" || stored === "light" ? stored : systemLight ? "light" : "dark",
-);
+export const theme = ref<Theme>(initial);
 
 export function applyTheme(): void {
   document.documentElement.dataset.theme = theme.value;

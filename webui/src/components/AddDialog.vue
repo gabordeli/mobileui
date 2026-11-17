@@ -99,10 +99,15 @@ async function submit(): Promise<void> {
 
 <template>
   <Teleport to="body">
-    <div class="sheet-backdrop" @click.self="emit('close')">
-      <section
+    <div
+      class="sheet-backdrop"
+      tabindex="-1"
+      @click.self="emit('close')"
+      @keydown.esc="emit('close')"
+    >
+      <dialog
+        open
         class="sheet add-sheet"
-        role="dialog"
         aria-modal="true"
         :aria-label="t('add.title')"
         @keydown.esc="emit('close')"
@@ -208,7 +213,7 @@ async function submit(): Promise<void> {
             {{ loading ? t("add.submitting") : t("add.submit") }}
           </button>
         </div>
-      </section>
+      </dialog>
     </div>
   </Teleport>
 </template>

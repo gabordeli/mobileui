@@ -21,16 +21,16 @@ describe("TorrentRow", () => {
     expect(wrapper.text()).toContain("Demo Movie 2024");
     expect(wrapper.text()).toContain("42.5%");
     expect(wrapper.text()).toContain("ETA");
-    expect(wrapper.get("article").attributes("aria-label")).toBe(torrent.name);
+    expect(wrapper.get("button").attributes("aria-label")).toBe(torrent.name);
 
-    await wrapper.get("article").trigger("click");
+    await wrapper.get("button").trigger("click");
     expect(wrapper.emitted("select")?.[0]).toEqual([torrent]);
   });
 
   it("emits longPress after 500ms and suppresses the click", async () => {
     vi.useFakeTimers();
     const wrapper = factory();
-    const row = wrapper.get("article");
+    const row = wrapper.get("button");
 
     await row.trigger("pointerdown", { button: 0, clientX: 10, clientY: 10 });
     vi.advanceTimersByTime(500);
@@ -45,7 +45,7 @@ describe("TorrentRow", () => {
   it("cancels the long press when the pointer moves", async () => {
     vi.useFakeTimers();
     const wrapper = factory();
-    const row = wrapper.get("article");
+    const row = wrapper.get("button");
 
     await row.trigger("pointerdown", { button: 0, clientX: 10, clientY: 10 });
     await row.trigger("pointermove", { clientX: 30, clientY: 10 });
@@ -73,16 +73,16 @@ describe("TorrentRow", () => {
   it("shows the selection check and pressed state", () => {
     const wrapper = factory({ selectionMode: true, selected: true });
 
-    expect(wrapper.get("article").attributes("aria-pressed")).toBe("true");
+    expect(wrapper.get("button").attributes("aria-pressed")).toBe("true");
     expect(wrapper.get(".row-check").classes()).toContain("on");
-    expect(wrapper.get("article").classes()).toContain("selected");
+    expect(wrapper.get("button").classes()).toContain("selected");
   });
 
   it("does not show the check outside selection mode", () => {
     const wrapper = factory({ selected: true });
 
     expect(wrapper.find(".row-check").exists()).toBe(false);
-    expect(wrapper.get("article").attributes("aria-pressed")).toBeUndefined();
+    expect(wrapper.get("button").attributes("aria-pressed")).toBeUndefined();
   });
 
   it("shows an error badge for a failed torrent", () => {
@@ -92,6 +92,6 @@ describe("TorrentRow", () => {
 
     expect(wrapper.get(".row-error").text()).toBe(t("row.error"));
     expect(wrapper.get(".row-error").attributes("title")).toBe("Tracker error");
-    expect(wrapper.get("article").classes()).toContain("error");
+    expect(wrapper.get("button").classes()).toContain("error");
   });
 });

@@ -79,11 +79,10 @@ onBeforeUnmount(clearTimer);
 </script>
 
 <template>
-  <article
+  <button
+    type="button"
     class="torrent-row"
     :class="{ selected, error: isError }"
-    role="button"
-    tabindex="0"
     :aria-label="torrent.name"
     :aria-pressed="selectionMode ? selected : undefined"
     :aria-haspopup="selectionMode ? undefined : 'dialog'"
@@ -93,21 +92,19 @@ onBeforeUnmount(clearTimer);
     @pointercancel="clearTimer"
     @pointerleave="clearTimer"
     @click="onClick"
-    @keydown.enter="onClick"
-    @keydown.space.prevent="onClick"
     @contextmenu.prevent
   >
-    <div class="row-top">
+    <span class="row-top">
       <span
         v-if="selectionMode"
         class="row-check"
         :class="{ on: selected }"
         aria-hidden="true"
       >{{ selected ? "✓" : "" }}</span>
-      <div class="row-title" :title="torrent.name">{{ torrent.name }}</div>
-      <div class="row-progress">{{ progress.toFixed(1) }}%</div>
-    </div>
-    <div class="row-meta">
+      <span class="row-title" :title="torrent.name">{{ torrent.name }}</span>
+      <span class="row-progress">{{ progress.toFixed(1) }}%</span>
+    </span>
+    <span class="row-meta">
       <span class="state-pill" :class="stateClass(torrent.state)">
         {{ stateLabel(torrent.state) }}
       </span>
@@ -118,17 +115,17 @@ onBeforeUnmount(clearTimer);
       <span>{{ formatBytes(torrent.total_size) }}</span>
       <span>{{ t("row.ratio", { value: formatRatio(torrent.ratio) }) }}</span>
       <span v-if="!paused">ETA {{ formatEta(torrent.eta) }}</span>
-    </div>
-    <div class="row-rates">
+    </span>
+    <span class="row-rates">
       <span class="down">↓ {{ formatRate(torrent.download_payload_rate) }}</span>
       <span class="up">↑ {{ formatRate(torrent.upload_payload_rate) }}</span>
-    </div>
-    <div class="progress-track" aria-hidden="true">
-      <div
+    </span>
+    <span class="progress-track" aria-hidden="true">
+      <span
         class="progress-fill"
         :class="{ complete: progress >= 100 }"
         :style="{ width: `${progress}%` }"
       />
-    </div>
-  </article>
+    </span>
+  </button>
 </template>

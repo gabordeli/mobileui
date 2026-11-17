@@ -186,7 +186,7 @@ describe("App", () => {
     await flushPromises();
 
     const dialog = wrapper.get(
-      `[role="dialog"][aria-label="${t("add.title")}"]`,
+      `dialog[aria-label="${t("add.title")}"]`,
     );
     expect((dialog.get("textarea").element as HTMLTextAreaElement).value).toBe(
       shared,
@@ -202,7 +202,7 @@ describe("App", () => {
     expect(api.getTorrent).toHaveBeenCalledWith(torrent.id);
     expect(window.location.search).toBe("");
     expect(
-      wrapper.get(`[role="dialog"][aria-label="${t("detail.title")}"]`),
+      wrapper.get(`dialog[aria-label="${t("detail.title")}"]`),
     ).toBeTruthy();
   });
 
@@ -380,7 +380,7 @@ describe("App", () => {
       .trigger("click");
 
     const dialog = wrapper.get(
-      `[role="dialog"][aria-label="${t("session.title")}"]`,
+      `dialog[aria-label="${t("session.title")}"]`,
     );
     expect(dialog.text()).toContain("8.00 GiB");
     expect(dialog.text()).toContain(t("session.pause"));
@@ -393,7 +393,7 @@ describe("App", () => {
     expect(wrapper.text()).toContain(t("toast.sessionPaused"));
     expect(
       wrapper
-        .get(`[role="dialog"][aria-label="${t("session.title")}"]`)
+        .get(`dialog[aria-label="${t("session.title")}"]`)
         .text(),
     ).toContain(t("session.resume"));
   });
@@ -402,7 +402,7 @@ describe("App", () => {
     wrapper: ReturnType<typeof mountApp>,
   ): Promise<void> {
     vi.useFakeTimers();
-    const row = wrapper.get(`[role="button"][aria-label="${torrent.name}"]`);
+    const row = wrapper.get(`button[aria-label="${torrent.name}"]`);
     await row.trigger("pointerdown", { button: 0, clientX: 10, clientY: 10 });
     vi.advanceTimersByTime(500);
     await nextTick();
@@ -481,7 +481,7 @@ describe("App", () => {
       .trigger("click");
 
     const dialog = wrapper.get(
-      `[role="dialog"][aria-label="${t("session.title")}"]`,
+      `dialog[aria-label="${t("session.title")}"]`,
     );
     const inputs = dialog.findAll(".limits-row input");
     await inputs[0].setValue(512);
@@ -523,12 +523,12 @@ describe("App", () => {
     await flushPromises();
 
     await wrapper.get(`button[aria-label="${t("header.add")}"]`).trigger("click");
-    expect(wrapper.get(`[role="dialog"][aria-label="${t("add.title")}"]`)).toBeTruthy();
-    await wrapper.get(`[role="dialog"] button[aria-label="${t("sheet.close")}"]`).trigger("click");
+    expect(wrapper.get(`dialog[aria-label="${t("add.title")}"]`)).toBeTruthy();
+    await wrapper.get(`dialog button[aria-label="${t("sheet.close")}"]`).trigger("click");
 
-    await wrapper.get(`[role="button"][aria-label="${torrent.name}"]`).trigger("click");
+    await wrapper.get(`button[aria-label="${torrent.name}"]`).trigger("click");
     await flushPromises();
     expect(api.getTorrent).toHaveBeenCalledWith(torrent.id);
-    expect(wrapper.get(`[role="dialog"][aria-label="${t("detail.title")}"]`)).toBeTruthy();
+    expect(wrapper.get(`dialog[aria-label="${t("detail.title")}"]`)).toBeTruthy();
   });
 });

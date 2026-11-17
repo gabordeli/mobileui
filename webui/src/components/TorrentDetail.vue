@@ -341,9 +341,9 @@ onMounted(() => {
 <template>
   <Teleport to="body">
     <div class="detail-backdrop">
-      <section
+      <dialog
+        open
         class="detail"
-        role="dialog"
         aria-modal="true"
         :aria-label="t('detail.title')"
         @keydown.esc="emit('close')"
@@ -660,7 +660,7 @@ onMounted(() => {
             </button>
           </div>
         </div>
-      </section>
+      </dialog>
     </div>
   </Teleport>
 </template>

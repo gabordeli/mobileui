@@ -86,7 +86,6 @@ function submit(): void {
           autocapitalize="none"
           :placeholder="t('auth.username')"
           :aria-label="t('auth.username')"
-          autofocus
         />
         <input
           v-model="password"
@@ -105,7 +104,6 @@ function submit(): void {
           autocomplete="current-password"
           :placeholder="t('token.placeholder')"
           :aria-label="t('token.placeholder')"
-          autofocus
         />
         <p v-if="!tokenSet" class="gate-hint">{{ t("auth.noToken") }}</p>
       </template>

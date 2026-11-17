@@ -110,12 +110,12 @@ function reportError(error: unknown, inList = false): void {
     authed.value = false;
     return;
   }
-  const message =
-    error instanceof api.ForbiddenError
-      ? t("auth.readonly")
-      : error instanceof Error
-        ? error.message
-        : t("toast.error");
+  let message = t("toast.error");
+  if (error instanceof api.ForbiddenError) {
+    message = t("auth.readonly");
+  } else if (error instanceof Error) {
+    message = error.message;
+  }
   if (inList) {
     listError.value = message;
   } else {
@@ -642,9 +642,9 @@ onBeforeUnmount(() => {
       </button>
     </header>
 
-    <div v-if="!online" class="offline-banner" role="status">
+    <output v-if="!online" class="offline-banner">
       {{ t("list.offline") }}
-    </div>
+    </output>
 
     <FilterBar
       :filters="filters"
@@ -753,6 +753,6 @@ onBeforeUnmount(() => {
       @toast="showToast"
     />
 
-    <div v-if="toast" class="toast" role="status">{{ toast }}</div>
+    <output v-if="toast" class="toast">{{ toast }}</output>
   </div>
 </template>

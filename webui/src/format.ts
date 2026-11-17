@@ -9,7 +9,9 @@ export function formatBytes(value: number): string {
     size /= 1024;
     unit += 1;
   }
-  const digits = size >= 100 ? 0 : size >= 10 ? 1 : 2;
+  let digits = 2;
+  if (size >= 100) digits = 0;
+  else if (size >= 10) digits = 1;
   return `${size.toFixed(digits)} ${units[unit]}`;
 }
 
