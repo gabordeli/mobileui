@@ -57,9 +57,9 @@ Jelenlegi release: **v0.1.3** (GitLab + GitHub), az éles példányon telepítve
   Docker scannerrel, report-only.
 - **Bugsink:** backend `sentry-sdk` + frontend `@sentry/vue`, közös DSN;
   a backend `sentry_dsn` élőben állítható.
-- **M3 / #12 kész:** privát GitHub tükör (`gabordeli/mobileui`) GitLab push
+- **M3 / #12 kész:** nyilvános GitHub tükör (`gabordeli/mobileui`) GitLab push
   mirrorral; `v0.1.3` óta a GitHub Actions release wheel/sdist/egg/sha256
-  assetekkel fut, CHANGELOG-alapú note-tal; a GitLab 2026-11-17 óta nyilvános.
+  assetekkel fut, CHANGELOG-alapú note-tal; a GitLab privát marad.
 - **Auth:** opcionális Deluge user/jelszó belépés a statikus API-token mellett
   (`auth_mode`), lejáró és visszahívható session tokennel, read-only (1) /
   normal (5) / admin (10) szintekkel; a token break-glass marad.
@@ -174,8 +174,8 @@ Hordozható egg, config/RPC, a jelenlegi telepítés és a visszaállítás:
 
 ## 🤝 Közreműködés
 
-A GitHub repó a GitLab fejlesztés **egyirányú, read-only tükre**; a fejlesztés a
-GitLabon folyik (2026-11-17 óta nyilvános). GitHub issue/PR esetén a maintainer
+A GitHub repó a GitLab fejlesztés **egyirányú, read-only tükre** (nyilvános); a
+fejlesztés a privát GitLabon folyik. GitHub issue/PR esetén a maintainer
 portolhatja; a részletek: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## ☕ Támogatás
