@@ -1,3 +1,5 @@
+import { t } from "./i18n";
+
 export function formatBytes(value: number): string {
   if (!value || value <= 0) return "0 B";
   const units = ["B", "KiB", "MiB", "GiB", "TiB"];
@@ -18,10 +20,14 @@ export function formatRate(value: number): string {
 export function formatEta(seconds: number): string {
   if (seconds < 0) return "∞";
   if (seconds === 0) return "—";
-  if (seconds < 60) return `${Math.round(seconds)} s`;
-  if (seconds < 3600) return `${Math.round(seconds / 60)} p`;
-  if (seconds < 86400) return `${Math.round(seconds / 3600)} ó`;
-  return `${Math.round(seconds / 86400)} nap`;
+  if (seconds < 60) return `${Math.round(seconds)} ${t("unit.second")}`;
+  if (seconds < 3600) {
+    return `${Math.round(seconds / 60)} ${t("unit.minute")}`;
+  }
+  if (seconds < 86400) {
+    return `${Math.round(seconds / 3600)} ${t("unit.hour")}`;
+  }
+  return `${Math.round(seconds / 86400)} ${t("unit.day")}`;
 }
 
 export function formatRatio(ratio: number): string {

@@ -4,6 +4,8 @@ import { RecycleScroller } from "vue-virtual-scroller";
 
 import * as api from "./api";
 import { formatRate } from "./format";
+import { locale, t, toggleLocale } from "./i18n";
+import { theme, toggleTheme } from "./theme";
 import type {
   ActionPayload,
   LabelInfo,
@@ -36,6 +38,7 @@ const selected = ref<Torrent | null>(null);
 const detail = ref<Torrent | null>(null);
 const detailLive = ref<Record<string, unknown>>({});
 const addOpen = ref(false);
+const online = ref(navigator.onLine);
 const toast = ref("");
 const sseState = ref<"off" | "live" | "reconnecting">("off");
 const tokenInitial = ref(api.getToken());
@@ -58,6 +61,11 @@ const torrentCount = computed(() => session.value?.num_torrents ?? total.value);
 const listKey = computed(
   () => `${filters.q}|${filters.state}|${filters.label}|${filters.sort}`,
 );
+const sseTitle = computed(() => {
+  if (sseState.value === "live") return t("header.live");
+  if (sseState.value === "off") return t("header.offline");
+  return t("header.reconnecting");
+});
 
 function showToast(message: string): void {
   toast.value = message;
@@ -77,12 +85,12 @@ function closeEvents(): void {
 function reportError(error: unknown, inList = false): void {
   if (error instanceof api.UnauthorizedError) {
     closeEvents();
-    authError.value = "Érvénytelen vagy lejárt token";
+    authError.value = t("token.invalid");
     tokenInitial.value = api.getToken();
     authed.value = false;
     return;
   }
-  const message = error instanceof Error ? error.message : "Ismeretlen hiba";
+  const message = error instanceof Error ? error.message : t("toast.error");
   if (inList) {
     listError.value = message;
   } else {
@@ -274,24 +282,24 @@ async function applyAction(payload: ActionPayload): Promise<void> {
     if (payload.kind === "pause") {
       const result = await api.pauseTorrent(torrent.id);
       api.updateTorrent(torrent, { state: result.state });
-      showToast("Szüneteltetve");
+      showToast(t("toast.paused"));
     } else if (payload.kind === "resume") {
       const result = await api.resumeTorrent(torrent.id);
       api.updateTorrent(torrent, { state: result.state });
-      showToast("Folytatva");
+      showToast(t("toast.resumed"));
     } else if (payload.kind === "queue") {
       await api.queueTorrent(torrent.id, payload.action ?? "");
-      showToast("Sorrend frissítve");
+      showToast(t("toast.queue"));
     } else if (payload.kind === "label") {
       const result = await api.setLabel(torrent.id, payload.label ?? "");
       api.updateTorrent(torrent, { label: result.label });
-      showToast("Label frissítve");
+      showToast(t("toast.label"));
     } else if (payload.kind === "remove") {
       const result = await api.removeTorrent(torrent.id, payload.remove_data ?? false);
       if (result.removed) {
         torrents.value = torrents.value.filter((row) => row.id !== torrent.id);
         total.value = Math.max(0, total.value - 1);
-        showToast("Torrent eltávolítva");
+        showToast(t("toast.removed"));
       }
     }
   } catch (error) {
@@ -319,11 +327,19 @@ function cancelGate(): void {
   }
 }
 
+function updateOnline(): void {
+  online.value = navigator.onLine;
+}
+
 onMounted(() => {
+  window.addEventListener("online", updateOnline);
+  window.addEventListener("offline", updateOnline);
   void bootstrap();
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener("online", updateOnline);
+  window.removeEventListener("offline", updateOnline);
   closeEvents();
   if (toastTimer !== null) clearTimeout(toastTimer);
   if (searchTimer !== null) clearTimeout(searchTimer);
@@ -344,20 +360,54 @@ onBeforeUnmount(() => {
     <header class="app-header">
       <div class="brand">
         Deluge <strong>Mobile</strong>
-        <span class="sse-dot" :class="sseState" :title="sseState" />
+        <span
+          class="sse-dot"
+          :class="sseState"
+          :title="sseTitle"
+        />
       </div>
       <div class="header-stats">
         <span>↓ {{ formatRate(downRate) }}</span>
         <span>↑ {{ formatRate(upRate) }}</span>
         <span>{{ torrentCount }}</span>
       </div>
-      <button class="icon-button" aria-label="Torrent hozzáadása" @click="addOpen = true">
+      <button
+        class="icon-button compact"
+        :aria-label="t('header.theme')"
+        :title="t('header.theme')"
+        @click="toggleTheme"
+      >
+        {{ theme === "dark" ? "☀" : "☾" }}
+      </button>
+      <button
+        class="icon-button compact"
+        :aria-label="t('header.language')"
+        :title="t('header.language')"
+        @click="toggleLocale"
+      >
+        {{ locale === "hu" ? "EN" : "HU" }}
+      </button>
+      <button
+        class="icon-button"
+        :aria-label="t('header.add')"
+        :title="t('header.add')"
+        @click="addOpen = true"
+      >
         +
       </button>
-      <button class="icon-button" aria-label="Token beállítása" @click="showGate">
+      <button
+        class="icon-button"
+        :aria-label="t('header.token')"
+        :title="t('header.token')"
+        @click="showGate"
+      >
         ⚙
       </button>
     </header>
+
+    <div v-if="!online" class="offline-banner" role="status">
+      {{ t("list.offline") }}
+    </div>
 
     <FilterBar
       :filters="filters"
@@ -369,7 +419,10 @@ onBeforeUnmount(() => {
     />
 
     <main class="list-pane">
-      <div v-if="listError" class="error-banner">{{ listError }}</div>
+      <div v-if="listError" class="error-banner">
+        <span>{{ listError }}</span>
+        <button class="action" @click="resetList">{{ t("list.retry") }}</button>
+      </div>
       <RecycleScroller
         :key="listKey"
         class="scroller"
@@ -387,9 +440,18 @@ onBeforeUnmount(() => {
           />
         </template>
       </RecycleScroller>
-      <div v-if="loading" class="list-state">Betöltés…</div>
-      <div v-else-if="!torrents.length" class="list-state">Nincs találat</div>
-      <div v-if="loadingMore" class="load-more">Továbbiak betöltése…</div>
+      <div v-if="loading" class="skeleton-list" aria-hidden="true">
+        <div v-for="index in 6" :key="index" class="skeleton-row">
+          <span class="skeleton-line wide" />
+          <span class="skeleton-line" />
+        </div>
+      </div>
+      <div v-else-if="!torrents.length" class="list-state">
+        {{ t("list.empty") }}
+      </div>
+      <div v-if="loadingMore" class="load-more">
+        {{ t("list.loadMore") }}
+      </div>
     </main>
 
     <ContextSheet

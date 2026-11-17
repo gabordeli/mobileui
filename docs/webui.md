@@ -55,9 +55,26 @@ események szűrő nélkül a totalt is korrigálják; reconnectet a böngésző
 - A detail SSE-ből kapja a progress/rate/state frissítést; a listát és a detailt
   a műveletek után a válasz + SSE szinkronban tartja.
 
+## PWA, téma, i18n
+
+- `manifest.webmanifest` + 192/512/apple ikonok + `public/sw.js`; a SW az app
+  shellt cache-eli, a navigációt network-first, az asseteket cache-first kezeli,
+  az `/api/*` network-only. Regisztráció csak secure contextben (HTTPS vagy
+  localhost) indul; a mostani HTTP LAN-on a manifest/ikonok már jók, a SW a #9
+  HTTPS deploy után lép életbe.
+- Sötét/light téma: `data-theme` a `<html>`-en, localStorage-ban tárolva;
+  a `prefers-color-scheme` adja a kezdeti értéket, a fejléc ☀/☾ gombja vált.
+- HU/EN i18n: `src/i18n.ts`, localStorage `mobileui.locale`; a fejléc EN/HU
+  gombja vált, a state-nevek is fordulnak. Az API értékei (state, label)
+  változatlanok.
+- Offline banner (`navigator.onLine`), skeleton töltés közben, empty/error
+  állapot retry gombbal; safe-area padding a header/filter/row/sheet/detail
+  elemeken; `:focus-visible` és Esc a sheet/detail bezárásához.
+
 ## Ismert korlátok / következő
 
-- PWA/manifest, HU/EN i18n, safe-area finomítás: #8.
+- A service worker/offline shell csak HTTPS-en (vagy localhoston) aktív; a #9
+  deploy után teljes a PWA telepíthetőség.
 - A token localStorage-ban van (nem httpOnly cookie); a plugin LAN-only.
 - A lista végtelen scrollos, nincs „ugrás N. elemre"; a szűrők ezt kezelik.
 - A detail fájllistája „További fájlok” gombbal lapoz, nem virtualizált.

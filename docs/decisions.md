@@ -134,3 +134,19 @@ abszolút `download_location`-nel és opcionális `add_paused`-dal; a default
 útvonal a session `download_location`. A .27-en UI-ból hozzáadott teszt torrent
 `Paused`/`filmek`/`/tmp/mobileui-add-test` állapotban jött létre, majd eltávolítva
 a 833-as darabszám visszaállt. Tap → detail, long-press → gyors műveletek.
+
+## D11 – PWA, téma, i18n (2026-11-17)
+
+A SPA PWA manifestet (`/manifest.webmanifest`), 192/512/apple ikonokat és
+`public/sw.js`-t kapott. A SW app-shell cache + network-first navigáció,
+cache-first assetek, `/api/*` network-only. HTTP LAN-on a service worker nem
+regisztrál (nem secure context), ezért a teljes offline shell/telepíthetőség a
+#9 HTTPS deploy után lesz aktív; a manifest és ikonok már most 200-at adnak.
+
+A téma `data-theme` attribútummal, localStorage-ban tárolva; kezdeti érték a
+`prefers-color-scheme`, a fejléc gombja vált. Az i18n `src/i18n.ts`-ben él
+(HU/EN, localStorage), a state-nevek is fordulnak; az API értékei változatlanok.
+Skeleton, offline banner, error+retry, safe-area padding, `:focus-visible` és
+Esc-close került be. A .27-en 360/390 px-en nincs vízszintes scroll (a keskeny
+fejléc brandje rövidül), a HU↔EN és light↔dark váltás ellenőrizve, 0 console
+error.

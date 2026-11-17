@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
+import { stateLabel, t } from "../i18n";
 import type { ActionPayload, LabelInfo, Torrent } from "../types";
 
 const props = defineProps<{
@@ -15,6 +16,7 @@ const emit = defineEmits<{
 
 const selectedLabel = ref(props.torrent.label);
 const removeData = ref(false);
+const closeButton = ref<HTMLButtonElement | null>(null);
 
 const isPaused = computed(() => props.torrent.state.includes("Paused"));
 const labelOptions = computed(() => {
@@ -34,22 +36,40 @@ function applyLabel(): void {
 }
 
 function remove(): void {
-  if (!confirm(`Eltávolítod: ${props.torrent.name}?`)) return;
+  if (!confirm(t("sheet.confirmRemove", { name: props.torrent.name }))) return;
   emit("action", { kind: "remove", remove_data: removeData.value });
 }
+
+onMounted(() => closeButton.value?.focus());
 </script>
 
 <template>
   <Teleport to="body">
     <div class="sheet-backdrop" @click.self="emit('close')">
-      <section class="sheet" role="dialog" aria-modal="true" aria-label="Torrent műveletek">
+      <section
+        class="sheet"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="t('sheet.title')"
+        @keydown.esc="emit('close')"
+      >
         <div class="sheet-handle" aria-hidden="true" />
         <header class="sheet-head">
           <div>
             <h2>{{ torrent.name }}</h2>
-            <p>{{ torrent.state }} · {{ torrent.label }} · {{ torrent.progress.toFixed(1) }}%</p>
+            <p>
+              {{ stateLabel(torrent.state) }} · {{ torrent.label }} ·
+              {{ torrent.progress.toFixed(1) }}%
+            </p>
           </div>
-          <button class="icon-button" aria-label="Bezárás" @click="emit('close')">✕</button>
+          <button
+            ref="closeButton"
+            class="icon-button"
+            :aria-label="t('sheet.close')"
+            @click="emit('close')"
+          >
+            ✕
+          </button>
         </header>
 
         <div class="sheet-actions">
@@ -57,30 +77,30 @@ function remove(): void {
             class="action primary"
             @click="emit('action', { kind: isPaused ? 'resume' : 'pause' })"
           >
-            {{ isPaused ? "Folytatás" : "Szüneteltetés" }}
+            {{ isPaused ? t("sheet.resume") : t("sheet.pause") }}
           </button>
           <div class="queue-grid">
-            <button class="action" @click="queue('top')">Legfelülre</button>
-            <button class="action" @click="queue('up')">Fel</button>
-            <button class="action" @click="queue('down')">Le</button>
-            <button class="action" @click="queue('bottom')">Legalulra</button>
+            <button class="action" @click="queue('top')">{{ t("sheet.top") }}</button>
+            <button class="action" @click="queue('up')">{{ t("sheet.up") }}</button>
+            <button class="action" @click="queue('down')">{{ t("sheet.down") }}</button>
+            <button class="action" @click="queue('bottom')">{{ t("sheet.bottom") }}</button>
           </div>
           <label class="field">
-            <span>Label</span>
+            <span>{{ t("sheet.label") }}</span>
             <div class="inline-field">
               <select v-model="selectedLabel">
                 <option v-for="label in labelOptions" :key="label" :value="label">
                   {{ label }}
                 </option>
               </select>
-              <button class="action" @click="applyLabel">Mentés</button>
+              <button class="action" @click="applyLabel">{{ t("sheet.save") }}</button>
             </div>
           </label>
           <label class="checkbox">
             <input v-model="removeData" type="checkbox" />
-            <span>Letöltött adatok törlése is</span>
+            <span>{{ t("sheet.removeData") }}</span>
           </label>
-          <button class="action danger" @click="remove">Eltávolítás</button>
+          <button class="action danger" @click="remove">{{ t("sheet.remove") }}</button>
         </div>
       </section>
     </div>

@@ -18,7 +18,9 @@ HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n
   virtualizált végtelen scroll, kereső/szűrők, long-press sheet, SSE élő lista.
 - **M2 / #7 kész:** torrent detail (peers/ETA/ratio/útvonal), lapozott
   fájllista, add sheet magnet/.torrent + label + útvonal.
-- Következik: M2 / #8 mobil/PWA polish.
+- **M2 / #8 kész:** PWA manifest/ikonok/SW, light/dark téma, HU/EN i18n,
+  skeleton/offline/error állapotok, safe-area + a11y alapok.
+- Következik: M3 / #9 HTTPS + deploy.
 
 ## Felépítés
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 
 import * as api from "../api";
+import { t } from "../i18n";
 import type { LabelInfo } from "../types";
 
 const props = defineProps<{
@@ -23,6 +24,9 @@ const downloadLocation = ref(props.defaultPath);
 const addPaused = ref(false);
 const loading = ref(false);
 const error = ref("");
+const closeButton = ref<HTMLButtonElement | null>(null);
+
+onMounted(() => closeButton.value?.focus());
 
 function pickFile(event: Event): void {
   const input = event.target as HTMLInputElement;
@@ -32,11 +36,11 @@ function pickFile(event: Event): void {
 async function submit(): Promise<void> {
   error.value = "";
   if (mode.value === "magnet" && !magnet.value.trim()) {
-    error.value = "Adj meg egy magnet linket.";
+    error.value = t("add.needMagnet");
     return;
   }
   if (mode.value === "file" && !file.value) {
-    error.value = "Válassz egy .torrent fájlt.";
+    error.value = t("add.needFile");
     return;
   }
 
@@ -52,10 +56,10 @@ async function submit(): Promise<void> {
         ? await api.addTorrentMagnet(magnet.value.trim(), options)
         : await api.addTorrentFile(file.value as File, options);
     emit("added", result);
-    emit("toast", "Torrent hozzáadva");
+    emit("toast", t("toast.added"));
     emit("close");
   } catch (err) {
-    error.value = err instanceof Error ? err.message : "Hiba a hozzáadásnál";
+    error.value = err instanceof Error ? err.message : t("add.error");
   } finally {
     loading.value = false;
   }
@@ -65,17 +69,30 @@ async function submit(): Promise<void> {
 <template>
   <Teleport to="body">
     <div class="sheet-backdrop" @click.self="emit('close')">
-      <section class="sheet add-sheet" role="dialog" aria-modal="true" aria-label="Torrent hozzáadása">
+      <section
+        class="sheet add-sheet"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="t('add.title')"
+        @keydown.esc="emit('close')"
+      >
         <div class="sheet-handle" aria-hidden="true" />
         <header class="sheet-head">
           <div>
-            <h2>Torrent hozzáadása</h2>
-            <p>Magnet link vagy .torrent fájl</p>
+            <h2>{{ t("add.title") }}</h2>
+            <p>{{ t("add.subtitle") }}</p>
           </div>
-          <button class="icon-button" aria-label="Bezárás" @click="emit('close')">✕</button>
+          <button
+            ref="closeButton"
+            class="icon-button"
+            :aria-label="t('sheet.close')"
+            @click="emit('close')"
+          >
+            ✕
+          </button>
         </header>
 
-        <div class="segmented" role="tablist" aria-label="Hozzáadás módja">
+        <div class="segmented" role="tablist" :aria-label="t('add.title')">
           <button
             class="segment"
             :class="{ active: mode === 'magnet' }"
@@ -83,7 +100,7 @@ async function submit(): Promise<void> {
             :aria-selected="mode === 'magnet'"
             @click="mode = 'magnet'"
           >
-            Magnet
+            {{ t("add.magnetTab") }}
           </button>
           <button
             class="segment"
@@ -92,39 +109,43 @@ async function submit(): Promise<void> {
             :aria-selected="mode === 'file'"
             @click="mode = 'file'"
           >
-            .torrent fájl
+            {{ t("add.fileTab") }}
           </button>
         </div>
 
         <div class="add-form">
           <label v-if="mode === 'magnet'" class="field">
-            <span>Magnet link</span>
+            <span>{{ t("add.magnet") }}</span>
             <textarea
               v-model="magnet"
               rows="3"
-              placeholder="magnet:?xt=urn:btih:…"
+              :placeholder="t('add.magnetPlaceholder')"
               spellcheck="false"
             />
           </label>
           <label v-else class="field">
-            <span>Torrent fájl</span>
+            <span>{{ t("add.file") }}</span>
             <input type="file" accept=".torrent,application/x-bittorrent" @change="pickFile" />
-            <small v-if="file">{{ file.name }} · {{ Math.ceil(file.size / 1024) }} KiB</small>
+            <small v-if="file">
+              {{ t("add.fileHint", { name: file.name, size: Math.ceil(file.size / 1024) }) }}
+            </small>
           </label>
 
           <label class="field">
-            <span>Label</span>
+            <span>{{ t("add.label") }}</span>
             <select v-model="label">
-              <option value="">Nincs label</option>
+              <option value="">{{ t("add.noLabel") }}</option>
               <option v-for="item in labels" :key="item.id" :value="item.id">
                 {{ item.id }} ({{ item.count }})
               </option>
-              <option v-if="noLabelCount > 0" value="No Label">No Label</option>
+              <option v-if="noLabelCount > 0" value="No Label">
+                {{ t("add.noLabel") }}
+              </option>
             </select>
           </label>
 
           <label class="field">
-            <span>Mentési útvonal</span>
+            <span>{{ t("add.path") }}</span>
             <input
               v-model="downloadLocation"
               type="text"
@@ -132,21 +153,23 @@ async function submit(): Promise<void> {
               autocapitalize="off"
               spellcheck="false"
             />
-            <small>Abszolút út; üresen a Deluge alapértéke.</small>
+            <small>{{ t("add.pathHint") }}</small>
           </label>
 
           <label class="checkbox">
             <input v-model="addPaused" type="checkbox" />
-            <span>Szünetelve induljon</span>
+            <span>{{ t("add.paused") }}</span>
           </label>
         </div>
 
         <p v-if="error" class="gate-error" role="alert">{{ error }}</p>
 
         <div class="add-actions">
-          <button class="action" :disabled="loading" @click="emit('close')">Mégse</button>
+          <button class="action" :disabled="loading" @click="emit('close')">
+            {{ t("add.cancel") }}
+          </button>
           <button class="action primary" :disabled="loading" @click="submit">
-            {{ loading ? "Hozzáadás…" : "Hozzáadás" }}
+            {{ loading ? t("add.submitting") : t("add.submit") }}
           </button>
         </div>
       </section>

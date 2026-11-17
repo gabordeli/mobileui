@@ -9,6 +9,7 @@ import {
   formatRate,
   stateClass,
 } from "../format";
+import { locale, stateLabel, t } from "../i18n";
 import type { LabelInfo, TorrentDetail, TorrentFile } from "../types";
 
 const props = defineProps<{
@@ -34,6 +35,7 @@ const actionError = ref("");
 const actionLoading = ref(false);
 const selectedLabel = ref("");
 const removeData = ref(false);
+const backButton = ref<HTMLButtonElement | null>(null);
 
 const progress = computed(() =>
   Math.max(0, Math.min(100, detail.value?.progress ?? 0)),
@@ -52,7 +54,7 @@ const labelOptions = computed(() => {
 });
 
 function messageOf(value: unknown): string {
-  return value instanceof Error ? value.message : "Ismeretlen hiba";
+  return value instanceof Error ? value.message : t("toast.error");
 }
 
 async function loadDetail(): Promise<void> {
@@ -98,7 +100,7 @@ async function act(kind: "pause" | "resume"): Promise<void> {
         : await api.resumeTorrent(props.torrentId);
     detail.value.state = result.state;
     emit("updated", { id: props.torrentId, fields: { state: result.state } });
-    emit("toast", kind === "pause" ? "Szüneteltetve" : "Folytatva");
+    emit("toast", kind === "pause" ? t("toast.paused") : t("toast.resumed"));
   } catch (err) {
     actionError.value = messageOf(err);
   } finally {
@@ -111,7 +113,7 @@ async function queue(action: string): Promise<void> {
   actionError.value = "";
   try {
     await api.queueTorrent(props.torrentId, action);
-    emit("toast", "Sorrend frissítve");
+    emit("toast", t("toast.queue"));
   } catch (err) {
     actionError.value = messageOf(err);
   } finally {
@@ -126,7 +128,7 @@ async function saveLabel(): Promise<void> {
     const result = await api.setLabel(props.torrentId, selectedLabel.value);
     if (detail.value) detail.value.label = result.label;
     emit("updated", { id: props.torrentId, fields: { label: result.label } });
-    emit("toast", "Label frissítve");
+    emit("toast", t("toast.label"));
   } catch (err) {
     actionError.value = messageOf(err);
   } finally {
@@ -136,7 +138,7 @@ async function saveLabel(): Promise<void> {
 
 async function remove(): Promise<void> {
   if (!detail.value) return;
-  if (!confirm(`Eltávolítod: ${detail.value.name}?`)) return;
+  if (!confirm(t("detail.confirmRemove", { name: detail.value.name }))) return;
   actionLoading.value = true;
   actionError.value = "";
   try {
@@ -154,7 +156,9 @@ async function remove(): Promise<void> {
 
 function addedDate(seconds: number): string {
   if (!seconds) return "—";
-  return new Date(seconds * 1000).toLocaleDateString("hu-HU");
+  return new Date(seconds * 1000).toLocaleDateString(
+    locale.value === "hu" ? "hu-HU" : "en-GB",
+  );
 }
 
 function peerLabel(current: number, total: number): string {
@@ -169,32 +173,54 @@ watch(
   { deep: true },
 );
 
-onMounted(loadDetail);
+onMounted(() => {
+  void loadDetail();
+  backButton.value?.focus();
+});
 </script>
 
 <template>
   <Teleport to="body">
     <div class="detail-backdrop">
-      <section class="detail" role="dialog" aria-modal="true" aria-label="Torrent részletek">
+      <section
+        class="detail"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="t('detail.title')"
+        @keydown.esc="emit('close')"
+      >
         <header class="detail-head">
-          <button class="icon-button" aria-label="Vissza" @click="emit('close')">←</button>
+          <button
+            ref="backButton"
+            class="icon-button"
+            :aria-label="t('detail.back')"
+            @click="emit('close')"
+          >
+            ←
+          </button>
           <div class="detail-title">
-            <h2>{{ detail?.name ?? "Betöltés…" }}</h2>
+            <h2>{{ detail?.name ?? t("detail.loading") }}</h2>
             <p v-if="detail">
               <span class="state-pill" :class="stateClass(detail.state)">
-                {{ detail.state }}
+                {{ stateLabel(detail.state) }}
               </span>
               <span>{{ detail.label }}</span>
               <span v-if="detail.tracker_host">· {{ detail.tracker_host }}</span>
             </p>
           </div>
-          <button class="icon-button" aria-label="Bezárás" @click="emit('close')">✕</button>
+          <button
+            class="icon-button"
+            :aria-label="t('detail.close')"
+            @click="emit('close')"
+          >
+            ✕
+          </button>
         </header>
 
-        <div v-if="loading" class="detail-state">Betöltés…</div>
+        <div v-if="loading" class="detail-state">{{ t("detail.loading") }}</div>
         <div v-else-if="error" class="detail-state">
           <p>{{ error }}</p>
-          <button class="action" @click="loadDetail">Újrapróbálás</button>
+          <button class="action" @click="loadDetail">{{ t("detail.retry") }}</button>
         </div>
 
         <div v-else-if="detail" class="detail-body">
@@ -214,18 +240,18 @@ onMounted(loadDetail);
           </div>
 
           <div class="stats-grid">
-            <div><span>Letöltés</span><strong class="down">{{ formatRate(detail.download_payload_rate) }}</strong></div>
-            <div><span>Feltöltés</span><strong class="up">{{ formatRate(detail.upload_payload_rate) }}</strong></div>
-            <div><span>ETA</span><strong>{{ formatEta(detail.eta) }}</strong></div>
-            <div><span>Ratio</span><strong>{{ formatRatio(detail.ratio) }}</strong></div>
-            <div><span>Peers</span><strong>{{ peerLabel(detail.num_peers, detail.total_peers) }}</strong></div>
-            <div><span>Seeds</span><strong>{{ peerLabel(detail.num_seeds, detail.total_seeds) }}</strong></div>
-            <div><span>Méret</span><strong>{{ formatBytes(detail.total_size) }}</strong></div>
-            <div><span>Hozzáadva</span><strong>{{ addedDate(detail.time_added) }}</strong></div>
+            <div><span>{{ t("detail.download") }}</span><strong class="down">{{ formatRate(detail.download_payload_rate) }}</strong></div>
+            <div><span>{{ t("detail.upload") }}</span><strong class="up">{{ formatRate(detail.upload_payload_rate) }}</strong></div>
+            <div><span>{{ t("detail.eta") }}</span><strong>{{ formatEta(detail.eta) }}</strong></div>
+            <div><span>{{ t("detail.ratio") }}</span><strong>{{ formatRatio(detail.ratio) }}</strong></div>
+            <div><span>{{ t("detail.peers") }}</span><strong>{{ peerLabel(detail.num_peers, detail.total_peers) }}</strong></div>
+            <div><span>{{ t("detail.seeds") }}</span><strong>{{ peerLabel(detail.num_seeds, detail.total_seeds) }}</strong></div>
+            <div><span>{{ t("detail.size") }}</span><strong>{{ formatBytes(detail.total_size) }}</strong></div>
+            <div><span>{{ t("detail.added") }}</span><strong>{{ addedDate(detail.time_added) }}</strong></div>
           </div>
 
           <div class="detail-path">
-            <span>Mentési útvonal</span>
+            <span>{{ t("detail.path") }}</span>
             <code>{{ detail.download_location || detail.save_path }}</code>
           </div>
 
@@ -237,18 +263,18 @@ onMounted(loadDetail);
               :disabled="actionLoading"
               @click="act(isPaused ? 'resume' : 'pause')"
             >
-              {{ isPaused ? "Folytatás" : "Szüneteltetés" }}
+              {{ isPaused ? t("sheet.resume") : t("sheet.pause") }}
             </button>
             <div class="queue-grid">
-              <button class="action" :disabled="actionLoading" @click="queue('top')">Legfelülre</button>
-              <button class="action" :disabled="actionLoading" @click="queue('up')">Fel</button>
-              <button class="action" :disabled="actionLoading" @click="queue('down')">Le</button>
-              <button class="action" :disabled="actionLoading" @click="queue('bottom')">Legalulra</button>
+              <button class="action" :disabled="actionLoading" @click="queue('top')">{{ t("sheet.top") }}</button>
+              <button class="action" :disabled="actionLoading" @click="queue('up')">{{ t("sheet.up") }}</button>
+              <button class="action" :disabled="actionLoading" @click="queue('down')">{{ t("sheet.down") }}</button>
+              <button class="action" :disabled="actionLoading" @click="queue('bottom')">{{ t("sheet.bottom") }}</button>
             </div>
           </div>
 
           <label class="field">
-            <span>Label</span>
+            <span>{{ t("sheet.label") }}</span>
             <div class="inline-field">
               <select v-model="selectedLabel">
                 <option v-for="option in labelOptions" :key="option" :value="option">
@@ -256,19 +282,21 @@ onMounted(loadDetail);
                 </option>
               </select>
               <button class="action" :disabled="actionLoading" @click="saveLabel">
-                Mentés
+                {{ t("sheet.save") }}
               </button>
             </div>
           </label>
 
           <section class="files">
             <header class="files-head">
-              <h3>Fájlok <small v-if="filesTotal">({{ filesTotal }})</small></h3>
-              <span v-if="filesTotal">{{ files.length }} betöltve</span>
+              <h3>{{ t("detail.files") }} <small v-if="filesTotal">({{ filesTotal }})</small></h3>
+              <span v-if="filesTotal">{{ t("detail.filesLoaded", { count: files.length }) }}</span>
             </header>
-            <div v-if="filesLoading && !files.length" class="detail-state small">Fájlok betöltése…</div>
+            <div v-if="filesLoading && !files.length" class="detail-state small">
+              {{ t("detail.loadingFiles") }}
+            </div>
             <p v-else-if="!files.length" class="files-empty">
-              Nincs fájlinformáció (pl. magnet metaadat nélkül).
+              {{ t("detail.filesEmpty") }}
             </p>
             <ul v-else class="file-list">
               <li v-for="file in files" :key="file.index" class="file-row">
@@ -290,17 +318,17 @@ onMounted(loadDetail);
               :disabled="filesLoading"
               @click="loadFiles(false)"
             >
-              {{ filesLoading ? "Betöltés…" : "További fájlok" }}
+              {{ filesLoading ? t("add.submitting") : t("detail.moreFiles") }}
             </button>
           </section>
 
           <div class="detail-remove">
             <label class="checkbox">
               <input v-model="removeData" type="checkbox" />
-              <span>Letöltött adatok törlése is</span>
+              <span>{{ t("detail.removeData") }}</span>
             </label>
             <button class="action danger" :disabled="actionLoading" @click="remove">
-              Eltávolítás
+              {{ t("detail.remove") }}
             </button>
           </div>
         </div>

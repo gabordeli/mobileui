@@ -8,6 +8,7 @@ import {
   formatRate,
   stateClass,
 } from "../format";
+import { stateLabel, t } from "../i18n";
 import type { Torrent } from "../types";
 
 const props = defineProps<{ torrent: Torrent }>();
@@ -71,12 +72,18 @@ onBeforeUnmount(clearTimer);
 <template>
   <article
     class="torrent-row"
+    role="button"
+    tabindex="0"
+    :aria-label="torrent.name"
+    aria-haspopup="dialog"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="clearTimer"
     @pointercancel="clearTimer"
     @pointerleave="clearTimer"
     @click="onClick"
+    @keydown.enter="onClick"
+    @keydown.space.prevent="onClick"
     @contextmenu.prevent
   >
     <div class="row-top">
@@ -85,11 +92,11 @@ onBeforeUnmount(clearTimer);
     </div>
     <div class="row-meta">
       <span class="state-pill" :class="stateClass(torrent.state)">
-        {{ torrent.state }}
+        {{ stateLabel(torrent.state) }}
       </span>
       <span class="label-pill">{{ torrent.label }}</span>
       <span>{{ formatBytes(torrent.total_size) }}</span>
-      <span>ratio {{ formatRatio(torrent.ratio) }}</span>
+      <span>{{ t("row.ratio", { value: formatRatio(torrent.ratio) }) }}</span>
       <span v-if="!paused">ETA {{ formatEta(torrent.eta) }}</span>
     </div>
     <div class="row-rates">

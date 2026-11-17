@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
+import { t } from "../i18n";
+
 const props = defineProps<{
   initialToken: string;
   error: string;
@@ -15,28 +17,25 @@ const token = ref(props.initialToken);
   <div class="gate">
     <form class="gate-card" @submit.prevent="emit('submit', token.trim())">
       <div class="gate-brand">Deluge <strong>Mobile</strong></div>
-      <p class="gate-copy">
-        Add meg a plugin API-tokenjét. A token a Deluge host
-        <code>mobileui.conf</code> fájljában van.
-      </p>
+      <p class="gate-copy">{{ t("token.copy") }}</p>
       <input
         v-model="token"
         type="password"
         autocomplete="current-password"
-        placeholder="API token"
-        aria-label="API token"
+        :placeholder="t('token.placeholder')"
+        :aria-label="t('token.placeholder')"
         autofocus
       />
       <p v-if="error" class="gate-error" role="alert">{{ error }}</p>
       <div class="gate-actions">
-        <button class="action primary" type="submit">Belépés</button>
+        <button class="action primary" type="submit">{{ t("token.login") }}</button>
         <button
           v-if="cancelable"
           class="action"
           type="button"
           @click="emit('cancel')"
         >
-          Mégse
+          {{ t("token.cancel") }}
         </button>
       </div>
     </form>

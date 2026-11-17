@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
+import { stateLabel, t } from "../i18n";
 import type { LabelInfo, TorrentFilters } from "../types";
 
 const props = defineProps<{
@@ -23,12 +24,12 @@ const states = [
   "Moving",
 ];
 const sorts = [
-  { value: "name", label: "Név" },
-  { value: "-progress", label: "Progress" },
-  { value: "-download_payload_rate", label: "Letöltés" },
-  { value: "-ratio", label: "Ratio" },
-  { value: "eta", label: "ETA" },
-  { value: "-total_size", label: "Méret" },
+  { value: "name", key: "sort.name" },
+  { value: "-progress", key: "sort.progress" },
+  { value: "-download_payload_rate", key: "sort.download" },
+  { value: "-ratio", key: "sort.ratio" },
+  { value: "eta", key: "sort.eta" },
+  { value: "-total_size", key: "sort.size" },
 ];
 
 const q = computed({
@@ -55,35 +56,35 @@ const sort = computed({
       v-model="q"
       class="search"
       type="search"
-      placeholder="Keresés névben…"
+      :placeholder="t('filters.search')"
       autocomplete="off"
-      aria-label="Keresés"
+      :aria-label="t('filters.search')"
     />
     <div class="filter-row">
-      <select v-model="state" aria-label="Állapot szűrő">
-        <option value="All">Minden állapot</option>
+      <select v-model="state" :aria-label="t('filters.state')">
+        <option value="All">{{ t("filters.allStates") }}</option>
         <option v-for="item in states.slice(1)" :key="item" :value="item">
-          {{ item }}
+          {{ stateLabel(item) }}
         </option>
       </select>
-      <select v-model="label" aria-label="Label szűrő">
-        <option value="">Minden label</option>
+      <select v-model="label" :aria-label="t('filters.label')">
+        <option value="">{{ t("filters.allLabels") }}</option>
         <option v-for="item in labels" :key="item.id" :value="item.id">
           {{ item.id }} ({{ item.count }})
         </option>
         <option v-if="noLabelCount > 0" value="No Label">
-          No Label ({{ noLabelCount }})
+          {{ t("add.noLabel") }} ({{ noLabelCount }})
         </option>
       </select>
-      <select v-model="sort" aria-label="Rendezés">
+      <select v-model="sort" :aria-label="t('filters.sort')">
         <option v-for="item in sorts" :key="item.value" :value="item.value">
-          {{ item.label }}
+          {{ t(item.key) }}
         </option>
       </select>
     </div>
     <div class="filter-meta">
-      <span>{{ total }} torrent</span>
-      <span>{{ loaded }} betöltve</span>
+      <span>{{ t("filters.total", { count: total }) }}</span>
+      <span>{{ t("filters.loaded", { count: loaded }) }}</span>
     </div>
   </section>
 </template>
