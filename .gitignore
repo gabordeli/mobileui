@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.dev/
+webui/node_modules/
+webui/.vite/
+webui/dist/
+.playwright-mcp/
+.pytest_cache/
+.ruff_cache/
+logs/

@@ -1,0 +1,203 @@
+"""Read-side helpers: torrent list/detail/session/labels.
+
+Runs in the deluged reactor, so it reads the cached torrent status instead of
+calling ``core.get_torrents_status`` (which may wait for a libtorrent update
+alert under load).
+"""
+
+from collections import Counter
+
+NO_LABEL = "No Label"
+
+LIST_KEYS = [
+    "name",
+    "state",
+    "progress",
+    "download_payload_rate",
+    "upload_payload_rate",
+    "eta",
+    "ratio",
+    "total_size",
+    "save_path",
+]
+
+DETAIL_KEYS = [
+    "name",
+    "state",
+    "progress",
+    "download_payload_rate",
+    "upload_payload_rate",
+    "eta",
+    "ratio",
+    "total_size",
+    "total_done",
+    "total_uploaded",
+    "total_payload_download",
+    "total_payload_upload",
+    "save_path",
+    "download_location",
+    "num_peers",
+    "num_seeds",
+    "total_peers",
+    "total_seeds",
+    "is_finished",
+    "is_seed",
+    "time_added",
+    "tracker",
+    "tracker_host",
+    "comment",
+    "creator",
+    "num_files",
+    "num_pieces",
+    "piece_length",
+    "private",
+    "queue",
+    "message",
+    "active_time",
+    "seeding_time",
+    "finished_time",
+]
+
+SORT_FIELDS = {
+    "name",
+    "state",
+    "progress",
+    "download_payload_rate",
+    "upload_payload_rate",
+    "eta",
+    "ratio",
+    "total_size",
+    "label",
+}
+
+SESSION_KEYS = [
+    "download_rate",
+    "upload_rate",
+    "payload_download_rate",
+    "payload_upload_rate",
+    "num_connections",
+]
+
+QUEUE_KEYS = [
+    "max_active_downloading",
+    "max_active_seeding",
+    "max_active_limit",
+    "queue_new_to_top",
+]
+
+MAX_LIMIT = 200
+DEFAULT_LIMIT = 50
+
+
+def _label_plugin_labels(label_plugin):
+    if label_plugin is None:
+        return {}
+    return getattr(label_plugin, "torrent_labels", {}) or {}
+
+
+def _sort_value(row, field):
+    if field in {"name", "label"}:
+        return str(row[field]).casefold()
+    value = row[field]
+    if field == "eta" and (value is None or value < 0):
+        return float("inf")
+    return value
+
+
+def list_torrents(
+    core,
+    label_plugin,
+    state=None,
+    label=None,
+    q=None,
+    sort="name",
+    offset=0,
+    limit=DEFAULT_LIMIT,
+):
+    offset = int(offset)
+    limit = int(limit)
+    if offset < 0:
+        raise ValueError("offset must be >= 0")
+    if not 1 <= limit <= MAX_LIMIT:
+        raise ValueError(f"limit must be between 1 and {MAX_LIMIT}")
+
+    sort_field = sort[1:] if sort.startswith("-") else sort
+    if sort_field not in SORT_FIELDS:
+        raise ValueError(f"unknown sort field: {sort}")
+    descending = sort.startswith("-")
+
+    label_map = _label_plugin_labels(label_plugin)
+    needle = q.casefold() if q else None
+
+    rows = []
+    for torrent_id, torrent in core.torrentmanager.torrents.items():
+        try:
+            row = torrent.get_status(LIST_KEYS, update=False)
+        except KeyError:
+            continue
+        row["id"] = torrent_id
+        row["label"] = label_map.get(torrent_id, NO_LABEL)
+        if state and state != "All" and row["state"] != state:
+            continue
+        if label and row["label"] != label:
+            continue
+        if needle and needle not in row["name"].casefold():
+            continue
+        rows.append(row)
+
+    rows.sort(
+        key=lambda row: (_sort_value(row, sort_field), row["name"].casefold()),
+        reverse=descending,
+    )
+    total = len(rows)
+    page = rows[offset : offset + limit]
+    return {
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "torrents": page,
+    }
+
+
+def get_torrent(core, label_plugin, torrent_id):
+    torrent = core.torrentmanager.torrents[torrent_id]
+    status = torrent.get_status(DETAIL_KEYS, update=True)
+    status["id"] = torrent_id
+    status["label"] = _label_plugin_labels(label_plugin).get(torrent_id, NO_LABEL)
+    status["files"] = torrent.get_files()
+    status["file_progress"] = torrent.get_file_progress()
+    return status
+
+
+def get_session(core):
+    status = core.get_session_status(SESSION_KEYS)
+    status["queue"] = core.get_config_values(QUEUE_KEYS)
+    status["num_torrents"] = len(core.torrentmanager.torrents)
+    status["version"] = _deluge_version()
+    try:
+        status["paused"] = bool(core.session.is_paused())
+    except (AttributeError, KeyError):
+        pass
+    return status
+
+
+def get_labels(label_plugin, core):
+    labels = label_plugin.get_labels() if label_plugin is not None else []
+    label_map = _label_plugin_labels(label_plugin)
+    counts = Counter(
+        label_map.get(torrent_id, NO_LABEL)
+        for torrent_id in core.torrentmanager.torrents
+    )
+    return {
+        "labels": [{"id": label, "count": counts.get(label, 0)} for label in labels],
+        "no_label": counts.get(NO_LABEL, 0),
+    }
+
+
+def _deluge_version():
+    try:
+        from deluge.common import get_version
+
+        return get_version()
+    except Exception:
+        return ""

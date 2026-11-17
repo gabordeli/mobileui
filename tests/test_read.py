@@ -1,0 +1,164 @@
+from types import SimpleNamespace
+
+import pytest
+
+from deluge_mobileui import read
+
+
+class FakeTorrent:
+    def __init__(self, torrent_id, **fields):
+        self.torrent_id = torrent_id
+        self.fields = fields
+        self.update_flags = []
+
+    def get_status(self, keys, update=False):
+        self.update_flags.append(update)
+        return {key: self.fields.get(key) for key in keys}
+
+    def get_files(self):
+        return [{"index": 0, "path": "file.mkv", "size": 10, "offset": 0}]
+
+    def get_file_progress(self):
+        return [0.5]
+
+
+class FakeCore:
+    def __init__(self, torrents, config=None):
+        self.torrentmanager = SimpleNamespace(torrents=torrents)
+        self.config = config or {}
+
+    def get_session_status(self, keys):
+        return {key: 1 for key in keys}
+
+    def get_config_values(self, keys):
+        return {key: self.config.get(key) for key in keys}
+
+
+class FakeLabel:
+    def __init__(self, mapping, labels=None):
+        self.torrent_labels = mapping
+        self.labels = labels if labels is not None else sorted(set(mapping.values()))
+
+    def get_labels(self):
+        return self.labels
+
+
+def make_torrent(torrent_id, name, state="Paused", progress=0.0, eta=-1):
+    return FakeTorrent(
+        torrent_id,
+        name=name,
+        state=state,
+        progress=progress,
+        download_payload_rate=0,
+        upload_payload_rate=0,
+        eta=eta,
+        ratio=1.0,
+        total_size=100,
+        save_path="/downloads",
+    )
+
+
+def make_core(*torrents):
+    return FakeCore({torrent.torrent_id: torrent for torrent in torrents})
+
+
+def test_list_filters_sorts_and_paginates():
+    core = make_core(
+        make_torrent("a", "Dune", state="Seeding", progress=100.0),
+        make_torrent("b", "Alien", state="Paused", progress=10.0),
+        make_torrent("c", "Blade Runner", state="Paused", progress=50.0),
+    )
+    labels = FakeLabel({"a": "movies", "c": "movies"})
+
+    result = read.list_torrents(
+        core, labels, state="Paused", q="e", sort="name", offset=0, limit=10
+    )
+
+    assert result["total"] == 2
+    assert [row["name"] for row in result["torrents"]] == ["Alien", "Blade Runner"]
+    assert result["torrents"][1]["label"] == "movies"
+    assert result["torrents"][0]["label"] == read.NO_LABEL
+    assert core.torrentmanager.torrents["a"].update_flags == [False]
+
+
+def test_list_filters_by_label_and_paginates():
+    core = make_core(
+        make_torrent("a", "One", progress=10.0),
+        make_torrent("b", "Two", progress=20.0),
+        make_torrent("c", "Three", progress=30.0),
+    )
+    labels = FakeLabel({"a": "movies", "b": "movies"})
+
+    result = read.list_torrents(
+        core, labels, label="movies", sort="-progress", offset=1, limit=1
+    )
+
+    assert result["total"] == 2
+    assert result["offset"] == 1
+    assert result["limit"] == 1
+    assert [row["name"] for row in result["torrents"]] == ["One"]
+
+
+def test_list_sorts_eta_with_infinity_last():
+    core = make_core(
+        make_torrent("a", "NoEta", eta=-1),
+        make_torrent("b", "Ten", eta=10),
+        make_torrent("c", "Five", eta=5),
+    )
+
+    result = read.list_torrents(core, None, sort="eta")
+
+    assert [row["name"] for row in result["torrents"]] == ["Five", "Ten", "NoEta"]
+
+
+@pytest.mark.parametrize(
+    "kwargs,message",
+    [
+        ({"sort": "bogus"}, "unknown sort field"),
+        ({"limit": 0}, "limit must be"),
+        ({"limit": 500}, "limit must be"),
+        ({"offset": -1}, "offset must be"),
+    ],
+)
+def test_list_validates_query(kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        read.list_torrents(make_core(), None, **kwargs)
+
+
+def test_detail_includes_label_and_files():
+    torrent = make_torrent("a", "Dune")
+    core = make_core(torrent)
+
+    result = read.get_torrent(core, FakeLabel({"a": "movies"}), "a")
+
+    assert result["id"] == "a"
+    assert result["label"] == "movies"
+    assert result["files"][0]["path"] == "file.mkv"
+    assert result["file_progress"] == [0.5]
+    assert torrent.update_flags == [True]
+
+
+def test_session_returns_queue_and_count():
+    core = FakeCore({"a": make_torrent("a", "Dune")}, {"max_active_limit": 3})
+
+    result = read.get_session(core)
+
+    assert result["num_torrents"] == 1
+    assert result["queue"]["max_active_limit"] == 3
+    assert "version" in result
+
+
+def test_labels_counts_only_existing_torrents():
+    core = make_core(make_torrent("a", "One"), make_torrent("b", "Two"))
+    labels = FakeLabel({"a": "movies", "gone": "movies"})
+
+    result = read.get_labels(labels, core)
+
+    assert result["labels"] == [{"id": "movies", "count": 1}]
+    assert result["no_label"] == 1
+
+
+def test_labels_without_plugin():
+    result = read.get_labels(None, make_core(make_torrent("a", "One")))
+
+    assert result == {"labels": [], "no_label": 1}
