@@ -73,6 +73,21 @@ VITE_API_PROXY=http://192.168.2.27:8113 npm run dev
 
 A részletek: [docs/webui.md](docs/webui.md).
 
+## CI / release
+
+A `.gitlab-ci.yml` stage-ei: `lint` (ruff + vue-tsc), `test` (pytest, Deluge
+nélkül stubokkal), `build` (SPA + sdist/wheel/egg, artifact), `release`
+(manuális `RELEASE_TYPE=patch|minor|major`) és `deploy` (manuális rsync +
+`scripts/install.sh` a .27-re).
+
+```bash
+./scripts/release.sh patch --dry-run
+./scripts/release.sh minor
+```
+
+Részletek: [docs/ci.md](docs/ci.md). A deploy jobhoz a runneren
+`DEPLOY_SSH_KEY` és rsync kell (#11).
+
 ## Telepítés (cél: cirice, 192.168.2.27)
 
 A hoston, rootként, a repó checkoutjából:
@@ -156,5 +171,6 @@ Majd a telepített `MobileUi-*.egg/` **könyvtár** törlése a
 - [docs/api.md](docs/api.md) – API séma
 - [docs/perf.md](docs/perf.md) – 833 torrentes mérés és a választott stratégia
 - [docs/webui.md](docs/webui.md) – SPA felépítés, lapozás/virtualizáció, SSE
+- [docs/ci.md](docs/ci.md) – CI stage-ek, release és deploy
 - [docs/decisions.md](docs/decisions.md) – döntések és korlátok
 - [AGENTS.md](AGENTS.md) – munkamód ügynököknek

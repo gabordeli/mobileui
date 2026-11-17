@@ -1,0 +1,93 @@
+stages:
+  - lint
+  - test
+  - build
+  - release
+  - deploy
+
+variables:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  RELEASE_TYPE: patch
+
+.python_setup: &python_setup
+  - python3 -m venv .ci-venv
+  - .ci-venv/bin/pip install -q --upgrade pip
+  - .ci-venv/bin/pip install -q pytest ruff build twisted wheel
+
+.python_job:
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - .ci-venv/
+      - webui/node_modules/
+
+lint:
+  stage: lint
+  extends: .python_job
+  before_script: *python_setup
+  script:
+    - .ci-venv/bin/ruff check .
+    - cd webui
+    - npm ci --silent
+    - npm run typecheck
+
+test:
+  stage: test
+  extends: .python_job
+  before_script: *python_setup
+  script:
+    - .ci-venv/bin/pytest -q
+
+build:
+  stage: build
+  extends: .python_job
+  before_script: *python_setup
+  script:
+    - cd webui
+    - npm ci --silent
+    - npm run build
+    - cd ..
+    - .ci-venv/bin/python -m build
+    - .ci-venv/bin/python setup.py -q bdist_egg
+  artifacts:
+    paths:
+      - dist/
+      - deluge_mobileui/data/
+    expire_in: 1 week
+
+release:
+  stage: release
+  extends: .python_job
+  before_script: *python_setup
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  script:
+    - git config user.email "ci@cirice.local"
+    - git config user.name "GitLab CI"
+    - VERSION=$(./scripts/release.sh "$RELEASE_TYPE")
+    - test -n "$VERSION"
+    - git add deluge_mobileui/version.py webui/package.json webui/package-lock.json CHANGELOG.md
+    - git commit -m "chore(release) v${VERSION}"
+    - git tag "v${VERSION}"
+    - git remote set-url origin "$CI_REPOSITORY_URL"
+    - git push origin "HEAD:${CI_DEFAULT_BRANCH}" --tags
+
+deploy:
+  stage: deploy
+  extends: .python_job
+  needs: [build]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  variables:
+    DEPLOY_HOST: "root@192.168.2.27"
+  before_script:
+    - python3 -m venv .ci-venv
+    - .ci-venv/bin/pip install -q --upgrade pip
+    - .ci-venv/bin/pip install -q pytest ruff build twisted wheel
+    - if [ -n "${DEPLOY_SSH_KEY:-}" ]; then install -d -m 700 ~/.ssh; printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519; chmod 600 ~/.ssh/id_ed25519; fi
+  script:
+    - command -v rsync >/dev/null
+    - rsync -az --exclude .git --exclude .venv --exclude .ci-venv --exclude .dev --exclude webui/node_modules --exclude .pytest_cache --exclude .ruff_cache ./ "$DEPLOY_HOST:/root/webui2/"
+    - ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new "$DEPLOY_HOST" 'cd /root/webui2 && ./scripts/install.sh'

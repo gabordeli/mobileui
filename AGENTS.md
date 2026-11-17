@@ -10,7 +10,7 @@ reactorjában fut, saját HTTP szervert indít a **8113**-on. A gyári `deluge-w
   `write.py`, `events.py`, `data/`)
 - `webui/` – Vue 3 + Vite SPA (M2), build a `deluge_mobileui/data/`-ba
 - `tests/` – pytest; Deluge nélkül is futó unit tesztek
-- `docs/` – `api.md`, `perf.md`, `webui.md`, `decisions.md`
+- `docs/` – `api.md`, `perf.md`, `webui.md`, `ci.md`, `decisions.md`
 
 ## Parancsok
 
@@ -18,6 +18,7 @@ reactorjában fut, saját HTTP szervert indít a **8113**-on. A gyári `deluge-w
 .venv/bin/pytest
 .venv/bin/ruff check .
 .venv/bin/python setup.py bdist_egg
+./scripts/release.sh patch --dry-run
 (cd webui && npm ci && npm run build)
 ./scripts/dev-daemon.sh        # helyi smoke, .dev/ config
 ./scripts/install.sh           # célhoston, rootként
