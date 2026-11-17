@@ -140,7 +140,7 @@ release:
     - git commit -m "chore(release) v${VERSION}"
     - git tag -f "v${VERSION}"
     - git remote set-url origin "$CI_REPOSITORY_URL"
-    - git push origin "HEAD:${CI_DEFAULT_BRANCH}" --tags
+    - git push origin "HEAD:${CI_DEFAULT_BRANCH}" "refs/tags/v${VERSION}"
     - ./scripts/publish_release.sh "$VERSION" "$EGG"
 
 deploy:

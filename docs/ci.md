@@ -92,6 +92,8 @@ cache would fail because of this).
 The CI release job runs with the `RELEASE_TYPE` pipeline variable, then creates
 a `chore(release) vX.Y.Z` commit and a `vX.Y.Z` tag, and pushes to
 `main`. For the push, the `CI_REPOSITORY_URL` / job token must be allowed.
+It pushes only the new tag (`refs/tags/v${VERSION}`), not every local tag, so
+tags deleted during cleanup stay deleted.
 After the bump the job rebuilds the SPA (`cd webui && npm ci && npm run build`),
 because the `build` artifact still contains the old version; `deluge_mobileui/data/`
 goes into the release commit, so a fresh clone also gets the current SPA. Then
