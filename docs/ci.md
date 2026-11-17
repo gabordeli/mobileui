@@ -211,9 +211,10 @@ Check: `deploy_gitlab_runner_toolchain.yml --limit gitlab-runner --check --diff`
   and the `v1.0.0` tag; the deploy job succeeded.
 - On the deploy host `/health` is **1.0.0**, the SPA is served with the release
   assets; the stock `deluge-web` on 8112 is untouched.
-- GitLab and GitHub both expose **v1.0.0 as the first public release** with four
-  assets (wheel, sdist, egg, sha256); the earlier tags/releases were removed
-  from both remotes.
+- GitLab and GitHub both expose **v1.0.0 as the first public release**; the
+  GitHub release has four assets (wheel, sdist, egg, sha256), and the GitLab
+  release links the egg + sha256. The earlier tags/releases were removed from
+  both remotes.
 - Cleaning up old unpacked egg versions (`find ... -type d -name
   'MobileUi-*.egg'`) remains necessary, otherwise the old plugin stays loaded.
 - The GitHub Release workflow (run `44154691183`) completed successfully on the
