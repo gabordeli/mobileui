@@ -24,6 +24,9 @@
   és egyelőre **report-only**: nincs `sonar.qualitygate.wait`.
 - Coverage: a backend `pytest-cov` → `coverage.xml`; a frontend
   `webui/coverage/lcov.info` helye előkészítve, a Vitest bevezetése után tölti.
+  A Cobertura `<source>`-ot a CI `deluge_mobileui`-ra normalizálja, mert a
+  scanner konténerben a project base `/usr/src` (a host abszolút path nem
+  oldható fel).
 
 ## Release
 
