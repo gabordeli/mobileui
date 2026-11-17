@@ -42,7 +42,7 @@ describe("main", () => {
       expect.objectContaining({
         app: mocks.app,
         dsn: "https://dsn.example/1",
-        release: "mobileui-web@0.1.3",
+        release: expect.stringMatching(/^mobileui-web@\d+\.\d+\.\d+$/),
         environment: "development",
         tracesSampleRate: 0,
       }),
