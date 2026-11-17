@@ -148,6 +148,9 @@ action. For a read-only account only the list is visible.
 - Offline banner (`navigator.onLine`), skeleton while loading, empty/error
   state with a retry button; safe-area padding on the header/filter/row/sheet/
   detail elements; `:focus-visible` and Esc to close the sheet/detail.
+- The sheets/details use `<dialog open>` plus a focus trap (`src/focus.ts`):
+  `#app` becomes `inert` while open, Tab/Shift+Tab cycle inside the dialog,
+  and focus returns to the trigger on close.
 
 ## Session sheet
 

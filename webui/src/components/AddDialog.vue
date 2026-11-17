@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 
 import * as api from "../api";
+import { trapFocus } from "../focus";
 import { t } from "../i18n";
 import type { LabelInfo } from "../types";
 
@@ -49,13 +50,19 @@ const addPaused = ref(false);
 const loading = ref(false);
 const error = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
+const dialogEl = ref<HTMLElement | null>(null);
+let releaseFocus: (() => void) | null = null;
 
 function resetPath(): void {
   store(STORAGE_PATH, "");
   downloadLocation.value = props.defaultPath;
 }
 
-onMounted(() => closeButton.value?.focus());
+onMounted(() => {
+  closeButton.value?.focus();
+  if (dialogEl.value) releaseFocus = trapFocus(dialogEl.value);
+});
+onBeforeUnmount(() => releaseFocus?.());
 
 function pickFile(event: Event): void {
   const input = event.target as HTMLInputElement;
@@ -106,6 +113,7 @@ async function submit(): Promise<void> {
       @keydown.esc="emit('close')"
     >
       <dialog
+        ref="dialogEl"
         open
         class="sheet add-sheet"
         aria-modal="true"

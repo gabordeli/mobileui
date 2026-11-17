@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
+import { trapFocus } from "../focus";
 import { formatBytes, formatRate } from "../format";
 import { t } from "../i18n";
 import type { LimitPayload, Session } from "../types";
@@ -20,6 +21,8 @@ const emit = defineEmits<{
 }>();
 
 const closeButton = ref<HTMLButtonElement | null>(null);
+const dialogEl = ref<HTMLElement | null>(null);
+let releaseFocus: (() => void) | null = null;
 const downLimit = ref(props.session.max_download_speed);
 const upLimit = ref(props.session.max_upload_speed);
 const freeSpace = computed(() =>
@@ -45,7 +48,11 @@ function unlimited(): void {
   applyLimits();
 }
 
-onMounted(() => closeButton.value?.focus());
+onMounted(() => {
+  closeButton.value?.focus();
+  if (dialogEl.value) releaseFocus = trapFocus(dialogEl.value);
+});
+onBeforeUnmount(() => releaseFocus?.());
 </script>
 
 <template>
@@ -57,6 +64,7 @@ onMounted(() => closeButton.value?.focus());
       @keydown.esc="emit('close')"
     >
       <dialog
+        ref="dialogEl"
         open
         class="sheet"
         aria-modal="true"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 
+import { trapFocus } from "../focus";
 import { t } from "../i18n";
 import type { LabelInfo } from "../types";
 
@@ -12,6 +13,13 @@ const emit = defineEmits<{
 }>();
 
 const newLabel = ref("");
+const dialogEl = ref<HTMLElement | null>(null);
+let releaseFocus: (() => void) | null = null;
+
+onMounted(() => {
+  if (dialogEl.value) releaseFocus = trapFocus(dialogEl.value);
+});
+onBeforeUnmount(() => releaseFocus?.());
 
 function add(): void {
   const id = newLabel.value.trim();
@@ -36,6 +44,7 @@ function remove(id: string): void {
       @keydown.esc="emit('close')"
     >
       <dialog
+        ref="dialogEl"
         open
         class="sheet"
         aria-modal="true"

@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import * as api from "../api";
+import { trapFocus } from "../focus";
 import {
   formatBytes,
   formatEta,
@@ -50,6 +51,8 @@ const moveOpen = ref(false);
 const movePath = ref("");
 const moveBusy = ref(false);
 const backButton = ref<HTMLButtonElement | null>(null);
+const dialogEl = ref<HTMLElement | null>(null);
+let releaseFocus: (() => void) | null = null;
 
 const progress = computed(() =>
   Math.max(0, Math.min(100, detail.value?.progress ?? 0)),
@@ -353,6 +356,11 @@ watch(
 onMounted(() => {
   void loadDetail();
   backButton.value?.focus();
+  if (dialogEl.value) releaseFocus = trapFocus(dialogEl.value);
+});
+onBeforeUnmount(() => {
+  releaseFocus?.();
+  clearTimeout(fileSearchTimer.value);
 });
 </script>
 
@@ -360,6 +368,7 @@ onMounted(() => {
   <Teleport to="body">
     <div class="detail-backdrop">
       <dialog
+        ref="dialogEl"
         open
         class="detail"
         aria-modal="true"
