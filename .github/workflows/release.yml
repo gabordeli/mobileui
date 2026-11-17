@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: webui/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check tag matches version
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          py=$(awk -F'"' '/^__version__ = "/{print $2}' deluge_mobileui/version.py)
+          js=$(node -p "require('./webui/package.json').version")
+          echo "tag=$tag version.py=$py package.json=$js"
+          test "$tag" = "$py"
+          test "$tag" = "$js"
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip build wheel setuptools
+
+      - name: Build SPA
+        working-directory: webui
+        run: |
+          npm ci --silent
+          npm run build
+
+      - name: Build Python packages
+        run: python -m build
+
+      - name: Build portable egg
+        run: SKIP_WEBUI=1 ./scripts/package.sh
+
+      - name: Collect release assets
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          cp dist/*.whl dist/*.tar.gz dist/*.egg dist/*.egg.sha256 release-assets/
+          ls -l release-assets
+
+      - name: Extract release notes
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          awk -v ver="$version" '
+            $0 ~ "^## \\[" ver "\\]" { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "No CHANGELOG section for ${version}; falling back to the tag." >&2
+            echo "Release ${GITHUB_REF_NAME}." > release-notes.md
+          fi
+          cat release-notes.md
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release-assets/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" release-assets/* \
+              --title "$GITHUB_REF_NAME" \
+              --notes-file release-notes.md
+          fi

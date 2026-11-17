@@ -69,6 +69,46 @@ is py3.10/py3.12 eggek a 3.11-en). A kicsomagolás viszont kötelező, mert a
 A feltöltés és a release a `CI_JOB_TOKEN`-nel megy; ha a projektben a job token
 API-hozzáférése szűkített, a release job 401/403-mal megáll.
 
+## GitHub tükör
+
+A `gabordeli/mobileui` **privát** GitHub repo egyirányú tükör: a fejlesztés a
+GitLabon folyik, a GitLab push mirror tolja át a `main`-t és a tageket. GitHubon
+ne commitolj, mert divergál.
+
+Beállítás a GitLabon (*Settings → Repository → Mirroring repositories*):
+
+- URL: `https://github.com/gabordeli/mobileui.git`
+- Direction: **Push**
+- Authentication: username `gabordeli`, password = fine-grained PAT
+  (`Contents: Read and write`, `Metadata: Read`, csak erre a repóra)
+- „Only mirror protected branches” **kikapcsolva**, különben a `vX.Y.Z` tagek
+  nem mennek át.
+
+Kezdeti feltöltés (a mirror bekapcsolása előtt vagy kézi fallbackként):
+
+```bash
+GITHUB_TOKEN=... git push \
+  "https://x-access-token:${GITHUB_TOKEN}@github.com/gabordeli/mobileui.git" main
+```
+
+Ellenőrzés:
+
+```bash
+GITHUB_TOKEN=... ./scripts/github_mirror_check.sh
+```
+
+A PAT lejárta a mirrort **csendben megállítja**; a script `MIRROR BEHIND` vagy
+`MISSING TAG` jelzéssel áll meg. Rotáció: új PAT a GitHubon, csere a GitLab
+mirror beállításban, majd ellenőrzés. Kézi fallback:
+`git push --mirror https://...`.
+
+A GitHub Release a `.github/workflows/release.yml` workflow-val megy: minden
+`v*` tagre (Node 22 + Python 3.11) buildeli a SPA-t, a wheel/sdist/egg-et, és a
+`GITHUB_TOKEN`-nel létrehozza a release-t a CHANGELOG megfelelő szakaszával. A
+workflow a tag commitjában lévő verziókat ellenőrzi (`version.py`,
+`package.json`), és idempotens (újrafuttatva feltölti az asseteket). A régi
+tagekhez nem készül release; a workflow csak az új tagtól él.
+
 ## Deploy
 
 A `deploy` job a build artifact `data/`-ját rsynceli a `.27:/root/webui2`-be,
