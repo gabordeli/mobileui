@@ -2,12 +2,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   UnauthorizedError,
+  addTorrentFile,
   addTorrentMagnet,
   eventsUrl,
   getHealth,
+  getLabels,
   getSession,
   getToken,
+  getTorrent,
+  getTorrentFiles,
   listTorrents,
+  pauseTorrent,
+  queueTorrent,
+  removeTorrent,
+  resumeTorrent,
+  setLabel,
   setToken,
 } from "./api";
 
@@ -119,5 +128,100 @@ describe("addTorrentMagnet", () => {
         add_paused: true,
       }),
     );
+  });
+});
+
+describe("torrent actions", () => {
+  function mockFetch(payload: unknown = {}) {
+    const fetchMock = vi.fn((_path: string, _init: RequestInit) =>
+      Promise.resolve(jsonResponse(payload)),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  it("pauses and resumes with encoded ids", async () => {
+    const fetchMock = mockFetch({ state: "Paused" });
+
+    await pauseTorrent("a b");
+    await resumeTorrent("a/b");
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/torrents/a%20b/pause");
+    expect(fetchMock.mock.calls[1][0]).toBe("/api/torrents/a%2Fb/resume");
+    expect(fetchMock.mock.calls[0][1].method).toBe("POST");
+  });
+
+  it("removes with the remove_data flag", async () => {
+    const fetchMock = mockFetch({ removed: true });
+
+    await removeTorrent("id", true);
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/torrents/id/remove");
+    expect(fetchMock.mock.calls[0][1].body).toBe(
+      JSON.stringify({ remove_data: true }),
+    );
+  });
+
+  it("queues an action", async () => {
+    const fetchMock = mockFetch({ action: "top" });
+
+    await queueTorrent("id", "top");
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/torrents/id/queue");
+    expect(fetchMock.mock.calls[0][1].body).toBe(
+      JSON.stringify({ action: "top" }),
+    );
+  });
+
+  it("patches the label", async () => {
+    const fetchMock = mockFetch({ label: "film" });
+
+    await setLabel("id", "film");
+
+    expect(fetchMock.mock.calls[0][1].method).toBe("PATCH");
+    expect(fetchMock.mock.calls[0][1].body).toBe(
+      JSON.stringify({ label: "film" }),
+    );
+  });
+
+  it("uploads a .torrent file with query options", async () => {
+    const fetchMock = mockFetch({ id: "abc" });
+    const file = new File(["x"], "x.torrent", {
+      type: "application/x-bittorrent",
+    });
+
+    await addTorrentFile(file, {
+      label: "film",
+      download_location: "/tmp",
+      add_paused: true,
+    });
+
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe(
+      "/api/torrents?filename=x.torrent&label=film&download_location=%2Ftmp&add_paused=true",
+    );
+    const headers = init.headers as Headers;
+    expect(headers.get("content-type")).toBe("application/x-bittorrent");
+    expect(init.body).toBe(file);
+  });
+
+  it("loads the detail and the paginated files", async () => {
+    const fetchMock = mockFetch({});
+
+    await getTorrent("a/b");
+    await getTorrentFiles("a/b", 10, 50);
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/torrents/a%2Fb");
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      "/api/torrents/a%2Fb/files?offset=10&limit=50",
+    );
+  });
+
+  it("loads the labels", async () => {
+    const fetchMock = mockFetch({ labels: [], no_label: 0 });
+
+    await getLabels();
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/labels");
   });
 });
