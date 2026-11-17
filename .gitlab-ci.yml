@@ -119,9 +119,11 @@ release:
     - git config user.name "GitLab CI"
     - VERSION=$(./scripts/release.sh "$RELEASE_TYPE")
     - test -n "$VERSION"
+    # A build artifact a bump előtti verziót tartalmazza; itt építjük újra.
+    - (cd webui && npm ci --silent && npm run build)
     - EGG=$(SKIP_WEBUI=1 PYTHON=.ci-venv/bin/python ./scripts/package.sh)
     - test -n "$EGG"
-    - git add deluge_mobileui/version.py webui/package.json webui/package-lock.json CHANGELOG.md
+    - git add deluge_mobileui/version.py webui/package.json webui/package-lock.json CHANGELOG.md deluge_mobileui/data
     - git commit -m "chore(release) v${VERSION}"
     - git tag -f "v${VERSION}"
     - git remote set-url origin "$CI_REPOSITORY_URL"

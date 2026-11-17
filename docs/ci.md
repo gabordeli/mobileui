@@ -63,9 +63,12 @@ runner UID-nak nincs írható home könyvtára (az npm cache emiatt hasalna el).
 A CI release job a `RELEASE_TYPE` pipeline-változóval fut, majd
 `chore(release) vX.Y.Z` commitot és `vX.Y.Z` taget készít, és pushol a
 `main`-re. A pushhoz a `CI_REPOSITORY_URL` / job token kell, hogy engedve legyen.
-A bump után a job újraépíti az egg-et (`SKIP_WEBUI=1`), feltölti a Generic
-Package Registrybe, és a `vX.Y.Z` GitLab Release-hez asset linkként csatolja az
-egg-et és a `.sha256`-ot; a release leírásában a hash is szerepel.
+A bump után a job újraépíti a SPA-t (`cd webui && npm ci && npm run build`),
+mert a `build` artifact még a régi verziót tartalmazza; a `deluge_mobileui/data/`
+bekerül a release commitba, így a friss clone is az aktuális SPA-t kapja. Ezután
+az egg-et (`SKIP_WEBUI=1`) építi, feltölti a Generic Package Registrybe, és a
+`vX.Y.Z` GitLab Release-hez asset linkként csatolja az egg-et és a `.sha256`-ot;
+a release leírásában a hash is szerepel.
 
 ## Release artifact
 
