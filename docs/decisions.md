@@ -66,7 +66,7 @@ update=False)`-kal olvassa a már cache-elt státuszt, szerveroldalon szűr
 (`state`, `label`, `q`), rendez és szeletel; csak a kért oldal megy a hálózatra.
 A detail egy torrentnél `update=True`-val frissít, és ott van a fájllista.
 
-Mérés (833 torrent, .27): 50 soros lista p95 8,6 ms idle, 14,2 ms RPC-terhelés
+Mérés (833 torrent, tesztpéldány): 50 soros lista p95 8,6 ms idle, 14,2 ms RPC-terhelés
 alatt; a cél <300 ms. Részletek: `docs/perf.md`. Ha a torrentszám >5 000 lesz,
 érdemes lehet 1 s-os snapshot-indexet bevezetni; most nem indokolt.
 
@@ -84,7 +84,7 @@ az add előtt validáljuk, majd a létrejött torrentre alkalmazzuk. A
 `remove_data` csak explicit `true` esetén töröl adatot (alap `false`).
 
 Hibakódok: 400 invalid input, 404 ismeretlen torrent, 409 duplikált torrent /
-tiltott állapot / Label plugin nélkül. A .27-en egy eldobható torrenten a teljes
+tiltott állapot / Label plugin nélkül. A tesztpéldányon egy eldobható torrenten a teljes
 ciklus (add → pause/resume → queue → label clear/set → remove) lefutott, a
 meglévő 833 torrent és a label-countok változatlanok maradtak.
 
@@ -117,7 +117,7 @@ state/label/sort szerveroldali. A token localStorage-ban van; az SSE
 `?token=` queryt használ. A hosszú nyomás 500 ms után sheetet nyit
 (pause/resume, queue, label, remove), a műveletek a write API-ra mennek.
 
-Ellenőrzés a .27-en: 833 torrent, 50→100 betöltés scrollra, 360/390 px-en
+Ellenőrzés a tesztpéldányon: 833 torrent, 50→100 betöltés scrollra, 360/390 px-en
 nincs vízszintes scroll, long-press sheet + label mentés toast, SSE
 számláló 834→833, nulla console error.
 
@@ -131,7 +131,7 @@ A `GET /api/torrents/{id}` válasza kicsi marad: a fájllista külön
 
 Az add sheet magnetet vagy `.torrent` fájlt küld a write API-nak, labellel,
 abszolút `download_location`-nel és opcionális `add_paused`-dal; a default
-útvonal a session `download_location`. A .27-en UI-ból hozzáadott teszt torrent
+útvonal a session `download_location`. A tesztpéldányon UI-ból hozzáadott teszt torrent
 `Paused`/`filmek`/`/tmp/mobileui-add-test` állapotban jött létre, majd eltávolítva
 a 833-as darabszám visszaállt. Tap → detail, long-press → gyors műveletek.
 
@@ -147,6 +147,6 @@ A téma `data-theme` attribútummal, localStorage-ban tárolva; kezdeti érték 
 `prefers-color-scheme`, a fejléc gombja vált. Az i18n `src/i18n.ts`-ben él
 (HU/EN, localStorage), a state-nevek is fordulnak; az API értékei változatlanok.
 Skeleton, offline banner, error+retry, safe-area padding, `:focus-visible` és
-Esc-close került be. A .27-en 360/390 px-en nincs vízszintes scroll (a keskeny
+Esc-close került be. A tesztpéldányon 360/390 px-en nincs vízszintes scroll (a keskeny
 fejléc brandje rövidül), a HU↔EN és light↔dark váltás ellenőrizve, 0 console
 error.

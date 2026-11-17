@@ -9,8 +9,9 @@ Vue 3 + Vite + TypeScript SPA, a `webui/` alatt. A build a
 ```bash
 cd webui
 npm ci
-npm run dev          # Vite dev server, /api proxy a 127.0.0.1:8113-ra
-VITE_API_PROXY=http://192.168.2.27:8113 npm run dev
+npm run dev          # Vite dev server, /api proxy a 127.0.0.1:8113-ra (helyi deluged)
+# más gépen futó delugednél:
+VITE_API_PROXY=http://<deluge-host>:8113 npm run dev
 npm run build        # typecheck + build a deluge_mobileui/data/-ba
 ```
 
@@ -43,7 +44,7 @@ elég az új plugin/daemon; a UI a backend válaszából frissül. Ha a health n
 ## Lista: lapozás + virtualizáció
 
 - Az API 50 soros lapokat ad (`limit`), a UI `offset`-tel kér tovább; a teljes
-  833-as lista egyszerre **nem** töltődik le.
+  több száz torrentes lista egyszerre **nem** töltődik le.
 - `RecycleScroller` (vue-virtual-scroller) csak a látható sorokat rendereli
   (kb. 10 DOM elem 50 betöltött mellett), a végére érve tölti a következő lapot.
 - A keresés 300 ms debounce; a state/label/sort szerveroldali szűrés, a
@@ -77,8 +78,8 @@ események szűrő nélkül a totalt is korrigálják; reconnectet a böngésző
 - `manifest.webmanifest` + 192/512/apple ikonok + `public/sw.js`; a SW az app
   shellt cache-eli, a navigációt network-first, az asseteket cache-first kezeli,
   az `/api/*` network-only. Regisztráció csak secure contextben (HTTPS vagy
-  localhost) indul; a mostani HTTP LAN-on a manifest/ikonok már jók, a SW a #9
-  HTTPS deploy után lép életbe.
+  localhost) indul; HTTP LAN-on a manifest/ikonok már jók, a SW HTTPS deploy
+  után lép életbe.
 - Sötét/light téma: `data-theme` a `<html>`-en, localStorage-ban tárolva;
   a `prefers-color-scheme` adja a kezdeti értéket, a fejléc ☀/☾ gombja vált.
 - HU/EN i18n: `src/i18n.ts`, localStorage `mobileui.locale`; a fejléc EN/HU

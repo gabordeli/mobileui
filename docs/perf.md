@@ -1,6 +1,6 @@
 # Performance – read API (M1 #3)
 
-Mérés: 2026-11-17, `cirice` (192.168.2.27), Deluge 2.2.0, Twisted 22.4.0,
+Mérés: 2026-11-17, tesztpéldány, Deluge 2.2.0, Twisted 22.4.0,
 **833 torrent**, a plugin a daemonban. A kliens a hoston `127.0.0.1:8113`
 (localhost), 30 minta (detail: 15); a terhelés egy háttér-RPC ciklus volt
 (folyamatos `core.get_torrents_status({}, 10 keys)`, 313 hívás / 8 s).

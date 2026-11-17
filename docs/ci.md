@@ -1,6 +1,6 @@
 # CI / release
 
-`.gitlab-ci.yml` shell executorral fut, a `gitlab-runner` hoston (`.26`).
+`.gitlab-ci.yml` shell executorral fut, a projekt saját GitLab runner hostján.
 
 ## Stage-ek
 
@@ -13,7 +13,7 @@
 | quality | `sonar` | SonarQube main-branch elemzés a Docker scannerrel; report-only |
 | build | `build` | `npm run build`, `python -m build`, `package.sh`; artifact: `dist/` (sdist/wheel/egg/sha256), `data/` |
 | release | `release` | manuális; `RELEASE_TYPE=patch|minor|major`; verzióbump + CHANGELOG + tag + egg feltöltés + GitLab Release |
-| deploy | `deploy` | manuális; rsync a `.27`-re + `scripts/install.sh` |
+| deploy | `deploy` | manuális; rsync a deploy hostra (`DEPLOY_HOST`) + `scripts/install.sh` |
 
 ## SonarQube
 
@@ -139,12 +139,12 @@ tagekhez nem készül release; a workflow csak az új tagtól él.
 
 ## Deploy
 
-A `deploy` job a build artifact `data/`-ját rsynceli a `.27:/root/webui2`-be,
+A `deploy` job a build artifact `data/`-ját rsynceli a `$DEPLOY_HOST:/root/webui2`-be,
 majd futtatja a `scripts/install.sh`-t (a hoston épít, változatlanul). Kézi
 telepítéshez a release eggje is használható:
 `EGG=/path/MobileUi-*.egg ./scripts/install.sh`. A runneren:
 - `rsync`,
-- a `gitlab-runner` user `~/.ssh/id_ed25519` kulcsa a `.27` root
+- a `gitlab-runner` user `~/.ssh/id_ed25519` kulcsa a deploy host root
   `authorized_keys`ében (a jelenlegi setup így megy; `DEPLOY_SSH_KEY` CI-változó
   opcionális felülírásként működik),
 - host key: `StrictHostKeyChecking=accept-new`.
@@ -160,8 +160,8 @@ nodejs/npm, git, jq, curl, **rsync**, docker/trivy, mariadb-client. A CI saját
 venvben teszi fel a `pytest`, `pytest-cov`, `ruff`, `build`, `twisted`,
 `sentry-sdk`, `setuptools`, `wheel` csomagokat; a tesztek a `tests/stubs` Deluge
 shimekkel futnak. A SonarQube elemzés a Docker image-et használja (nem a runner régi
-`sonar-scanner` binaryjét). A deployhoz a `gitlab-runner` user SSH-kulcsa a .27
-root `authorized_keys`ében van.
+`sonar-scanner` binaryjét). A deployhoz a `gitlab-runner` user SSH-kulcsa a
+deploy host root `authorized_keys`ében van.
 
 Ellenőrzés: `deploy_gitlab_runner_toolchain.yml --limit gitlab-runner
 --check --diff` → **changed=0**; a runner restart megtörtént, a CI továbbra is
@@ -170,7 +170,8 @@ zöld.
 ## Igazolt futás
 
 - Pipeline: lint/test/build success; a `v0.1.1` release commit/tag elkészült.
-- Deploy job: success; a .27-en `/health` **0.1.1**, 833 torrent, SPA/8112 200.
+- Deploy job: success; a deploy hoston `/health` **0.1.1**, több száz torrent,
+  SPA/8112 200.
 - A régi egg-verziók takarítása (`find ... -type d -name 'MobileUi-*.egg'`)
   szükséges, különben a régi plugin marad betöltve.
 - GitHub mirror: a `main` és a `v0.1.3` átment; a GitHub Actions `Release` run
@@ -180,5 +181,5 @@ zöld.
 ## Ismert korlát
 
 A runneren nincs Deluge; a tesztek ezért a `tests/stubs/deluge` shimeket
-használják. A valós Deluge-verziót a `.27`-en a `/health` és az integrációs
+használják. A valós Deluge-verziót a deploy hoston a `/health` és az integrációs
 tesztek fedik.

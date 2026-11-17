@@ -13,9 +13,9 @@
 - Az egg pure Python; a Deluge pluginmanager a `py3.x` taget nem szűri, ezért a
   kicsomagolt egg a támogatott Python-verziókon betöltődik.
 
-## Telepítés (cél: cirice, 192.168.2.27)
+## Telepítés
 
-A hoston, rootként, a repó checkoutjából:
+A Deluge hoston, rootként, a repó checkoutjából:
 
 ```bash
 ./scripts/install.sh
@@ -27,6 +27,10 @@ A script a Deluge venv Pythonjával épít egg-et, **kicsomagolja** a
 `/health`-t. A kicsomagolt forma kell a `data/` statikus kiszolgálásához.
 Felülírható: `EGG`, `DELUGE_VENV`, `DELUGE_CONFIG_DIR`, `DELUGE_USER`, `SERVICE`,
 `PORT`.
+
+A script alapértékei Debian/Deluge 2.2 telepítésre valók (`/opt/deluge-2.2.0`,
+`/var/lib/deluged/config`, `debian-deluged`); más venv/config/user esetén az
+env változókkal add meg őket.
 
 ## Hordozható egg
 
@@ -48,15 +52,18 @@ Repó nélkül ugyanez kézzel: az egg tartalmát a
 kicsomagolni, majd `systemctl restart deluged` és
 `deluge-console ... "plugin -e MobileUi"`.
 
-## Jelenlegi telepítés (2026-11-17)
+## Példa: a szerző telepítése (2026-11-17)
+
+Ez csak példa, nem követelmény; a saját környezeted ettől eltérhet.
 
 - Host: `cirice` (192.168.2.27), `deluged` systemd alatt; a plugin **enabled**,
   a 8113 LAN-on figyel, a 8112-es `deluge-web` változatlanul fut.
 - Publikus: `https://cirice.ddns.net:8113/` a `.228` nginx TLS proxy mögött
   (router WAN TCP 8113 → `192.168.2.228:8113`), token-kapuval.
 - SPA: `http://192.168.2.27:8113/` LAN-on, ugyanaz az API a `/api/*` alatt.
-- A generált API-token a hoston a `/root/mobileui-token` fájlban van (600);
-  a `mobileui.conf` a `debian-deluged` tulajdona, 600.
+- A generált API-token a `mobileui.conf`-ban van; a szerzői példányon külön
+  `/root/mobileui-token` (600) is készült. A `mobileui.conf` a `debian-deluged`
+  tulajdona, 600.
 - A token nem szerepel a daemon logban, és a `.228` nginx access logja is
   `$uri`-t ír, így a `?token=` sem kerül bele.
 
@@ -111,14 +118,18 @@ indításkor töltődik be).
 
 ## Visszaállítás
 
-A plugin letiltása a daemonban:
+A plugin letiltása a daemonban (a `DELUGE_*` értékeket a telepítésedhez
+igazítsd; az alapértékek Debian/Deluge 2.2-re valók):
 
 ```bash
-runuser -u debian-deluged -- /opt/deluge-2.2.0/bin/deluge-console \
-  -c /var/lib/deluged/config "plugin -d MobileUi"
+DELUGE_VENV="${DELUGE_VENV:-/opt/deluge-2.2.0}"
+DELUGE_CONFIG_DIR="${DELUGE_CONFIG_DIR:-/var/lib/deluged/config}"
+DELUGE_USER="${DELUGE_USER:-debian-deluged}"
+
+runuser -u "$DELUGE_USER" -- "$DELUGE_VENV/bin/deluge-console" \
+  -c "$DELUGE_CONFIG_DIR" "plugin -d MobileUi"
 ```
 
 Majd a telepített `MobileUi-*.egg/` **könyvtár** törlése a
-`/opt/deluge-2.2.0/lib/python3.11/site-packages/deluge/plugins/` alól és
-`systemctl restart deluged`. A fenti utak a 2.2.0-s telepítésre vonatkoznak;
-más 2.x verzióhoz igazítsd a venv/site-packages útvonalat.
+`$DELUGE_VENV/lib/python3.*/site-packages/deluge/plugins/` alól és
+`systemctl restart deluged`.

@@ -21,15 +21,15 @@ Demó adatok a lokális `scripts/dev-daemon.sh`-ból (kitalált nevek), sötét 
 
 ## 📊 Állapot
 
-Jelenlegi release: **v0.1.3** (GitLab + GitHub), a .27-en telepítve.
+Jelenlegi release: **v0.1.3** (GitLab + GitHub), az éles példányon telepítve.
 
 - **M1 / #1 kész:** plugin váz, egg csomagolás, `GET /health`.
 - **M1 / #2 kész:** Bearer-token a `/api/*`-ra, JSON 401, 600-as config,
   élő `set_config` (token/port/enabled).
 - **M1 / #3 kész:** `/api/session`, `/api/labels`, lapozott/szűrt
-  `/api/torrents`, `/api/torrents/{id}`; 833 torrenten p95 14 ms terhelés alatt.
+  `/api/torrents`, `/api/torrents/{id}`; több száz torrenten p95 14 ms terhelés alatt.
 - **M1 / #4 kész:** pause/resume/remove/queue, label PATCH, magnet és `.torrent`
-  hozzáadás; a .27-en eldobható torrenten végigtesztelve.
+  hozzáadás; az éles példányon eldobható torrenten végigtesztelve.
 - **M1 / #5 kész:** `/api/events` SSE, EventManager + 1/s diff, 15 s heartbeat,
   reconnect; a token query paraméterben is adható.
 - **M2 / #6 kész:** Vue 3 + Vite + TS SPA a `data/`-ban, 50-es lapok +
@@ -39,19 +39,18 @@ Jelenlegi release: **v0.1.3** (GitLab + GitHub), a .27-en telepítve.
 - **M2 / #8 kész:** PWA manifest/ikonok/SW, light/dark téma, HU/EN i18n,
   skeleton/offline/error állapotok, safe-area + a11y alapok.
 - **M3 / #10 kész:** GitLab CI (lint/test/build + manuális release/deploy),
-  `v0.1.2` release, deploy job a .27-re; a #9 public HTTPS kész.
+  `v0.1.2` release, deploy job a Deluge hostra; a #9 public HTTPS kész.
 - **M3 / #11 kész:** runner toolchain (python/venv, node/npm, git, jq, curl,
   rsync, docker/trivy), `--check --diff` changed=0, runner restart.
 - **M3 / #13 kész:** teljes plugin metadata (author email, URL, license,
   classifiers) az egg/wheel `PKG-INFO`-ban.
 - **M3 / #14 kész:** hordozható `.egg` + sha256 a `v0.1.2` release-en,
-  `scripts/install.sh` `EGG=...` támogatással; a .27-en a release eggből
-  telepítve.
+  `scripts/install.sh` `EGG=...` támogatással; az éles példányon a release
+  eggből telepítve.
 - **M3 / #15 kész:** a SPA a `/health` válaszából jeleníti meg a plugin
   verzióját (token-kapu + footer); release bump után automatikus.
-- **M3 / #9 kész:** `https://cirice.ddns.net:8113/` — `.228` nginx TLS a
-  meglévő certtel, router WAN TCP 8113 → `192.168.2.228:8113`; token auth,
-  SSE, token-mentes access log.
+- **M3 / #9 kész:** publikus HTTPS nginx TLS proxy mögött, token auth, SSE,
+  token-mentes access log; a szerzői példány `https://cirice.ddns.net:8113/`.
 - **CI / SonarQube:** main-branch statikus elemzés + backend/frontend coverage,
   Docker scannerrel, report-only.
 - **Bugsink:** backend `sentry-sdk` + frontend `@sentry/vue`, közös DSN;
@@ -80,12 +79,12 @@ tests/                pytest (mock core, valódi Twisted resource-ok)
 docs/                 telepítés, API, üzemeltetés és döntések
 ```
 
-Publikus út (LAN-on a böngésző közvetlenül a `.27:8113`-at éri el):
+Publikus út (LAN-on a böngésző közvetlenül a Deluge host `:8113`-át éri el):
 
 ```mermaid
 flowchart LR
-    B["📱 Mobil böngésző<br/>SPA + SSE"] -->|"HTTPS :8113"| N["nginx (.228)<br/>TLS, $uri log"]
-    N -->|"proxy :8113"| P["deluged (.27)<br/>MobileUi plugin"]
+    B["📱 Mobil böngésző<br/>SPA + SSE"] -->|"HTTPS :8113"| N["nginx (proxy)<br/>TLS, $uri log"]
+    N -->|"proxy :8113"| P["deluged (host)<br/>MobileUi plugin"]
     P --> C["Deluge core<br/>torrentmanager"]
     P --> L["Label plugin<br/>(opcionális)"]
     P --> D["SPA static<br/>data/"]
@@ -128,8 +127,9 @@ npm run build          # deluge_mobileui/data/
 npm run test           # Vitest
 npm run test:coverage  # webui/coverage/lcov.info
 npm run test:e2e       # Playwright smoke (mockolt API)
-npm run dev            # proxy: 127.0.0.1:8113
-VITE_API_PROXY=http://192.168.2.27:8113 npm run dev
+npm run dev            # proxy: 127.0.0.1:8113 (helyi deluged)
+# más gépen futó delugednél:
+VITE_API_PROXY=http://<deluge-host>:8113 npm run dev
 ```
 
 A `test:e2e` első futása előtt `npx playwright install chromium` kell.
@@ -143,7 +143,7 @@ pytest-cov és Vitest + coverage, Deluge nélkül stubokkal, `coverage.xml` +
 `webui/coverage/lcov.info` artifact), `quality` (SonarQube main-branch
 elemzés, report-only), `build` (SPA + sdist/wheel/egg, artifact), `release`
 (manuális `RELEASE_TYPE=patch|minor|major`) és `deploy` (manuális rsync +
-`scripts/install.sh` a .27-re).
+`scripts/install.sh` a Deluge hostra).
 
 ```bash
 ./scripts/release.sh patch --dry-run

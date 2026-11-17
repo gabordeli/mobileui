@@ -48,9 +48,9 @@ Tokenes index:
     "max_active_limit": 0,
     "queue_new_to_top": false
   },
-  "num_torrents": 833,
+  "num_torrents": 42,
   "version": "2.2.0",
-  "download_location": "/home/gabor/Letöltések",
+  "download_location": "/data/downloads",
   "paused": false
 }
 ```
@@ -90,7 +90,7 @@ Válasz:
 
 ```json
 {
-  "total": 833,
+  "total": 42,
   "offset": 0,
   "limit": 50,
   "torrents": [
@@ -105,7 +105,7 @@ Válasz:
       "eta": 0,
       "ratio": 0.0,
       "total_size": 11073742312,
-      "save_path": "/mnt/usbhdd2/Filmek"
+      "save_path": "/data/downloads"
     }
   ]
 }
@@ -202,7 +202,7 @@ JSON body:
 {
   "magnet": "magnet:?xt=urn:btih:...",
   "label": "filmek",
-  "download_location": "/mnt/usbhdd2/Filmek",
+  "download_location": "/data/downloads",
   "add_paused": true
 }
 ```
@@ -214,7 +214,7 @@ Vagy fájl base64-ként:
   "filename": "x.torrent",
   "file_base64": "<base64>",
   "label": "filmek",
-  "download_location": "/mnt/usbhdd2/Filmek"
+  "download_location": "/data/downloads"
 }
 ```
 
@@ -225,7 +225,7 @@ curl -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/x-bittorrent" \
   --data-binary @x.torrent \
-  "http://127.0.0.1:8113/api/torrents?filename=x.torrent&label=filmek&download_location=/mnt/usbhdd2/Filmek&add_paused=true"
+  "http://127.0.0.1:8113/api/torrents?filename=x.torrent&label=filmek&download_location=/data/downloads&add_paused=true"
 ```
 
 - `download_location` abszolút út legyen; ha nincs megadva, a Deluge alapértéke.
@@ -243,7 +243,7 @@ Első esemény:
 
 ```text
 event: hello
-data: {"version":"0.1.0","heartbeat":15,"num_torrents":833}
+data: {"version":"0.1.0","heartbeat":15,"num_torrents":42}
 ```
 
 Utána torrent-delták (`event: torrent`) és session-delták (`event: session`):
