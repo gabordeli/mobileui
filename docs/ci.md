@@ -26,13 +26,23 @@ A CI release job a `RELEASE_TYPE` pipeline-változóval fut, majd
 ## Deploy
 
 A `deploy` job a build artifact `data/`-ját rsynceli a `.27:/root/webui2`-be,
-majd futtatja a `scripts/install.sh`-t. Ehhez a runneren:
+majd futtatja a `scripts/install.sh`-t. A runneren:
 - `rsync`,
-- `DEPLOY_SSH_KEY` CI-változó (a `.27` root authorized_keysében lévő kulcs),
+- a `gitlab-runner` user `~/.ssh/id_ed25519` kulcsa a `.27` root
+  `authorized_keys`ében (a jelenlegi setup így megy; `DEPLOY_SSH_KEY` CI-változó
+  opcionális felülírásként működik),
 - host key: `StrictHostKeyChecking=accept-new`.
 
-A #11 toolchain feladata ezeket a runnerre tenni. Amíg nincs kulcs, a deploy
-job manuálisan a fejlesztői gépről is futtatható (`scripts/install.sh`).
+A release job pusholásához a projektben be van kapcsolva a
+**CI job token push** (`ci_push_repository_for_job_token_allowed=true`), így a
+`CI_JOB_TOKEN` a `main`-re tudja tenni a release commitot/taget.
+
+## Igazolt futás
+
+- Pipeline: lint/test/build success; a `v0.1.1` release commit/tag elkészült.
+- Deploy job: success; a .27-en `/health` **0.1.1**, 833 torrent, SPA/8112 200.
+- A régi egg-verziók takarítása (`find ... -type d -name 'MobileUi-*.egg'`)
+  szükséges, különben a régi plugin marad betöltve.
 
 ## Ismert korlát
 

@@ -20,7 +20,9 @@ HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n
   fájllista, add sheet magnet/.torrent + label + útvonal.
 - **M2 / #8 kész:** PWA manifest/ikonok/SW, light/dark téma, HU/EN i18n,
   skeleton/offline/error állapotok, safe-area + a11y alapok.
-- Következik: M3 / #9 HTTPS + deploy.
+- **M3 / #10 kész:** GitLab CI (lint/test/build + manuális release/deploy),
+  `v0.1.1` release, deploy job a .27-re; a #9 public HTTPS később.
+- Következik: M3 / #11 runner toolchain.
 
 ## Felépítés
 
