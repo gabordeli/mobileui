@@ -29,6 +29,11 @@ let longPressed = false;
 
 const progress = computed(() => Math.max(0, Math.min(100, props.torrent.progress)));
 const paused = computed(() => props.torrent.state.includes("Paused"));
+const isError = computed(
+  () =>
+    props.torrent.state === "Error" ||
+    (!!props.torrent.message && props.torrent.message !== "OK"),
+);
 
 function clearTimer(): void {
   if (timer !== null) {
@@ -76,7 +81,7 @@ onBeforeUnmount(clearTimer);
 <template>
   <article
     class="torrent-row"
-    :class="{ selected }"
+    :class="{ selected, error: isError }"
     role="button"
     tabindex="0"
     :aria-label="torrent.name"
@@ -105,6 +110,9 @@ onBeforeUnmount(clearTimer);
     <div class="row-meta">
       <span class="state-pill" :class="stateClass(torrent.state)">
         {{ stateLabel(torrent.state) }}
+      </span>
+      <span v-if="isError" class="row-error" :title="torrent.message">
+        {{ t("row.error") }}
       </span>
       <span class="label-pill">{{ torrent.label }}</span>
       <span>{{ formatBytes(torrent.total_size) }}</span>

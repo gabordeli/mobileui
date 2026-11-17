@@ -1,7 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { setLocale } from "../i18n";
+import { setLocale, t } from "../i18n";
 import { torrent } from "./__fixtures__";
 import TorrentRow from "./TorrentRow.vue";
 
@@ -83,5 +83,15 @@ describe("TorrentRow", () => {
 
     expect(wrapper.find(".row-check").exists()).toBe(false);
     expect(wrapper.get("article").attributes("aria-pressed")).toBeUndefined();
+  });
+
+  it("shows an error badge for a failed torrent", () => {
+    const wrapper = factory({
+      torrent: { ...torrent, state: "Error", message: "Tracker error" },
+    });
+
+    expect(wrapper.get(".row-error").text()).toBe(t("row.error"));
+    expect(wrapper.get(".row-error").attributes("title")).toBe("Tracker error");
+    expect(wrapper.get("article").classes()).toContain("error");
   });
 });

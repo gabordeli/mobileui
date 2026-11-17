@@ -11,6 +11,8 @@
   the service worker serves `/share` with the app shell.
 - Label CRUD from the filter bar (create/delete; deleted labels move torrents
   to No label), plus a tracker list and force reannounce in the detail.
+- The torrent list shows an error badge when the state is `Error` or the
+  status message is not `OK`; the `Error` filter is available in the UI.
 
 ## [0.2.0] - 2026-11-17
 

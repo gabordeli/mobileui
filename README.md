@@ -76,6 +76,8 @@ Jelenlegi release: **v0.2.0** (GitLab + GitHub), az éles példányon telepítve
   linket előtöltve nyit az add sheetben (telepített PWA).
 - **Label + tracker:** címkék létrehozása/törlése a szűrősáv 🏷 gombjáról; a
   detailben tracker lista és force reannounce.
+- **Hibakezelés:** a listán piros `Hiba` badge a state/message alapján; az
+  `Error` szűrő a szűrősávban.
 
 ## 🧱 Felépítés
 

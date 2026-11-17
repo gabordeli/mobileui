@@ -213,7 +213,8 @@ Válasz:
       "eta": 0,
       "ratio": 0.0,
       "total_size": 11073742312,
-      "save_path": "/data/downloads"
+      "save_path": "/data/downloads",
+      "message": "OK"
     }
   ]
 }
@@ -221,7 +222,8 @@ Válasz:
 
 `total` a szűrés utáni teljes találatszám, a `torrents` csak a kért oldal.
 A `progress` 0–100, a rate-ek byte/s-ban, az `eta` másodperc (`-1` = végtelen),
-a `ratio` `-1` = végtelen.
+a `ratio` `-1` = végtelen. A `message` a Deluge státuszüzenete; a `state`
+`Error` és a nem `OK` message alapján a UI hibabadge-et mutat.
 
 ## GET /api/torrents/ids
 

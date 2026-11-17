@@ -19,6 +19,7 @@ LIST_KEYS = [
     "ratio",
     "total_size",
     "save_path",
+    "message",
 ]
 
 DETAIL_KEYS = [

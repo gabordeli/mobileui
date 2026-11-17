@@ -273,6 +273,18 @@ button {
   background: var(--accent);
 }
 
+.row-error {
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  font-size: 9px;
+}
+
+.torrent-row.error {
+  box-shadow: inset 2px 0 0 #ef4444;
+}
+
 .row-top {
   display: flex;
   align-items: baseline;

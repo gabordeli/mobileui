@@ -95,6 +95,16 @@ def test_list_filters_sorts_and_paginates():
     assert core.torrentmanager.torrents["a"].update_flags == [False]
 
 
+def test_list_includes_the_status_message():
+    torrent = make_torrent("a", "Dune")
+    torrent.fields["message"] = "Tracker error"
+    core = make_core(torrent)
+
+    result = read.list_torrents(core, FakeLabel({}))
+
+    assert result["torrents"][0]["message"] == "Tracker error"
+
+
 def test_list_filters_by_label_and_paginates():
     core = make_core(
         make_torrent("a", "One", progress=10.0),

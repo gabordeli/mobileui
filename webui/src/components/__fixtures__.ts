@@ -14,6 +14,7 @@ export const torrent: Torrent = {
   ratio: 0.5,
   total_size: 734003200,
   save_path: "/data/downloads",
+  message: "OK",
 };
 
 export const detail: TorrentDetail = {

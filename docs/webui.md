@@ -21,7 +21,7 @@ hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 ## Tesztek
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, komponensek, theme,
-  api, format, i18n, main); 121 teszt, a coverage threshold a `vite.config.ts`-ben.
+  api, format, i18n, main); 122 teszt, a coverage threshold a `vite.config.ts`-ben.
 - `npm run test:e2e` — Playwright smoke: token-kapu, fiók login, read-only UI,
   lista+detail, fájlprioritás, session sheet, bulk selection, megosztott magnet,
   add sheet. Az API-t `page.route` mockolja, ezért Deluge nélkül fut; az első
@@ -55,6 +55,9 @@ elég az új plugin/daemon; a UI a backend válaszából frissül. Ha a health n
   (kb. 10 DOM elem 50 betöltött mellett), a végére érve tölti a következő lapot.
 - A keresés 300 ms debounce; a state/label/sort szerveroldali szűrés, a
   `listKey` változásakor a scroller újraindul.
+- A soron **Hiba** badge jelenik meg, ha a `state` `Error` vagy a `message`
+  nem `OK`; a badge tooltipje a Deluge üzenetét mutatja. Az `Error` állapot a
+  szűrőben is elérhető.
 - A sor hosszú nyomása (500 ms, 10 px mozgástolerancia, vibráció ha van)
   **selection módot** indít (az adott sor kijelölve); ilyenkor a tap váltogat,
   normál módban a tap a detailt nyitja.

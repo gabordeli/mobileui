@@ -10,6 +10,7 @@ export interface Torrent {
   ratio: number;
   total_size: number;
   save_path: string;
+  message: string;
 }
 
 export interface TorrentList {
