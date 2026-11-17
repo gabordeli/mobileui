@@ -160,3 +160,9 @@ Hordozható egg, config/RPC, a jelenlegi telepítés és a visszaállítás:
 - [docs/ci.md](docs/ci.md) – CI stage-ek, release és deploy
 - [docs/decisions.md](docs/decisions.md) – döntések és korlátok
 - [AGENTS.md](AGENTS.md) – munkamód ügynököknek
+
+## 🤝 Közreműködés
+
+A GitHub repó a GitLab fejlesztés **egyirányú, read-only tükre**; a fejlesztés a
+privát GitLabon folyik. GitHub issue/PR esetén a maintainer portolhatja; a
+részletek: [CONTRIBUTING.md](CONTRIBUTING.md).
