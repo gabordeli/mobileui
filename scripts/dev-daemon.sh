@@ -28,7 +28,7 @@ cd "$ROOT"
 "$PY" setup.py -q bdist_egg
 EGG="$(ls -t dist/MobileUi-*.egg | head -n1)"
 EGG_DIR="$CONFIG_DIR/plugins/$(basename "$EGG")"
-rm -rf "$EGG_DIR"
+find "$CONFIG_DIR/plugins" -maxdepth 1 -type d -name 'MobileUi-*.egg' -exec rm -rf {} +
 mkdir -p "$EGG_DIR"
 "$PY" -m zipfile -e "$EGG" "$EGG_DIR"
 find "$CONFIG_DIR/plugins" -maxdepth 1 -type f -name 'MobileUi-*.egg' -delete
