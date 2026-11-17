@@ -45,12 +45,22 @@ const selectedLabel = ref("");
 const downLimit = ref(-1);
 const upLimit = ref(-1);
 const removeData = ref(false);
+const trackersOpen = ref(false);
 const backButton = ref<HTMLButtonElement | null>(null);
 
 const progress = computed(() =>
   Math.max(0, Math.min(100, detail.value?.progress ?? 0)),
 );
 const isPaused = computed(() => detail.value?.state.includes("Paused") ?? false);
+const trackerSummary = computed(() => {
+  const item = detail.value;
+  if (!item) return "";
+  return (
+    item.tracker_status ||
+    item.trackers.find((tracker) => tracker.message)?.message ||
+    ""
+  );
+});
 const labelOptions = computed(() => {
   const options = props.labels.map((label) => label.id);
   const current = detail.value?.label;
@@ -322,7 +332,6 @@ onMounted(() => {
                 {{ stateLabel(detail.state) }}
               </span>
               <span>{{ detail.label }}</span>
-              <span v-if="detail.tracker_host">· {{ detail.tracker_host }}</span>
             </p>
           </div>
           <button
@@ -356,16 +365,28 @@ onMounted(() => {
             <p v-if="detail.message" class="detail-message">{{ detail.message }}</p>
           </div>
 
-          <div class="stats-grid">
-            <div><span>{{ t("detail.download") }}</span><strong class="down">{{ formatRate(detail.download_payload_rate) }}</strong></div>
-            <div><span>{{ t("detail.upload") }}</span><strong class="up">{{ formatRate(detail.upload_payload_rate) }}</strong></div>
-            <div><span>{{ t("detail.eta") }}</span><strong>{{ formatEta(detail.eta) }}</strong></div>
-            <div><span>{{ t("detail.ratio") }}</span><strong>{{ formatRatio(detail.ratio) }}</strong></div>
-            <div><span>{{ t("detail.peers") }}</span><strong>{{ peerLabel(detail.num_peers, detail.total_peers) }}</strong></div>
-            <div><span>{{ t("detail.seeds") }}</span><strong>{{ peerLabel(detail.num_seeds, detail.total_seeds) }}</strong></div>
-            <div><span>{{ t("detail.size") }}</span><strong>{{ formatBytes(detail.total_size) }}</strong></div>
-            <div><span>{{ t("detail.added") }}</span><strong>{{ addedDate(detail.time_added) }}</strong></div>
+          <div class="detail-vitals">
+            <div>
+              <span>↓ {{ t("detail.download") }}</span>
+              <strong class="down">{{ formatRate(detail.download_payload_rate) }}</strong>
+            </div>
+            <div>
+              <span>↑ {{ t("detail.upload") }}</span>
+              <strong class="up">{{ formatRate(detail.upload_payload_rate) }}</strong>
+            </div>
+            <div>
+              <span>{{ t("detail.eta") }}</span>
+              <strong>{{ formatEta(detail.eta) }}</strong>
+            </div>
           </div>
+
+          <p class="detail-meta">
+            <span>{{ t("detail.ratio") }} <strong>{{ formatRatio(detail.ratio) }}</strong></span>
+            <span>{{ t("detail.peers") }} <strong>{{ peerLabel(detail.num_peers, detail.total_peers) }}</strong></span>
+            <span>{{ t("detail.seeds") }} <strong>{{ peerLabel(detail.num_seeds, detail.total_seeds) }}</strong></span>
+            <span>{{ t("detail.size") }} <strong>{{ formatBytes(detail.total_size) }}</strong></span>
+            <span>{{ t("detail.added") }} <strong>{{ addedDate(detail.time_added) }}</strong></span>
+          </p>
 
           <div class="detail-path">
             <span>{{ t("detail.path") }}</span>
@@ -383,10 +404,24 @@ onMounted(() => {
 
           <section v-if="detail.trackers.length" class="trackers">
             <header class="trackers-head">
-              <h3>
-                {{ t("detail.trackers") }}
-                <small>({{ detail.trackers.length }})</small>
-              </h3>
+              <button
+                class="tracker-bar"
+                type="button"
+                :aria-expanded="trackersOpen"
+                @click="trackersOpen = !trackersOpen"
+              >
+                <span class="tracker-icon" aria-hidden="true">📡</span>
+                <span class="tracker-name">
+                  {{ detail.tracker_host || t("detail.trackers") }}
+                </span>
+                <span v-if="trackerSummary" class="tracker-summary">
+                  {{ trackerSummary }}
+                </span>
+                <span class="tracker-count">{{ detail.trackers.length }}</span>
+                <span class="tracker-chevron" aria-hidden="true">
+                  {{ trackersOpen ? "▾" : "▸" }}
+                </span>
+              </button>
               <button
                 v-if="canWrite"
                 class="action"
@@ -396,7 +431,7 @@ onMounted(() => {
                 {{ t("detail.reannounce") }}
               </button>
             </header>
-            <ul class="tracker-list">
+            <ul v-if="trackersOpen" class="tracker-list">
               <li
                 v-for="tracker in detail.trackers"
                 :key="`${tracker.tier}-${tracker.url}`"
@@ -410,7 +445,7 @@ onMounted(() => {
                 </span>
               </li>
             </ul>
-            <p v-if="detail.tracker_status" class="tracker-status">
+            <p v-if="trackersOpen && detail.tracker_status" class="tracker-status">
               {{ detail.tracker_status }}
             </p>
           </section>

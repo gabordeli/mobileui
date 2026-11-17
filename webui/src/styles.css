@@ -916,15 +916,47 @@ dialog.sheet {
   gap: 8px;
 }
 
-.trackers-head h3 {
-  margin: 0;
-  font-size: 13px;
+.tracker-bar {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
 }
 
-.trackers-head h3 small {
+.tracker-icon {
+  font-size: 12px;
+}
+
+.tracker-name {
+  overflow: hidden;
+  max-width: 45%;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tracker-summary {
+  flex: 1;
+  overflow: hidden;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tracker-count,
+.tracker-chevron {
+  color: var(--muted);
+  font-size: 10px;
 }
 
 .trackers-head .action {
@@ -1169,6 +1201,54 @@ dialog.sheet {
   stroke: var(--up);
   stroke-width: 1.5;
   stroke-linejoin: round;
+}
+
+.detail-vitals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.detail-vitals > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.detail-vitals span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-vitals strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.detail-meta strong {
+  color: var(--text);
+  font-weight: 500;
 }
 
 .stats-grid {

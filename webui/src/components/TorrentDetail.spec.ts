@@ -267,6 +267,7 @@ describe("TorrentDetail", () => {
     const wrapper = factory();
     await flushPromises();
 
+    await wrapper.get(".tracker-bar").trigger("click");
     expect(wrapper.text()).toContain("tracker.example/announce");
     await wrapper.get(".trackers-head .action").trigger("click");
     await flushPromises();
@@ -317,6 +318,7 @@ describe("TorrentDetail", () => {
     expect(wrapper.find("select").exists()).toBe(false);
     expect(wrapper.find(".file-check").exists()).toBe(false);
     expect(wrapper.find(".trackers-head .action").exists()).toBe(false);
+    await wrapper.get(".tracker-bar").trigger("click");
     expect(wrapper.text()).toContain("tracker.example/announce");
     expect(wrapper.get(".readonly-note").text()).toBe(t("auth.readonly"));
     expect(wrapper.text()).toContain(files[0].path);
