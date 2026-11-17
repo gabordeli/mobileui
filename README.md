@@ -10,6 +10,7 @@ Deluge **2.x** (Python 3.10+), élesben **2.2.0**-val tesztelve; 1.x nem támoga
 [![Deluge](https://img.shields.io/badge/deluge-2.x-1f6feb?style=flat-square)](https://deluge-torrent.org/)
 [![Node](https://img.shields.io/badge/node-22-339933?style=flat-square)](https://nodejs.org/)
 [![Release workflow](https://github.com/gabordeli/mobileui/actions/workflows/release.yml/badge.svg)](https://github.com/gabordeli/mobileui/actions/workflows/release.yml)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-support-ff5e5b?style=flat-square&logo=ko-fi&logoColor=white)](https://ko-fi.com/gabordeli)
 
 ## 📱 Képernyőképek
 
@@ -166,3 +167,8 @@ Hordozható egg, config/RPC, a jelenlegi telepítés és a visszaállítás:
 A GitHub repó a GitLab fejlesztés **egyirányú, read-only tükre**; a fejlesztés a
 privát GitLabon folyik. GitHub issue/PR esetén a maintainer portolhatja; a
 részletek: [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## ☕ Támogatás
+
+Ha hasznos a projekt, a fejlesztést [Ko-fi](https://ko-fi.com/gabordeli)-val
+támogathatod.
