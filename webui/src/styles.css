@@ -781,6 +781,37 @@ dialog.sheet {
   gap: 6px;
 }
 
+.selection-remove {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.selection-remove p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.selection-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.selection-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--danger);
+}
+
+.selection-label-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
 .selection-label select {
   flex: 1;
   min-width: 0;

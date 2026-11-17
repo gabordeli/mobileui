@@ -43,16 +43,32 @@ describe("SelectionBar", () => {
   });
 
   it("asks for confirmation before removing", async () => {
-    const confirmMock = vi.fn(() => true);
-    vi.stubGlobal("confirm", confirmMock);
     const wrapper = factory();
 
     await button(wrapper, t("bulk.remove")).trigger("click");
-
-    expect(confirmMock).toHaveBeenCalledWith(
-      t("bulk.confirmRemove", { count: 3 }),
+    expect(wrapper.text()).toContain(t("bulk.confirmRemove", { count: 3 }));
+    expect(wrapper.get(".selection-remove input").element).toHaveProperty(
+      "checked",
+      false,
     );
-    expect(wrapper.emitted("action")?.[0]).toEqual([{ kind: "remove" }]);
+
+    await wrapper.get(".selection-remove .action.danger").trigger("click");
+
+    expect(wrapper.emitted("action")?.[0]).toEqual([
+      { kind: "remove", removeData: false },
+    ]);
+  });
+
+  it("can delete the downloaded data with the bulk remove", async () => {
+    const wrapper = factory();
+
+    await button(wrapper, t("bulk.remove")).trigger("click");
+    await wrapper.get(".selection-remove input").setValue(true);
+    await wrapper.get(".selection-remove .action.danger").trigger("click");
+
+    expect(wrapper.emitted("action")?.[0]).toEqual([
+      { kind: "remove", removeData: true },
+    ]);
   });
 
   it("applies a label from the picker", async () => {

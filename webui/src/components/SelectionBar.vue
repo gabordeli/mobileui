@@ -15,18 +15,24 @@ const emit = defineEmits<{
   selectAll: [];
   action: [
     payload:
-      | { kind: "pause" | "resume" | "remove" }
+      | { kind: "pause" | "resume" }
+      | { kind: "remove"; removeData: boolean }
       | { kind: "label"; label: string },
   ];
 }>();
 
 const labelOpen = ref(false);
+const removeOpen = ref(false);
+const removeData = ref(false);
 const label = ref("");
 
 function remove(): void {
-  if (confirm(t("bulk.confirmRemove", { count: props.count }))) {
-    emit("action", { kind: "remove" });
-  }
+  removeOpen.value = true;
+}
+
+function confirmRemove(): void {
+  emit("action", { kind: "remove", removeData: removeData.value });
+  removeOpen.value = false;
 }
 
 function applyLabel(): void {
@@ -67,6 +73,22 @@ function applyLabel(): void {
       </button>
     </div>
     <p v-else class="readonly-note">{{ t("auth.readonly") }}</p>
+
+    <div v-if="removeOpen && canWrite" class="selection-remove">
+      <p>{{ t("bulk.confirmRemove", { count }) }}</p>
+      <label class="selection-check">
+        <input v-model="removeData" type="checkbox" />
+        <span>{{ t("bulk.removeData") }}</span>
+      </label>
+      <div class="selection-label-actions">
+        <button class="action" @click="removeOpen = false">
+          {{ t("bulk.cancelRemove") }}
+        </button>
+        <button class="action danger" :disabled="busy" @click="confirmRemove">
+          {{ t("bulk.remove") }}
+        </button>
+      </div>
+    </div>
 
     <div v-if="labelOpen && canWrite" class="selection-label">
       <select v-model="label" :aria-label="t('bulk.label')">

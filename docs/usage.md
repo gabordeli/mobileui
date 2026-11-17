@@ -41,7 +41,9 @@ counter shows how many torrents are loaded and the total.
 - **Long-press a torrent (about 0.5 s)** – enters selection mode. A tap after
   that selects/deselects rows.
 - **Selection bar** – appears at the bottom: pause, resume, label, remove and
-  "All" (select every torrent matching the current filters, max 1000).
+  "All" (select every torrent matching the current filters, max 1000). The
+  remove confirmation has an explicit "Delete downloaded data too" checkbox
+  (off by default).
 - **Cancel** – the `✕` button leaves selection mode.
 
 ![Selection mode](assets/usage-selection.png)
@@ -75,7 +77,8 @@ The detail is intentionally compact:
   required.
 
 The detail updates live over SSE while it is open. Closing it returns to the
-list without losing the filters.
+list without losing the filters. While the state is `Moving`, the pause/remove/
+move actions are disabled so they cannot conflict with the storage move.
 
 ### Move a torrent
 

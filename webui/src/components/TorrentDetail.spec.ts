@@ -124,6 +124,21 @@ describe("TorrentDetail", () => {
     ]);
   });
 
+  it("disables actions while the torrent is moving", async () => {
+    vi.mocked(api.getTorrent).mockResolvedValue({ ...detail, state: "Moving" });
+    const wrapper = factory();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain(t("detail.movingHint"));
+    expect(wrapper.get(".detail-path .action").attributes("disabled")).toBeDefined();
+    expect(
+      wrapper.get(".detail-actions .action.primary").attributes("disabled"),
+    ).toBeDefined();
+    expect(
+      wrapper.get(".detail-remove .action.danger").attributes("disabled"),
+    ).toBeDefined();
+  });
+
   it("queues and saves a label", async () => {
     const wrapper = factory();
     await flushPromises();

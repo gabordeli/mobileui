@@ -281,7 +281,8 @@ async function selectAllMatching(): Promise<void> {
 
 async function runBulk(
   payload:
-    | { kind: "pause" | "resume" | "remove" }
+    | { kind: "pause" | "resume" }
+    | { kind: "remove"; removeData: boolean }
     | { kind: "label"; label: string },
 ): Promise<void> {
   if (bulkBusy.value || selectedIds.value.size === 0) return;
@@ -294,7 +295,9 @@ async function runBulk(
         : {
             action: payload.kind,
             torrent_ids: torrentIds,
-            ...(payload.kind === "remove" ? { remove_data: false } : {}),
+            ...(payload.kind === "remove"
+              ? { remove_data: payload.removeData }
+              : {}),
           };
     const result = await api.bulkAction(body);
     showToast(

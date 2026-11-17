@@ -55,6 +55,7 @@ const progress = computed(() =>
   Math.max(0, Math.min(100, detail.value?.progress ?? 0)),
 );
 const isPaused = computed(() => detail.value?.state.includes("Paused") ?? false);
+const isMoving = computed(() => detail.value?.state === "Moving");
 const trackerSummary = computed(() => {
   const item = detail.value;
   if (!item) return "";
@@ -232,7 +233,7 @@ function copyHash(): void {
 }
 
 function openMove(): void {
-  if (!detail.value) return;
+  if (!detail.value || isMoving.value) return;
   movePath.value = detail.value.download_location || detail.value.save_path || "";
   moveOpen.value = true;
 }
@@ -426,12 +427,13 @@ onMounted(() => {
             <button
               v-if="canWrite"
               class="action"
-              :disabled="actionLoading"
+              :disabled="actionLoading || isMoving"
               @click="openMove"
             >
               {{ t("detail.move") }}
             </button>
           </div>
+          <p v-if="isMoving" class="limits-hint">{{ t("detail.movingHint") }}</p>
 
           <div v-if="moveOpen" class="move-panel">
             <label>
@@ -516,7 +518,7 @@ onMounted(() => {
             <div class="detail-actions">
               <button
                 class="action primary"
-                :disabled="actionLoading"
+                :disabled="actionLoading || isMoving"
                 @click="act(isPaused ? 'resume' : 'pause')"
               >
                 {{ isPaused ? t("sheet.resume") : t("sheet.pause") }}
@@ -652,10 +654,14 @@ onMounted(() => {
 
           <div v-if="canWrite" class="detail-remove">
             <label class="checkbox">
-              <input v-model="removeData" type="checkbox" />
+              <input v-model="removeData" type="checkbox" :disabled="isMoving" />
               <span>{{ t("detail.removeData") }}</span>
             </label>
-            <button class="action danger" :disabled="actionLoading" @click="remove">
+            <button
+              class="action danger"
+              :disabled="actionLoading || isMoving"
+              @click="remove"
+            >
               {{ t("detail.remove") }}
             </button>
           </div>
