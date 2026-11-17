@@ -165,6 +165,7 @@ Portable egg, config/RPC, the current installation and rollback:
 - [docs/usage.md](docs/usage.md) – mobile usage guide with gestures and screenshots
 - [docs/ci.md](docs/ci.md) – CI stages, release and deploy
 - [docs/decisions.md](docs/decisions.md) – decisions and constraints
+- [docs/impact-post-1.0.md](docs/impact-post-1.0.md) – post-1.0 follow-up impact study
 - [AGENTS.md](AGENTS.md) – working notes for agents
 
 ## 🤝 Contributing

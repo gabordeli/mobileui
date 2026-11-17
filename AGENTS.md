@@ -11,7 +11,7 @@ Deluge **2.x** core plugin with a mobile web UI. The plugin runs in the
 - `webui/` – Vue 3 + Vite SPA, built into `deluge_mobileui/data/`
 - `tests/` – pytest; unit tests that run without Deluge
 - `docs/` – `api.md`, `perf.md`, `webui.md`, `usage.md`, `ci.md`, `install.md`,
-  `decisions.md`
+  `decisions.md`, `impact-post-1.0.md`
 
 ## Commands
 
@@ -46,8 +46,8 @@ Deluge **2.x** core plugin with a mobile web UI. The plugin runs in the
 
 ## Rules
 
-- Do not touch the 8112 `deluge-web` or the existing Label/AutoAdd/Scheduler/
-  Execute flows.
+- Do not touch the 8112 `deluge-web` or the existing Label/AutoAdd/Scheduler/Execute
+  flows.
 - Changing the Deluge host (install, restart) requires separate approval.
 - Git operations (commit/push/merge) require explicit approval.
 - One step = one issue, followed by a short status; do not leave half-finished
