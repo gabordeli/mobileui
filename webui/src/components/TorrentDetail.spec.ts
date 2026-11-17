@@ -17,6 +17,9 @@ vi.mock("../api", () => ({
   resumeTorrent: vi.fn(),
   queueTorrent: vi.fn(),
   setLabel: vi.fn(),
+  addLabel: vi.fn(),
+  removeLabel: vi.fn(),
+  reannounceTorrent: vi.fn(),
   removeTorrent: vi.fn(),
 }));
 
@@ -43,6 +46,10 @@ beforeEach(() => {
     id: detail.id,
     max_download_speed: -1,
     max_upload_speed: -1,
+  });
+  vi.mocked(api.reannounceTorrent).mockResolvedValue({
+    id: detail.id,
+    reannounced: true,
   });
 });
 
@@ -256,6 +263,20 @@ describe("TorrentDetail", () => {
     expect(wrapper.emitted("toast")?.[0]).toEqual([t("toast.limits")]);
   });
 
+  it("lists the trackers and reannounces", async () => {
+    const wrapper = factory();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("tracker.example/announce");
+    await wrapper.get(".trackers-head .action").trigger("click");
+    await flushPromises();
+
+    expect(api.reannounceTorrent).toHaveBeenCalledWith(detail.id);
+    expect(wrapper.emitted("toast")?.[0]).toEqual([
+      t("detail.reannounceSent"),
+    ]);
+  });
+
   it("applies live fields to the detail", async () => {
     const wrapper = factory();
     await flushPromises();
@@ -274,6 +295,8 @@ describe("TorrentDetail", () => {
     expect(wrapper.find(".detail-remove").exists()).toBe(false);
     expect(wrapper.find("select").exists()).toBe(false);
     expect(wrapper.find(".file-check").exists()).toBe(false);
+    expect(wrapper.find(".trackers-head .action").exists()).toBe(false);
+    expect(wrapper.text()).toContain("tracker.example/announce");
     expect(wrapper.get(".readonly-note").text()).toBe(t("auth.readonly"));
     expect(wrapper.text()).toContain(files[0].path);
   });

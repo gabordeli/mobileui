@@ -9,6 +9,8 @@
   `PATCH /api/torrents/{id}/limits`) with night-mode and unlimited presets.
 - PWA share target (Android): a shared magnet opens the add sheet prefilled;
   the service worker serves `/share` with the app shell.
+- Label CRUD from the filter bar (create/delete; deleted labels move torrents
+  to No label), plus a tracker list and force reannounce in the detail.
 
 ## [0.2.0] - 2026-11-17
 

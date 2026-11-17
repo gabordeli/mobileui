@@ -74,6 +74,8 @@ Jelenlegi release: **v0.2.0** (GitLab + GitHub), az éles példányon telepítve
   éjszakai mód és korlátlan preset a session sheetben.
 - **PWA share target:** Androidon a „Megosztás → Deluge Mobile” egy magnet
   linket előtöltve nyit az add sheetben (telepített PWA).
+- **Label + tracker:** címkék létrehozása/törlése a szűrősáv 🏷 gombjáról; a
+  detailben tracker lista és force reannounce.
 
 ## 🧱 Felépítés
 

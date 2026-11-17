@@ -50,6 +50,9 @@ vi.mock("./api", () => {
     resumeTorrent: vi.fn(),
     queueTorrent: vi.fn(),
     setLabel: vi.fn(),
+    addLabel: vi.fn(),
+    removeLabel: vi.fn(),
+    reannounceTorrent: vi.fn(),
     removeTorrent: vi.fn(),
     getTorrent: vi.fn(),
     getTorrentFiles: vi.fn(),
@@ -134,6 +137,11 @@ beforeEach(() => {
   vi.mocked(api.setSessionLimits).mockResolvedValue({
     max_download_speed: -1,
     max_upload_speed: -1,
+  });
+  vi.mocked(api.addLabel).mockResolvedValue({ id: "new-label" });
+  vi.mocked(api.removeLabel).mockResolvedValue({
+    id: "film",
+    removed: true,
   });
   vi.mocked(api.getLabels).mockResolvedValue({ labels, no_label: 1 });
   vi.mocked(api.listTorrents).mockResolvedValue({
@@ -471,6 +479,28 @@ describe("App", () => {
       max_upload_speed: 128,
     });
     expect(wrapper.text()).toContain(t("toast.limits"));
+  });
+
+  it("manages labels from the filter bar", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    const wrapper = mountApp();
+    await flushPromises();
+
+    await wrapper.get(".filter-labels").trigger("click");
+    const selector = `[role="dialog"][aria-label="${t("labels.title")}"]`;
+
+    await wrapper.get(`${selector} .label-add input`).setValue("new-label");
+    await wrapper.get(`${selector} .label-add .action`).trigger("click");
+    await flushPromises();
+
+    expect(api.addLabel).toHaveBeenCalledWith("new-label");
+    expect(wrapper.text()).toContain(t("labels.added"));
+
+    await wrapper.get(`${selector} .label-list .action`).trigger("click");
+    await flushPromises();
+
+    expect(api.removeLabel).toHaveBeenCalledWith("film");
+    expect(wrapper.text()).toContain(t("labels.removed"));
   });
 
   it("opens the add dialog and the detail", async () => {

@@ -11,7 +11,10 @@ const props = defineProps<{
   total: number;
   loaded: number;
 }>();
-const emit = defineEmits<{ update: [partial: Partial<TorrentFilters>] }>();
+const emit = defineEmits<{
+  update: [partial: Partial<TorrentFilters>];
+  manageLabels: [];
+}>();
 
 const states = [
   "All",
@@ -85,6 +88,13 @@ const sort = computed({
     <div class="filter-meta">
       <span>{{ t("filters.total", { count: total }) }}</span>
       <span>{{ t("filters.loaded", { count: loaded }) }}</span>
+      <button
+        class="filter-labels"
+        type="button"
+        @click="emit('manageLabels')"
+      >
+        🏷 {{ t("labels.manage") }}
+      </button>
     </div>
   </section>
 </template>

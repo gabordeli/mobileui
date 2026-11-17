@@ -181,11 +181,28 @@ button {
 
 .filter-meta {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   margin-top: 6px;
   color: var(--muted);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
+}
+
+.filter-labels {
+  margin-left: auto;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--accent-2);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.filter-labels:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .list-pane {
@@ -794,6 +811,115 @@ button {
 
 .limit-input {
   width: 72px;
+}
+
+.label-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.label-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.label-name {
+  flex: 1;
+  font-size: 13px;
+}
+
+.label-count {
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.label-add {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.label-add input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.trackers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.trackers-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.trackers-head h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.trackers-head h3 small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.trackers-head .action {
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.tracker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tracker-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.tracker-url {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tracker-meta,
+.tracker-status {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.tracker-status {
+  margin: 0;
 }
 
 .toast {

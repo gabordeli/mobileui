@@ -246,8 +246,37 @@ class SessionLimitsResource(ApiJsonResource):
         return self.write_json(request, 200, payload)
 
 
-class LabelsResource(ApiJsonResource):
+class LabelResource(ApiJsonResource):
     isLeaf = True
+
+    def __init__(self, plugin, label_id):
+        super().__init__(plugin)
+        self.label_id = label_id
+
+    def render_DELETE(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
+        try:
+            payload = self.plugin.remove_label(self.label_id)
+        except (BadRequest, Conflict, ValueError, TypeError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
+class LabelsResource(ApiJsonResource):
+    def __init__(self, plugin):
+        super().__init__(plugin)
+
+    def getChild(self, path, request):
+        if not self.plugin.is_authorized(request):
+            return UnauthorizedResource()
+        return LabelResource(self.plugin, path.decode("utf-8"))
 
     def render_GET(self, request):
         unauthorized = self.unauthorized(request)
@@ -258,6 +287,22 @@ class LabelsResource(ApiJsonResource):
         except Exception:
             return self.internal_error(request)
         return self.write_json(request, 200, payload)
+
+    def render_POST(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
+        try:
+            body = read_json_body(request)
+            payload = self.plugin.add_label(body.get("id"))
+        except (BadRequest, Conflict, ValueError, TypeError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 201, payload)
 
 
 class AuthInfoResource(ApiJsonResource):
@@ -485,6 +530,29 @@ class TorrentLimitsResource(ApiJsonResource):
         return self.write_json(request, 200, payload)
 
 
+class TorrentReannounceResource(ApiJsonResource):
+    isLeaf = True
+
+    def __init__(self, plugin, torrent_id):
+        super().__init__(plugin)
+        self.torrent_id = torrent_id
+
+    def render_POST(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
+        try:
+            payload = self.plugin.reannounce_torrent(self.torrent_id)
+        except (KeyError, Conflict, BadRequest, TypeError, ValueError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
 class TorrentResource(ApiJsonResource):
     def __init__(self, plugin, torrent_id):
         super().__init__(plugin)
@@ -504,6 +572,8 @@ class TorrentResource(ApiJsonResource):
             return TorrentFilesResource(self.plugin, self.torrent_id)
         if action == "limits":
             return TorrentLimitsResource(self.plugin, self.torrent_id)
+        if action == "reannounce":
+            return TorrentReannounceResource(self.plugin, self.torrent_id)
         return NotFoundResource()
 
     def render_GET(self, request):
@@ -725,6 +795,7 @@ class ApiRootResource(JsonResource):
                     "/api/torrents/bulk",
                     "/api/torrents/ids",
                     "/api/torrents/{id}",
+                    "/api/torrents/{id}/reannounce",
                     "/api/events",
                 ],
             },

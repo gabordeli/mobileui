@@ -270,6 +270,29 @@ export function setLabel(id: string, label: string): Promise<{ label: string }> 
   });
 }
 
+export function addLabel(id: string): Promise<{ id: string }> {
+  return request("/api/labels", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  });
+}
+
+export function removeLabel(
+  id: string,
+): Promise<{ id: string; removed: boolean }> {
+  return request(`/api/labels/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export function reannounceTorrent(
+  id: string,
+): Promise<{ id: string; reannounced: boolean }> {
+  return request(`/api/torrents/${encodeURIComponent(id)}/reannounce`, {
+    method: "POST",
+  });
+}
+
 export function eventsUrl(): string {
   return `/api/events?token=${encodeURIComponent(getToken())}`;
 }

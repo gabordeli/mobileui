@@ -170,6 +170,24 @@ async function queue(action: string): Promise<void> {
   }
 }
 
+async function reannounce(): Promise<void> {
+  actionLoading.value = true;
+  actionError.value = "";
+  try {
+    const result = await api.reannounceTorrent(props.torrentId);
+    emit(
+      "toast",
+      result.reannounced
+        ? t("detail.reannounceSent")
+        : t("detail.reannounceFailed"),
+    );
+  } catch (err) {
+    actionError.value = messageOf(err);
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
 async function saveLabel(): Promise<void> {
   actionLoading.value = true;
   actionError.value = "";
@@ -323,6 +341,40 @@ onMounted(() => {
             <span>{{ t("detail.path") }}</span>
             <code>{{ detail.download_location || detail.save_path }}</code>
           </div>
+
+          <section v-if="detail.trackers.length" class="trackers">
+            <header class="trackers-head">
+              <h3>
+                {{ t("detail.trackers") }}
+                <small>({{ detail.trackers.length }})</small>
+              </h3>
+              <button
+                v-if="canWrite"
+                class="action"
+                :disabled="actionLoading"
+                @click="reannounce"
+              >
+                {{ t("detail.reannounce") }}
+              </button>
+            </header>
+            <ul class="tracker-list">
+              <li
+                v-for="tracker in detail.trackers"
+                :key="`${tracker.tier}-${tracker.url}`"
+              >
+                <span class="tracker-url" :title="tracker.url">
+                  {{ tracker.url }}
+                </span>
+                <span class="tracker-meta">
+                  tier {{ tracker.tier ?? "—" }} ·
+                  {{ tracker.message || (tracker.verified ? "OK" : "—") }}
+                </span>
+              </li>
+            </ul>
+            <p v-if="detail.tracker_status" class="tracker-status">
+              {{ detail.tracker_status }}
+            </p>
+          </section>
 
           <p v-if="actionError" class="detail-error" role="alert">{{ actionError }}</p>
 

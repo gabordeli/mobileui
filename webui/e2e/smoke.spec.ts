@@ -64,6 +64,8 @@ const detail = {
   finished_time: 0,
   max_download_speed: -1,
   max_upload_speed: -1,
+  tracker_status: "OK",
+  trackers: [],
 };
 
 const files = {

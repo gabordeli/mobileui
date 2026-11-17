@@ -153,6 +153,18 @@ class StubPlugin:
         self.write_calls.append(("files", torrent_id, files, only))
         return {"id": torrent_id, "priorities": [0, 4]}
 
+    def add_label(self, label_id):
+        self.write_calls.append(("add_label", label_id))
+        return {"id": label_id}
+
+    def remove_label(self, label_id):
+        self.write_calls.append(("remove_label", label_id))
+        return {"id": label_id, "removed": True}
+
+    def reannounce_torrent(self, torrent_id):
+        self.write_calls.append(("reannounce", torrent_id))
+        return {"id": torrent_id, "reannounced": True}
+
     def get_session(self):
         return {"version": "2.2.0", "num_torrents": 0, "free_space": 4096}
 
@@ -326,6 +338,7 @@ def mutation_cases(plugin):
     session = api_child(plugin, b"session")
     torrent = torrent_resource(plugin)
     torrents = api_child(plugin, b"torrents")
+    labels = api_child(plugin, b"labels")
 
     def case(name, resource, method, path, payload=None):
         request = post_request(path)
@@ -418,6 +431,29 @@ def mutation_cases(plugin):
             "render_PATCH",
             [b"api", b"torrents", b"abc", b"limits"],
             {"max_download_speed": 0},
+        ),
+        case(
+            "label add",
+            labels,
+            "render_POST",
+            [b"api", b"labels"],
+            {"id": "movies"},
+        ),
+        case(
+            "label remove",
+            child(labels, b"movies", [b"api", b"labels", b"movies"]),
+            "render_DELETE",
+            [b"api", b"labels", b"movies"],
+        ),
+        case(
+            "reannounce",
+            child(
+                torrent,
+                b"reannounce",
+                [b"api", b"torrents", b"abc", b"reannounce"],
+            ),
+            "render_POST",
+            [b"api", b"torrents", b"abc", b"reannounce"],
         ),
     ]
 
@@ -541,6 +577,39 @@ def test_torrent_limits_patch_forwards_values():
     assert request.responseCode == 200
     assert json.loads(body)["id"] == "abc"
     assert plugin.write_calls == [("limits", "abc", 0, None)]
+
+
+def test_labels_add_and_remove():
+    plugin = StubPlugin(authorized=True)
+    labels = api_child(plugin, b"labels")
+    request = post_request([b"api", b"labels"])
+    request.content = io.BytesIO(b'{"id":"movies"}')
+
+    body = labels.render_POST(request)
+    assert request.responseCode == 201
+    assert json.loads(body)["id"] == "movies"
+
+    request = post_request([b"api", b"labels", b"movies"])
+    request.method = b"DELETE"
+    body = labels.getChildWithDefault(b"movies", request).render_DELETE(request)
+    assert request.responseCode == 200
+    assert json.loads(body)["removed"] is True
+    assert plugin.write_calls == [
+        ("add_label", "movies"),
+        ("remove_label", "movies"),
+    ]
+
+
+def test_reannounce_endpoint():
+    plugin = StubPlugin(authorized=True)
+    torrent = torrent_resource(plugin)
+    request = post_request([b"api", b"torrents", b"abc", b"reannounce"])
+
+    body = torrent.getChildWithDefault(b"reannounce", request).render_POST(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body)["reannounced"] is True
+    assert plugin.write_calls == [("reannounce", "abc")]
 
 
 def test_torrents_forwards_filters_and_pagination():

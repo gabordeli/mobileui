@@ -45,6 +45,8 @@ DETAIL_KEYS = [
     "time_added",
     "tracker",
     "tracker_host",
+    "tracker_status",
+    "trackers",
     "comment",
     "creator",
     "num_files",
@@ -181,11 +183,27 @@ def matching_ids(
     }
 
 
+def _text(value):
+    if isinstance(value, bytes):
+        return value.decode("utf-8", "replace")
+    return value
+
+
+def _tracker_row(entry):
+    return {key: _text(value) for key, value in entry.items()}
+
+
 def get_torrent(core, label_plugin, torrent_id):
     torrent = core.torrentmanager.torrents[torrent_id]
     status = torrent.get_status(DETAIL_KEYS, update=True)
     status["id"] = torrent_id
     status["label"] = _label_plugin_labels(label_plugin).get(torrent_id, NO_LABEL)
+    status["trackers"] = [
+        _tracker_row(entry) for entry in (status.get("trackers") or [])
+    ]
+    for key in ("tracker", "tracker_host", "tracker_status"):
+        if key in status:
+            status[key] = _text(status[key])
     return status
 
 

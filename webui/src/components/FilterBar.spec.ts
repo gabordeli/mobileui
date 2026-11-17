@@ -62,4 +62,12 @@ describe("FilterBar", () => {
     await sort.setValue("-ratio");
     expect(wrapper.emitted("update")?.[2]).toEqual([{ sort: "-ratio" }]);
   });
+
+  it("emits manageLabels from the labels button", async () => {
+    const wrapper = factory();
+
+    await wrapper.get(".filter-labels").trigger("click");
+
+    expect(wrapper.emitted("manageLabels")).toHaveLength(1);
+  });
 });

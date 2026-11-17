@@ -229,3 +229,13 @@ szolgálja ki (a query megmarad). Az App a `text` / `url` / `title` paraméterb�
 regexszel keresi a `magnet:?` linket, és előtöltve megnyitja az add sheetet; a
 címsorból a query-t `replaceState`-csel törli. Android Chrome + **telepített
 PWA** kell; az iOS Safari nem támogatja a share targetet.
+
+## D18 – Label CRUD a filter sávból, tracker lista + reannounce (2026-11-17)
+
+A Label plugin `add()` / `remove()` exportjait használjuk; a plugin validációs
+hibái (generic `Exception`) 400-ra mapelődnek, a plugin hiánya 409. A
+címke-sheet a szűrősáv 🏷 gombjáról nyílik, nem a headerbe került ötödik
+ikonként; a törölt label torrentjeit a plugin `clean_config`-ja `No Label` alá
+teszi. A detail a `get_status(["trackers", "tracker_status"])` listát mutatja;
+a reannounce a `Torrent.force_reannounce()`-ot hívja, a `false` eredmény nem
+hiba, hanem `200 {reannounced: false}`.

@@ -16,6 +16,12 @@ class FakeTorrent:
         self.max_download_speed = -1
         self.max_upload_speed = -1
         self.set_speed_calls = []
+        self.reannounce_result = True
+        self.reannounced = 0
+
+    def force_reannounce(self):
+        self.reannounced += 1
+        return self.reannounce_result
 
     def get_files(self):
         return self.files
@@ -114,6 +120,16 @@ class FakeLabel:
     def set_torrent(self, torrent_id, label_id):
         self.calls.append((torrent_id, label_id))
         self.torrent_labels[torrent_id] = label_id
+
+    def add(self, label_id):
+        self.calls.append(("add", label_id))
+        self.labels[label_id] = {}
+
+    def remove(self, label_id):
+        if label_id not in self.labels:
+            raise Exception("Unknown Label")
+        self.calls.append(("remove", label_id))
+        del self.labels[label_id]
 
 
 def test_pause_and_resume():
@@ -416,3 +432,36 @@ def test_limits_validate_input():
         write.set_torrent_limits(core, "abc", max_upload_speed=-2)
     with pytest.raises(KeyError):
         write.set_torrent_limits(core, "missing", max_download_speed=0)
+
+
+def test_label_add_and_remove():
+    labels = FakeLabel()
+
+    assert write.add_label(labels, " Movies ") == {"id": "movies"}
+    assert labels.labels["movies"] == {}
+    assert write.remove_label(labels, "movies") == {
+        "id": "movies",
+        "removed": True,
+    }
+    assert "movies" not in labels.labels
+
+    with pytest.raises(write.BadRequest):
+        write.add_label(labels, "")
+    with pytest.raises(write.BadRequest):
+        write.add_label(labels, 1)
+    with pytest.raises(write.Conflict):
+        write.add_label(None, "movies")
+    with pytest.raises(write.BadRequest):
+        write.remove_label(labels, "missing")
+
+
+def test_reannounce():
+    core = FakeCore()
+
+    assert write.reannounce(core, "abc") == {"id": "abc", "reannounced": True}
+
+    core.torrentmanager["abc"].reannounce_result = False
+    assert write.reannounce(core, "abc")["reannounced"] is False
+
+    with pytest.raises(KeyError):
+        write.reannounce(core, "missing")

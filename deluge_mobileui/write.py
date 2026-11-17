@@ -90,6 +90,39 @@ def set_label(core, label_plugin, torrent_id, label):
     return {"id": torrent_id, "label": label_id or NO_LABEL}
 
 
+def add_label(label_plugin, label_id):
+    if label_plugin is None:
+        raise Conflict("Label plugin is not enabled")
+    if not isinstance(label_id, str):
+        raise BadRequest("label id must be a string")
+    name = label_id.strip().lower()
+    if not name:
+        raise BadRequest("label id must not be empty")
+    try:
+        label_plugin.add(name)
+    except Exception as ex:
+        raise BadRequest(str(ex)) from None
+    return {"id": name}
+
+
+def remove_label(label_plugin, label_id):
+    if label_plugin is None:
+        raise Conflict("Label plugin is not enabled")
+    if not isinstance(label_id, str) or not label_id.strip():
+        raise BadRequest("label id must not be empty")
+    name = label_id.strip().lower()
+    try:
+        label_plugin.remove(name)
+    except Exception as ex:
+        raise BadRequest(str(ex)) from None
+    return {"id": name, "removed": True}
+
+
+def reannounce(core, torrent_id):
+    torrent = _torrent(core, torrent_id)
+    return {"id": torrent_id, "reannounced": bool(torrent.force_reannounce())}
+
+
 def _limit(value, key):
     try:
         number = float(value)

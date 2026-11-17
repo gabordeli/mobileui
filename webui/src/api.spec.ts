@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ForbiddenError,
   UnauthorizedError,
+  addLabel,
   addTorrentFile,
   addTorrentMagnet,
   eventsUrl,
@@ -18,6 +19,8 @@ import {
   logout,
   pauseTorrent,
   queueTorrent,
+  reannounceTorrent,
+  removeLabel,
   removeTorrent,
   resumeTorrent,
   setFilePriorities,
@@ -270,6 +273,32 @@ describe("torrent actions", () => {
     expect(path).toBe("/api/torrents/abc/limits");
     expect(init.method).toBe("PATCH");
     expect(init.body).toBe(JSON.stringify({ max_download_speed: 0 }));
+  });
+
+  it("adds and removes a label", async () => {
+    const fetchMock = mockFetch({ id: "film" });
+
+    await addLabel("film");
+    await removeLabel("film");
+
+    const [addPath, addInit] = fetchMock.mock.calls[0];
+    expect(addPath).toBe("/api/labels");
+    expect(addInit.method).toBe("POST");
+    expect(addInit.body).toBe(JSON.stringify({ id: "film" }));
+
+    const [removePath, removeInit] = fetchMock.mock.calls[1];
+    expect(removePath).toBe("/api/labels/film");
+    expect(removeInit.method).toBe("DELETE");
+  });
+
+  it("reannounces a torrent", async () => {
+    const fetchMock = mockFetch({ id: "abc", reannounced: true });
+
+    await reannounceTorrent("abc");
+
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/torrents/abc/reannounce");
+    expect(init.method).toBe("POST");
   });
 
   it("loads the labels", async () => {

@@ -45,6 +45,15 @@ export const detail: TorrentDetail = {
   finished_time: 0,
   max_download_speed: -1,
   max_upload_speed: -1,
+  tracker_status: "OK",
+  trackers: [
+    {
+      url: "https://tracker.example/announce",
+      tier: 0,
+      verified: true,
+      message: "OK",
+    },
+  ],
 };
 
 export const files: TorrentFile[] = [

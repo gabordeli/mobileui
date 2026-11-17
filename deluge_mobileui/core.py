@@ -186,6 +186,21 @@ class Core(CorePluginBase):
             component.get("Core"), self._label_plugin(), torrent_id, label
         )
 
+    def add_label(self, label_id):
+        from . import write
+
+        return write.add_label(self._label_plugin(), label_id)
+
+    def remove_label(self, label_id):
+        from . import write
+
+        return write.remove_label(self._label_plugin(), label_id)
+
+    def reannounce_torrent(self, torrent_id):
+        from . import write
+
+        return write.reannounce(component.get("Core"), torrent_id)
+
     def add_torrent(self, **kwargs):
         from . import write
 

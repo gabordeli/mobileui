@@ -21,7 +21,7 @@ hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 ## Tesztek
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, komponensek, theme,
-  api, format, i18n, main); 111 teszt, a coverage threshold a `vite.config.ts`-ben.
+  api, format, i18n, main); 121 teszt, a coverage threshold a `vite.config.ts`-ben.
 - `npm run test:e2e` — Playwright smoke: token-kapu, fiók login, read-only UI,
   lista+detail, fájlprioritás, session sheet, bulk selection, megosztott magnet,
   add sheet. Az API-t `page.route` mockolja, ezért Deluge nélkül fut; az első
@@ -90,6 +90,15 @@ események szűrő nélkül a totalt is korrigálják; reconnectet a böngésző
   backend 400/409 üzenete jelenik meg.
 - A detail SSE-ből kapja a progress/rate/state frissítést; a listát és a detailt
   a műveletek után a válasz + SSE szinkronban tartja.
+- A detail a **tracker listát** és a `tracker_status`-t is mutatja; a
+  **Reannounce** gomb a `POST /api/torrents/{id}/reannounce`-ot hívja.
+
+## Címkék
+
+A szűrősáv 🏷 **Címkék** gombja sheetet nyit: a meglévő labelek darabszámmal,
+törlés megerősítéssel, és új label (`a-z0-9_-`) hozzáadása. A törölt label
+torrentjei `No Label` alá kerülnek; a lista a művelet után frissül. Read-only
+fióknál csak a lista látszik.
 
 ## PWA, téma, i18n
 

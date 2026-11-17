@@ -163,6 +163,24 @@ A Deluge `core.conf`-jába ír, a PreferencesManager callback azonnal alkalmazza
 A count csak a létező torrenteket számolja. Ha a Label plugin nincs engedélyezve:
 `{"labels": [], "no_label": <összes>}`.
 
+## POST /api/labels
+
+Új label (write szint, read-only → 403). A Label plugin `add()`-ját hívja; a
+név `[a-z0-9_.-]`, kisbetűsítve:
+
+```json
+{"id": "uj-label"}
+```
+
+`201 {"id": "uj-label"}`; érvénytelen/duplikált név → 400; plugin nélkül → 409.
+
+## DELETE /api/labels/{id}
+
+Label törlése (write szint). A torrentjei `No Label` alá kerülnek:
+
+`200 {"id": "uj-label", "removed": true}`; ismeretlen label → 400; plugin
+nélkül → 409.
+
 ## GET /api/torrents
 
 Query paraméterek:
@@ -225,6 +243,8 @@ Egy torrent részletes státusza. A `get_status` mezői mellett:
 | --- | --- |
 | `id` | torrent hash |
 | `label` | label id vagy `No Label` |
+| `trackers` | a tracker lista (url, tier, verified, message, …) |
+| `tracker_status` | az aktuális tracker státuszüzenete |
 | `num_files` | fájlok száma |
 
 Ismeretlen id → `404 {"error": "not_found", ...}`. A fájllista külön, lapozott
@@ -301,6 +321,13 @@ alapból `false`; ha a Deluge nem tudja eltávolítani → 409.
 
 `action`: `up`, `down`, `top`, `bottom`. `200 {"id": "...", "action": "up"}`;
 ismeretlen action → 400, ismeretlen torrent → 404.
+
+## POST /api/torrents/{id}/reannounce
+
+Force tracker reannounce (write szint; read-only → 403):
+
+`200 {"id": "...", "reannounced": true}`; ha a Deluge nem tudta elküldeni,
+`reannounced: false`; ismeretlen torrent → 404.
 
 ## PATCH /api/torrents/{id}
 

@@ -60,6 +60,14 @@ export interface LimitState {
   max_upload_speed: number;
 }
 
+export interface TorrentTracker {
+  url: string;
+  tier?: number;
+  verified?: boolean;
+  message?: string;
+  next_announce?: number;
+}
+
 export interface TorrentDetail extends Torrent {
   total_done: number;
   total_uploaded: number;
@@ -88,6 +96,8 @@ export interface TorrentDetail extends Torrent {
   finished_time: number;
   max_download_speed: number;
   max_upload_speed: number;
+  tracker_status: string;
+  trackers: TorrentTracker[];
 }
 
 export interface TorrentFile {

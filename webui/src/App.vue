@@ -20,8 +20,8 @@ import type {
   TorrentFilters,
 } from "./types";
 import AddDialog from "./components/AddDialog.vue";
-import ContextSheet from "./components/ContextSheet.vue";
 import FilterBar from "./components/FilterBar.vue";
+import LabelsSheet from "./components/LabelsSheet.vue";
 import SelectionBar from "./components/SelectionBar.vue";
 import SessionSheet from "./components/SessionSheet.vue";
 import TokenGate from "./components/TokenGate.vue";
@@ -51,6 +51,7 @@ const detailLive = ref<Record<string, unknown>>({});
 const addOpen = ref(false);
 const pendingMagnet = ref("");
 const sessionOpen = ref(false);
+const labelsOpen = ref(false);
 const online = ref(navigator.onLine);
 const toast = ref("");
 const sseState = ref<"off" | "live" | "reconnecting">("off");
@@ -416,6 +417,34 @@ async function applySessionLimits(payload: LimitPayload): Promise<void> {
   }
 }
 
+async function reloadLabels(): Promise<void> {
+  const data = await api.getLabels();
+  labels.value = data.labels;
+  noLabelCount.value = data.no_label;
+}
+
+async function addLabel(id: string): Promise<void> {
+  try {
+    await api.addLabel(id);
+    await reloadLabels();
+    showToast(t("labels.added"));
+  } catch (error) {
+    reportError(error);
+  }
+}
+
+async function removeLabel(id: string): Promise<void> {
+  try {
+    await api.removeLabel(id);
+    await reloadLabels();
+    if (filters.label === id) filters.label = "";
+    resetList();
+    showToast(t("labels.removed"));
+  } catch (error) {
+    reportError(error);
+  }
+}
+
 function showGate(): void {
   tokenInitial.value = api.getToken();
   authError.value = "";
@@ -579,6 +608,7 @@ onBeforeUnmount(() => {
       :total="total"
       :loaded="torrents.length"
       @update="updateFilters"
+      @manage-labels="labelsOpen = true"
     />
 
     <main class="list-pane" :class="{ selecting: selectionMode }">
@@ -630,6 +660,15 @@ onBeforeUnmount(() => {
       @close="sessionOpen = false"
       @toggle="toggleSession"
       @limits="applySessionLimits"
+    />
+
+    <LabelsSheet
+      v-if="labelsOpen"
+      :labels="labels"
+      :can-write="canWrite"
+      @close="labelsOpen = false"
+      @add="addLabel"
+      @remove="removeLabel"
     />
 
     <SelectionBar
