@@ -24,6 +24,9 @@ classifiers = [
 dependencies = ["Twisted>=22.4", "sentry-sdk>=2.0"]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+push = ["pywebpush==2.2.0", "py-vapid==1.9.0", "cryptography<45"]
+
 [project.urls]
 Homepage = "https://github.com/gabordeli/mobileui"
 Source = "https://github.com/gabordeli/mobileui"

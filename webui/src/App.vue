@@ -50,6 +50,7 @@ const detail = ref<Torrent | null>(null);
 const detailLive = ref<Record<string, unknown>>({});
 const addOpen = ref(false);
 const pendingMagnet = ref("");
+const pendingTorrent = ref("");
 const sessionOpen = ref(false);
 const labelsOpen = ref(false);
 const downHistory = ref<number[]>([]);
@@ -167,6 +168,18 @@ async function bootstrap(): Promise<void> {
     authed.value = true;
     connectEvents();
     resetList();
+    void openPendingTorrent();
+  } catch (error) {
+    reportError(error);
+  }
+}
+
+async function openPendingTorrent(): Promise<void> {
+  const torrentId = pendingTorrent.value;
+  if (!torrentId) return;
+  pendingTorrent.value = "";
+  try {
+    openDetail(await api.getTorrent(torrentId));
   } catch (error) {
     reportError(error);
   }
@@ -522,13 +535,23 @@ function updateOnline(): void {
 }
 
 onMounted(() => {
+  const params = new URLSearchParams(window.location.search);
   const shared = extractMagnet(window.location.search);
   if (shared) {
     pendingMagnet.value = shared;
     addOpen.value = true;
+    for (const key of ["text", "url", "title"]) params.delete(key);
+  }
+  const torrentId = params.get("torrent");
+  if (torrentId) {
+    pendingTorrent.value = torrentId;
+    params.delete("torrent");
+  }
+  if (shared || torrentId) {
+    const query = params.toString();
     const path =
       window.location.pathname === "/share" ? "/" : window.location.pathname;
-    window.history.replaceState({}, "", path);
+    window.history.replaceState({}, "", `${path}${query ? `?${query}` : ""}`);
   }
   window.addEventListener("online", updateOnline);
   window.addEventListener("offline", updateOnline);

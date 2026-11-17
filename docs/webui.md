@@ -21,7 +21,7 @@ hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 ## Tesztek
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, komponensek, theme,
-  api, format, i18n, main); 128 teszt, a coverage threshold a `vite.config.ts`-ben.
+  api, format, i18n, main, push); 140 teszt, a coverage threshold a `vite.config.ts`-ben.
 - `npm run test:e2e` — Playwright smoke: token-kapu, fiók login, read-only UI,
   lista+detail, fájlprioritás, session sheet, bulk selection, megosztott magnet,
   add sheet. Az API-t `page.route` mockolja, ezért Deluge nélkül fut; az első
@@ -134,6 +134,21 @@ presetekkel, valamint egy **sparkline** mutatja az elmúlt 60 mp le/fel
 sebességét az SSE session deltaiból. Read-only fióknál csak a note látszik. A
 válasz `paused` mezője alapján a gomb felirata azonnal vált; a listát az SSE
 delta frissíti.
+
+## Értesítések (Web Push)
+
+A session sheet alján kapcsolható be, read-only fióknál is (a feliratkozás
+nem Deluge-módosítás). Feltétel: HTTPS (secure context), `Notification`
+engedély és `PushManager`. A böngésző a `GET /api/push/config` VAPID nyilvános
+kulcsával iratkozik fel, a `PushSubscription.toJSON()`-ját a
+`POST /api/push/subscribe` tárolja. Kikapcsolásnál a böngésző
+`unsubscribe()`-je után a `DELETE /api/push/subscribe` törli a szerveroldali
+endpointot. A service worker `push` eseménye rendszerértesítést rajzol, a
+kattintás a `/?torrent=<id>` deep linkre navigál (a meglévő ablakot
+fókuszálja), amit az App a detail sheetben nyit meg. A beállítás böngészőnként
+és eszközönként külön él; a szerver max. 20 feliratkozást tárol. Ha a böngésző
+tiltja az értesítéseket, a kapcsoló magyarázatot mutat; HTTP LAN-hoston a
+„HTTPS kell” szöveg jelenik meg.
 
 ## Megosztás (Android)
 

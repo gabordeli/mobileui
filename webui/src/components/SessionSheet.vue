@@ -4,6 +4,7 @@ import { computed, onMounted, ref } from "vue";
 import { formatBytes, formatRate } from "../format";
 import { t } from "../i18n";
 import type { LimitPayload, Session } from "../types";
+import PushToggle from "./PushToggle.vue";
 import Sparkline from "./Sparkline.vue";
 
 const props = defineProps<{
@@ -118,6 +119,8 @@ onMounted(() => closeButton.value?.focus());
           </div>
           <p class="limits-hint">{{ t("limits.hint") }}</p>
         </div>
+
+        <PushToggle />
 
         <div v-if="canWrite" class="sheet-actions">
           <button

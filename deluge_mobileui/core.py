@@ -48,6 +48,7 @@ CONFIG_DEFAULTS = {
     "token": "",
     "auth_mode": "token",
     "sentry_dsn": "",
+    "vapid_subject": "mailto:admin@example.invalid",
 }
 
 
@@ -60,6 +61,7 @@ class Core(CorePluginBase):
         self.events = None
         self.sessions = {}
         self._login_failures = {}
+        self._error_notified = set()
 
     def enable(self):
         self.config = ConfigManager(CONFIG_FILE, defaults=CONFIG_DEFAULTS)
@@ -70,8 +72,10 @@ class Core(CorePluginBase):
         self._init_sentry()
         self._start_listener(int(self.config["port"]))
         self._start_events()
+        self._register_push_events()
 
     def disable(self):
+        self._unregister_push_events()
         self._stop_events()
         self._flush_sentry()
         return self._stop_listener()
@@ -158,6 +162,101 @@ class Core(CorePluginBase):
             max_download_speed,
             max_upload_speed,
         )
+
+    def _register_push_events(self):
+        try:
+            manager = component.get("EventManager")
+            manager.register_event_handler(
+                "TorrentFinishedEvent", self._on_torrent_finished
+            )
+            manager.register_event_handler(
+                "TorrentStateChangedEvent", self._on_torrent_state_changed
+            )
+        except Exception:
+            log.debug("MobileUi push events unavailable", exc_info=True)
+
+    def _unregister_push_events(self):
+        try:
+            manager = component.get("EventManager")
+            manager.deregister_event_handler(
+                "TorrentFinishedEvent", self._on_torrent_finished
+            )
+            manager.deregister_event_handler(
+                "TorrentStateChangedEvent", self._on_torrent_state_changed
+            )
+        except Exception:
+            pass
+
+    def _torrent_field(self, torrent_id, key):
+        try:
+            torrent = component.get("Core").torrentmanager.torrents[torrent_id]
+            return torrent.get_status([key], update=False).get(key)
+        except Exception:
+            return None
+
+    def _on_torrent_finished(self, torrent_id):
+        name = self._torrent_field(torrent_id, "name") or torrent_id
+        self._dispatch_push("Torrent kész", name, torrent_id)
+
+    def _on_torrent_state_changed(self, torrent_id, state):
+        if state == "Error":
+            if torrent_id in self._error_notified:
+                return
+            self._error_notified.add(torrent_id)
+            name = self._torrent_field(torrent_id, "name") or torrent_id
+            message = self._torrent_field(torrent_id, "message") or "Error"
+            self._dispatch_push("Torrent hiba", f"{name}: {message}", torrent_id)
+        else:
+            self._error_notified.discard(torrent_id)
+
+    def _dispatch_push(self, title, body, torrent_id):
+        from . import push
+
+        config_file = self.config.config_file
+        try:
+            subscriptions = push.load_subscriptions(config_file)
+        except Exception:
+            log.warning("MobileUi push: cannot read subscriptions", exc_info=True)
+            return
+        if not subscriptions:
+            return
+        payload = {
+            "title": title,
+            "body": body,
+            "url": f"/?torrent={torrent_id}",
+            "tag": f"mobileui-{torrent_id}",
+        }
+        from twisted.internet import threads
+
+        deferred = threads.deferToThread(
+            push.send_push,
+            config_file,
+            payload,
+            subscriptions,
+            str(self.config.get("vapid_subject", "mailto:admin@example.invalid")),
+        )
+        deferred.addErrback(
+            lambda failure: log.warning("MobileUi push dispatch failed: %s", failure)
+        )
+
+    def get_push_config(self):
+        from . import push
+
+        return {
+            "enabled": True,
+            "public_key": push.public_key(self.config.config_file),
+            "subscriptions": len(push.load_subscriptions(self.config.config_file)),
+        }
+
+    def subscribe_push(self, subscription):
+        from . import push
+
+        return push.add_subscription(self.config.config_file, subscription)
+
+    def unsubscribe_push(self, endpoint):
+        from . import push
+
+        return push.remove_subscription(self.config.config_file, endpoint)
 
     def pause_torrent(self, torrent_id):
         from . import write
@@ -303,6 +402,10 @@ class Core(CorePluginBase):
             if not isinstance(config["sentry_dsn"], str):
                 raise TypeError("sentry_dsn must be a string")
             updates["sentry_dsn"] = config["sentry_dsn"]
+        if "vapid_subject" in config:
+            if not isinstance(config["vapid_subject"], str):
+                raise TypeError("vapid_subject must be a string")
+            updates["vapid_subject"] = config["vapid_subject"]
 
         old = {key: self.config[key] for key in updates}
         for key, value in updates.items():

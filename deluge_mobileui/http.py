@@ -305,6 +305,64 @@ class LabelsResource(ApiJsonResource):
         return self.write_json(request, 201, payload)
 
 
+class PushConfigResource(ApiJsonResource):
+    isLeaf = True
+
+    def render_GET(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        try:
+            payload = self.plugin.get_push_config()
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
+class PushSubscribeResource(ApiJsonResource):
+    isLeaf = True
+
+    def render_POST(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        try:
+            body = read_json_body(request)
+            payload = self.plugin.subscribe_push(body)
+        except (TypeError, ValueError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 201, payload)
+
+    def render_DELETE(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        try:
+            body = read_json_body(request)
+            payload = self.plugin.unsubscribe_push(body.get("endpoint"))
+        except (TypeError, ValueError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
+class PushRootResource(ApiJsonResource):
+    def __init__(self, plugin):
+        super().__init__(plugin)
+
+    def getChild(self, path, request):
+        if not self.plugin.is_authorized(request):
+            return UnauthorizedResource()
+        if path == b"config":
+            return PushConfigResource(self.plugin)
+        if path == b"subscribe":
+            return PushSubscribeResource(self.plugin)
+        return NotFoundResource()
+
+
 class AuthInfoResource(ApiJsonResource):
     isLeaf = True
 
@@ -768,6 +826,7 @@ class ApiRootResource(JsonResource):
         self.putChild(b"labels", LabelsResource(plugin))
         self.putChild(b"torrents", TorrentsResource(plugin))
         self.putChild(b"events", EventsResource(plugin))
+        self.putChild(b"push", PushRootResource(plugin))
 
     def getChild(self, path, request):
         if path not in PUBLIC_API_PATHS and not self.plugin.is_authorized(request):
@@ -796,6 +855,8 @@ class ApiRootResource(JsonResource):
                     "/api/torrents/ids",
                     "/api/torrents/{id}",
                     "/api/torrents/{id}/reannounce",
+                    "/api/push/config",
+                    "/api/push/subscribe",
                     "/api/events",
                 ],
             },

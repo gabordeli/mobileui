@@ -293,6 +293,34 @@ export function reannounceTorrent(
   });
 }
 
+export interface PushConfig {
+  enabled: boolean;
+  public_key: string;
+  subscriptions: number;
+}
+
+export function getPushConfig(): Promise<PushConfig> {
+  return request<PushConfig>("/api/push/config");
+}
+
+export function subscribePush(
+  subscription: PushSubscriptionJSON,
+): Promise<{ count: number }> {
+  return request("/api/push/subscribe", {
+    method: "POST",
+    body: JSON.stringify(subscription),
+  });
+}
+
+export function unsubscribePush(
+  endpoint: string,
+): Promise<{ unsubscribed: boolean }> {
+  return request("/api/push/subscribe", {
+    method: "DELETE",
+    body: JSON.stringify({ endpoint }),
+  });
+}
+
 export function eventsUrl(): string {
   return `/api/events?token=${encodeURIComponent(getToken())}`;
 }

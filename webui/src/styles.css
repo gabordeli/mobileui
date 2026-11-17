@@ -809,6 +809,31 @@ button {
   font-size: 10px;
 }
 
+.push-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.push-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.push-text strong {
+  font-size: 13px;
+}
+
+.push-text span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .limits-inline {
   flex-wrap: wrap;
 }

@@ -460,6 +460,46 @@ Utána torrent-delták (`event: torrent`) és session-delták (`event: session`)
   böngésző automatikusan reconnectel (nincs esemény-replay).
 - Plugin disable esetén `event: bye` majd a stream lezár.
 
+## GET /api/push/config
+
+A Web Push VAPID nyilvános kulcsát és a regisztrált feliratkozások számát adja
+vissza. A böngésző ebből a kulcsból hozza létre a `PushSubscription`-t.
+
+```json
+{"enabled": true, "public_key": "B...", "subscriptions": 1}
+```
+
+A VAPID kulcspár az első kéréskor generálódik
+(`mobileui-vapid.pem`, 600), a feliratkozások a `mobileui-push.json` fájlban
+tárolódnak (600, atomikus írás, max. 20 db).
+
+## POST /api/push/subscribe
+
+Egy böngésző `PushSubscription.toJSON()` objektumát regisztrálja. Ugyanaz az
+`endpoint` idempotens (nem duplikálódik).
+
+```json
+{"endpoint": "https://push.example/...", "keys": {"p256dh": "...", "auth": "..."}}
+```
+
+Válasz: `201 {"count": 1}`. Érvénytelen bemenet → `400`.
+
+## DELETE /api/push/subscribe
+
+```json
+{"endpoint": "https://push.example/..."}
+```
+
+Válasz: `200 {"unsubscribed": true|false}`. A törlés nem hívja a böngésző
+`unsubscribe()`-jét; azt a kliens végzi, a szerver csak a tárolt endpointot
+dobja el.
+
+A szerver a `TorrentFinishedEvent` és a `TorrentStateChangedEvent` (`Error`)
+eseményekre küld értesítést a regisztrált böngészőknek; a kézbesítés
+`deferToThread`-ben fut, hogy a reactor ne blokkolódjon. A 404/410 választ adó
+lejárt feliratkozások automatikusan törlődnek. A `vapid_subject` config
+(alapértelmezés `mailto:admin@example.invalid`) a VAPID `sub` claim.
+
 ## M1 végpontok
 
 Az M1 összes végpontja implementálva: `/health`, `/api/auth`, `/api/login`,

@@ -80,6 +80,9 @@ Jelenlegi release: **v0.2.0** (GitLab + GitHub), az éles példányon telepítve
   `Error` szűrő a szűrősávban.
 - **Kényelmi:** az add sheet megjegyzi az utolsó útvonalat/labelt; a detailből
   magnet/infohash másolható.
+- **Web Push:** a session sheetben bekapcsolható értesítés torrent befejezésről
+  és hibáról; a notification a torrent detailre visz (`/?torrent=<id>`).
+  HTTPS + opcionális `pywebpush` kell, a VAPID kulcs automatikusan generálódik.
 
 ## 🧱 Felépítés
 
@@ -90,6 +93,7 @@ deluge_mobileui/     Deluge core plugin (Twisted Site a daemon reactorjában)
   http.py             Twisted resource-ok (/health, /api végpontok, 401/403)
   read.py             torrent/session/label olvasás (cache-elt státusz)
   write.py            pause/resume/remove/label/queue/add
+  push.py             VAPID kulcs, feliratkozás-tár, pywebpush küldés
   events.py           SSE broadcaster (EventManager + 1/s diff)
   data/               SPA build output (a plugin statikusan szolgálja ki)
 webui/                Vue 3 + Vite + TS SPA (M2)

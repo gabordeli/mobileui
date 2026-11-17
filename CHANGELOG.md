@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- Web Push notifications: a toggle in the session sheet subscribes the browser
+  (`GET /api/push/config`, `POST|DELETE /api/push/subscribe`), and the plugin
+  sends a notification on `TorrentFinishedEvent` and on `TorrentStateChangedEvent`
+  (`Error`). The service worker shows the notification and opens the torrent
+  detail from the `/?torrent=<id>` deep link. VAPID keys and subscriptions are
+  stored next to `mobileui.conf` (600); delivery runs off the reactor thread and
+  prunes dead (404/410) subscriptions. Requires HTTPS and the optional
+  `pywebpush==2.2.0` / `py-vapid==1.9.0` / `cryptography<45` packages, which
+  `install.sh` installs.
 - File priorities in the torrent detail: a per-file download toggle and
   "Only this" (`PATCH /api/torrents/{id}/files`), plus a search box over the
   loaded file list.

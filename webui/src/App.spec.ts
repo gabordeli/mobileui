@@ -192,6 +192,19 @@ describe("App", () => {
     );
   });
 
+  it("opens the torrent from a push deep link", async () => {
+    window.history.replaceState({}, "", `/?torrent=${torrent.id}`);
+
+    const wrapper = mountApp();
+    await flushPromises();
+
+    expect(api.getTorrent).toHaveBeenCalledWith(torrent.id);
+    expect(window.location.search).toBe("");
+    expect(
+      wrapper.get(`[role="dialog"][aria-label="${t("detail.title")}"]`),
+    ).toBeTruthy();
+  });
+
   it("loads the session, labels, list and version", async () => {
     const wrapper = mountApp();
     await flushPromises();

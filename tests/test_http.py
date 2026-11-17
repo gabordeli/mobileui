@@ -165,6 +165,17 @@ class StubPlugin:
         self.write_calls.append(("reannounce", torrent_id))
         return {"id": torrent_id, "reannounced": True}
 
+    def get_push_config(self):
+        return {"enabled": True, "public_key": "pk", "subscriptions": 0}
+
+    def subscribe_push(self, subscription):
+        self.write_calls.append(("push_sub", subscription))
+        return {"subscribed": True, "count": 1}
+
+    def unsubscribe_push(self, endpoint):
+        self.write_calls.append(("push_unsub", endpoint))
+        return {"unsubscribed": True}
+
     def get_session(self):
         return {"version": "2.2.0", "num_torrents": 0, "free_space": 4096}
 
@@ -610,6 +621,58 @@ def test_reannounce_endpoint():
     assert request.responseCode == 200
     assert json.loads(body)["reannounced"] is True
     assert plugin.write_calls == [("reannounce", "abc")]
+
+
+def test_push_config_and_subscribe_endpoints():
+    plugin = StubPlugin(authorized=True)
+    root = api_child(plugin, b"push")
+
+    request = DummyRequest([b"api", b"push", b"config"])
+    body = root.getChildWithDefault(b"config", request).render_GET(request)
+    assert request.responseCode == 200
+    assert json.loads(body)["public_key"] == "pk"
+
+    request = post_request([b"api", b"push", b"subscribe"])
+    request.content = io.BytesIO(
+        b'{"endpoint":"https://push/1","keys":{"p256dh":"a","auth":"b"}}'
+    )
+    body = root.getChildWithDefault(b"subscribe", request).render_POST(request)
+    assert request.responseCode == 201
+    assert json.loads(body)["subscribed"] is True
+    assert plugin.write_calls[0][0] == "push_sub"
+
+    request = post_request([b"api", b"push", b"subscribe"])
+    request.method = b"DELETE"
+    request.content = io.BytesIO(b'{"endpoint":"https://push/1"}')
+    body = root.getChildWithDefault(b"subscribe", request).render_DELETE(request)
+    assert request.responseCode == 200
+    assert json.loads(body)["unsubscribed"] is True
+    assert plugin.write_calls[1] == ("push_unsub", "https://push/1")
+
+
+def test_push_subscribe_allows_readonly_level():
+    plugin = StubPlugin(authorized=True, level=1)
+    root = api_child(plugin, b"push")
+    request = post_request([b"api", b"push", b"subscribe"])
+    request.content = io.BytesIO(
+        b'{"endpoint":"https://push/1","keys":{"p256dh":"a","auth":"b"}}'
+    )
+
+    body = root.getChildWithDefault(b"subscribe", request).render_POST(request)
+
+    assert request.responseCode == 201
+    assert json.loads(body)["subscribed"] is True
+
+
+def test_push_requires_auth():
+    plugin = StubPlugin(authorized=False)
+    root = api_child(plugin, b"push")
+    request = DummyRequest([b"api", b"push", b"config"])
+
+    body = root.getChildWithDefault(b"config", request).render(request)
+
+    assert request.responseCode == 401
+    assert json.loads(body)["error"] == "unauthorized"
 
 
 def test_torrents_forwards_filters_and_pagination():

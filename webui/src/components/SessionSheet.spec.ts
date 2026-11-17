@@ -32,7 +32,7 @@ function factory(overrides: Record<string, unknown> = {}) {
       upHistory: [0, 512],
       ...overrides,
     },
-    global: { stubs: { teleport: true } },
+    global: { stubs: { teleport: true, PushToggle: true } },
   });
 }
 

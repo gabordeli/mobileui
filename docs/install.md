@@ -32,6 +32,13 @@ A script alapértékei Debian/Deluge 2.2 telepítésre valók (`/opt/deluge-2.2.
 `/var/lib/deluged/config`, `debian-deluged`); más venv/config/user esetén az
 env változókkal add meg őket.
 
+A script opcionális Python-függőségeket is telepít a Deluge venvbe, ha még
+nincsenek: `sentry-sdk` (Sentry) és `pywebpush==2.2.0` + `py-vapid==1.9.0` +
+`cryptography<45` (Web Push). Utóbbiakat a `pyopenssl` 25 miatt kell a 45 alatt
+tartani; ha a telepítésük elbukik, a plugin a Sentry/push nélkül is elindul.
+A Web Push böngészőoldalon **HTTPS secure contextet** igényel (a push
+service worker csak ilyen originen regisztrálható).
+
 ## Hordozható egg
 
 A release-hez csatolt `MobileUi-<verzió>-py3.x.egg` és a hozzá tartozó
@@ -62,9 +69,13 @@ kicsomagolni, majd `systemctl restart deluged` és
   "port": 8113,
   "token": "",
   "auth_mode": "token",
-  "sentry_dsn": ""
+  "sentry_dsn": "",
+  "vapid_subject": "mailto:admin@example.invalid"
 }
 ```
+
+A `vapid_subject` a Web Push VAPID `sub` claimje; éles használatnál írd be a
+saját `mailto:` címedet (egyes push szolgáltatások validálják).
 
 A `/api/*` végpontok hitelesítést kérnek (`/health` és a login végpontok
 kivételével). Két mód van, az `auth_mode` dönt:

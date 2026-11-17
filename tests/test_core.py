@@ -216,6 +216,7 @@ def test_set_config_can_disable_server(tmp_path, monkeypatch):
         ({"sentry_dsn": 123}, TypeError),
         ({"auth_mode": "nope"}, ValueError),
         ({"auth_mode": 1}, TypeError),
+        ({"vapid_subject": 1}, TypeError),
     ],
 )
 def test_set_config_validates_input(config, exception, tmp_path):
@@ -482,3 +483,128 @@ def test_set_config_updates_auth_mode_and_clears_sessions(tmp_path, monkeypatch)
     assert updated["auth_mode"] == "token"
     assert plugin.auth_modes() == ("token",)
     assert plugin.sessions == {}
+
+
+def push_plugin(tmp_path):
+    plugin = make_plugin()
+    plugin.config = FakeConfig(
+        {"vapid_subject": "mailto:ops@example.invalid"},
+        str(tmp_path / "mobileui.conf"),
+    )
+    plugin._error_notified = set()
+    return plugin
+
+
+def test_dispatch_push_sends_to_subscriptions(tmp_path, monkeypatch):
+    from twisted.internet import threads
+
+    from deluge_mobileui import push
+
+    plugin = push_plugin(tmp_path)
+    subscription = {"endpoint": "https://push.example/1"}
+    monkeypatch.setattr(push, "load_subscriptions", lambda path: [subscription])
+    calls = []
+    monkeypatch.setattr(
+        push,
+        "send_push",
+        lambda *args: calls.append(args) or 1,
+    )
+
+    class FakeDeferred:
+        def addErrback(self, callback):
+            self.errback = callback
+
+    def fake_defer(fn, *args):
+        fn(*args)
+        return FakeDeferred()
+
+    monkeypatch.setattr(threads, "deferToThread", fake_defer)
+
+    plugin._dispatch_push("Torrent kész", "Demo", "abc")
+
+    assert calls == [
+        (
+            plugin.config.config_file,
+            {
+                "title": "Torrent kész",
+                "body": "Demo",
+                "url": "/?torrent=abc",
+                "tag": "mobileui-abc",
+            },
+            [subscription],
+            "mailto:ops@example.invalid",
+        )
+    ]
+
+
+def test_dispatch_push_skips_without_subscriptions(tmp_path, monkeypatch):
+    from deluge_mobileui import push
+
+    plugin = push_plugin(tmp_path)
+    monkeypatch.setattr(push, "load_subscriptions", lambda path: [])
+    monkeypatch.setattr(
+        push,
+        "send_push",
+        lambda *args: (_ for _ in ()).throw(AssertionError("no send")),
+    )
+
+    plugin._dispatch_push("x", "y", "abc")
+
+
+def test_push_events_dedupe_errors(tmp_path, monkeypatch):
+    plugin = push_plugin(tmp_path)
+    monkeypatch.setattr(
+        plugin,
+        "_torrent_field",
+        lambda torrent_id, key: "Demo" if key == "name" else "Tracker error",
+    )
+    calls = []
+    monkeypatch.setattr(
+        plugin,
+        "_dispatch_push",
+        lambda title, body, torrent_id: calls.append((title, body, torrent_id)),
+    )
+
+    plugin._on_torrent_finished("abc")
+    plugin._on_torrent_state_changed("abc", "Error")
+    plugin._on_torrent_state_changed("abc", "Error")
+    plugin._on_torrent_state_changed("abc", "Downloading")
+    plugin._on_torrent_state_changed("abc", "Error")
+
+    assert calls == [
+        ("Torrent kész", "Demo", "abc"),
+        ("Torrent hiba", "Demo: Tracker error", "abc"),
+        ("Torrent hiba", "Demo: Tracker error", "abc"),
+    ]
+
+
+def test_push_config_and_subscriptions_delegate_to_store(tmp_path, monkeypatch):
+    from deluge_mobileui import push
+
+    plugin = push_plugin(tmp_path)
+    monkeypatch.setattr(push, "public_key", lambda path: "pk")
+    monkeypatch.setattr(push, "load_subscriptions", lambda path: [{"endpoint": "a"}])
+
+    assert plugin.get_push_config() == {
+        "enabled": True,
+        "public_key": "pk",
+        "subscriptions": 1,
+    }
+
+    calls = []
+    monkeypatch.setattr(
+        push,
+        "add_subscription",
+        lambda path, subscription: calls.append(("add", path, subscription))
+        or {"subscribed": True, "count": 1},
+    )
+    monkeypatch.setattr(
+        push,
+        "remove_subscription",
+        lambda path, endpoint: calls.append(("remove", path, endpoint))
+        or {"unsubscribed": True},
+    )
+
+    assert plugin.subscribe_push({"endpoint": "a"})["count"] == 1
+    assert plugin.unsubscribe_push("a") == {"unsubscribed": True}
+    assert [call[0] for call in calls] == ["add", "remove"]

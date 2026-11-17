@@ -239,3 +239,16 @@ ikonként; a törölt label torrentjeit a plugin `clean_config`-ja `No Label` al
 teszi. A detail a `get_status(["trackers", "tracker_status"])` listát mutatja;
 a reannounce a `Torrent.force_reannounce()`-ot hívja, a `false` eredmény nem
 hiba, hanem `200 {reannounced: false}`.
+
+## D19 – Web Push: VAPID + esemény-alapú értesítés (2026-11-17)
+
+A push a gyári Deluge eventekre épül (`TorrentFinishedEvent`,
+`TorrentStateChangedEvent`), nem külön pollerra. A VAPID kulcs a Deluge config
+mellett generálódik, a feliratkozások külön, 600-as JSON fájlban; a szerver
+csak a böngésző `PushSubscription`-jét tárolja, a tartalmat a `sw.js` `push`
+handlere rendereli. A küldés `deferToThread`-ben fut, mert a pywebpush
+blokkoló HTTP-t használ; a 404/410 „dead” feliratkozásokat a küldés törli. A
+frontend csak HTTPS-en (secure context) kínálja fel a kapcsolót; a session
+sheetben kap helyet, hogy ne növelje a header ikonjait. A `vapid_subject`
+config adja a VAPID `sub` claimet, mert a szolgáltatások eltérően validálják a
+`mailto:`/URL formátumot.

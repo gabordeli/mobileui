@@ -13,7 +13,7 @@ variables:
 .python_setup: &python_setup
   - python3 -m venv .ci-venv
   - .ci-venv/bin/pip install -q --upgrade pip
-  - .ci-venv/bin/pip install -q pytest pytest-cov ruff build twisted wheel setuptools sentry-sdk
+  - .ci-venv/bin/pip install -q pytest pytest-cov ruff build twisted wheel setuptools sentry-sdk 'cryptography<45'
 
 .python_job:
   cache:
@@ -86,7 +86,7 @@ deluge-compat:
       - DELUGE_VERSION: ["2.1.1", "2.2.0"]
         PY_IMAGE: ["python:3.11-slim"]
   script:
-    - docker run --rm -e PYTHONDONTWRITEBYTECODE=1 -e DELUGE_VERSION="$DELUGE_VERSION" -v "$PWD:/work" -w /work "$PY_IMAGE" bash -lc 'pip install -q "deluge==$DELUGE_VERSION" libtorrent pytest twisted && python -m pytest -q -p no:cacheprovider tests'
+    - docker run --rm -e PYTHONDONTWRITEBYTECODE=1 -e DELUGE_VERSION="$DELUGE_VERSION" -v "$PWD:/work" -w /work "$PY_IMAGE" bash -lc 'pip install -q "deluge==$DELUGE_VERSION" libtorrent pytest twisted "cryptography<45" && python -m pytest -q -p no:cacheprovider tests'
 
 sonar:
   stage: quality
