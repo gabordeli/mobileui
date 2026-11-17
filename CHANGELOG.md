@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.1] - 2026-11-17
+
+- Release 0.1.1.
+
 ## [0.1.0] - 2026-11-17
 
 - Deluge `MobileUi` core plugin on port 8113 with token auth.
