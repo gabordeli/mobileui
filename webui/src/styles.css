@@ -896,6 +896,16 @@ dialog.sheet {
   font-size: 11px;
 }
 
+.push-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.push-actions .action {
+  padding: 6px 9px;
+  font-size: 11px;
+}
+
 .limits-inline {
   flex-wrap: wrap;
 }

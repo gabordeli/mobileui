@@ -9,6 +9,7 @@ const supported = push.pushSupported();
 const state = ref<"loading" | "off" | "on" | "denied">("loading");
 const busy = ref(false);
 const error = ref("");
+const testState = ref("");
 
 const statusText = computed(() => {
   if (!supported) return t("push.unsupported");
@@ -68,6 +69,26 @@ async function disable(): Promise<void> {
   }
 }
 
+async function sendTest(): Promise<void> {
+  if (busy.value) return;
+  busy.value = true;
+  error.value = "";
+  testState.value = "";
+  try {
+    const subscription = await push.currentSubscription();
+    if (!subscription) {
+      state.value = "off";
+      return;
+    }
+    await api.testPush(subscription.endpoint);
+    testState.value = t("push.testSent");
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : t("push.error");
+  } finally {
+    busy.value = false;
+  }
+}
+
 onMounted(refresh);
 </script>
 
@@ -85,15 +106,16 @@ onMounted(refresh);
     >
       {{ t("push.enable") }}
     </button>
-    <button
-      v-else-if="supported && state === 'on'"
-      class="action"
-      :disabled="busy"
-      @click="disable"
-    >
-      {{ t("push.disable") }}
-    </button>
+    <div v-else-if="supported && state === 'on'" class="push-actions">
+      <button class="action" :disabled="busy" @click="sendTest">
+        {{ t("push.test") }}
+      </button>
+      <button class="action" :disabled="busy" @click="disable">
+        {{ t("push.disable") }}
+      </button>
+    </div>
   </div>
   <p v-if="state === 'denied'" class="limits-hint">{{ t("push.deniedHint") }}</p>
+  <p v-if="testState" class="limits-hint">{{ testState }}</p>
   <p v-if="error" class="limits-hint">{{ error }}</p>
 </template>

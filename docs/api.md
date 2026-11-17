@@ -513,9 +513,24 @@ Response: `201 {"count": 1}`. Invalid input → `400`.
 Response: `200 {"unsubscribed": true|false}`. The deletion does not call the browser's
 `unsubscribe()`; the client does that, the server only drops the stored endpoint.
 
+## POST /api/push/test
+
+Queues one test notification to a stored subscription (read-only accounts may
+use it):
+
+```json
+{"endpoint": "https://push.example/..."}
+```
+
+`200 {"queued": true}`; an unknown endpoint → 404, an invalid endpoint → 400.
+Delivery runs in `deferToThread`, so the response only confirms queueing.
+
 The server sends a notification to the registered browsers on the `TorrentFinishedEvent` and the
 `TorrentStateChangedEvent` (`Error`) events; delivery
-runs in `deferToThread`, so that the reactor is not blocked. Expired subscriptions that answer
+runs in `deferToThread`, so that the reactor is not blocked. The payload carries
+`kind` (`finished` / `error` / `test`), `name`, `message`, `url` and `tag`; the
+service worker renders HU/EN text from `navigator.language` (the `title`/`body`
+fields remain as an English fallback). Expired subscriptions that answer
 404/410 are removed automatically. The `vapid_subject` config
 (default `mailto:admin@example.invalid`) is the VAPID `sub` claim.
 

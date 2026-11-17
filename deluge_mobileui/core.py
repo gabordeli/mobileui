@@ -245,7 +245,7 @@ class Core(CorePluginBase):
 
     def _on_torrent_finished(self, torrent_id):
         name = self._torrent_field(torrent_id, "name") or torrent_id
-        self._dispatch_push("Torrent kész", name, torrent_id)
+        self._dispatch_push("finished", name, torrent_id)
 
     def _on_torrent_state_changed(self, torrent_id, state):
         if state == "Error":
@@ -254,11 +254,11 @@ class Core(CorePluginBase):
             self._error_notified.add(torrent_id)
             name = self._torrent_field(torrent_id, "name") or torrent_id
             message = self._torrent_field(torrent_id, "message") or "Error"
-            self._dispatch_push("Torrent hiba", f"{name}: {message}", torrent_id)
+            self._dispatch_push("error", name, torrent_id, message)
         else:
             self._error_notified.discard(torrent_id)
 
-    def _dispatch_push(self, title, body, torrent_id):
+    def _dispatch_push(self, kind, name, torrent_id, message=""):
         from . import push
 
         config_file = self.config.config_file
@@ -270,8 +270,11 @@ class Core(CorePluginBase):
         if not subscriptions:
             return
         payload = {
-            "title": title,
-            "body": body,
+            "kind": kind,
+            "name": name,
+            "message": message,
+            "title": "Torrent finished" if kind == "finished" else "Torrent error",
+            "body": name if kind == "finished" else f"{name}: {message}",
             "url": f"/?torrent={torrent_id}",
             "tag": f"mobileui-{torrent_id}",
         }
@@ -287,6 +290,39 @@ class Core(CorePluginBase):
         deferred.addErrback(
             lambda failure: log.warning("MobileUi push dispatch failed: %s", failure)
         )
+
+    def test_push(self, endpoint):
+        from twisted.internet import threads
+
+        from . import push
+
+        if not isinstance(endpoint, str) or not endpoint.startswith("https://"):
+            raise ValueError("invalid subscription endpoint")
+        subscriptions = [
+            item
+            for item in push.load_subscriptions(self.config.config_file)
+            if item.get("endpoint") == endpoint
+        ]
+        if not subscriptions:
+            raise KeyError(endpoint)
+        payload = {
+            "kind": "test",
+            "title": "Deluge Mobile test",
+            "body": "Push notifications are working.",
+            "url": "/",
+            "tag": "mobileui-test",
+        }
+        deferred = threads.deferToThread(
+            push.send_push,
+            self.config.config_file,
+            payload,
+            subscriptions,
+            str(self.config.get("vapid_subject", "mailto:admin@example.invalid")),
+        )
+        deferred.addErrback(
+            lambda failure: log.warning("MobileUi test push failed: %s", failure)
+        )
+        return {"queued": True}
 
     def get_push_config(self):
         from . import push

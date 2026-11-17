@@ -10,6 +10,7 @@ vi.mock("../api", () => ({
   getPushConfig: vi.fn(),
   subscribePush: vi.fn(),
   unsubscribePush: vi.fn(),
+  testPush: vi.fn(),
 }));
 
 vi.mock("../push", () => ({
@@ -51,6 +52,7 @@ beforeEach(() => {
   });
   vi.mocked(api.subscribePush).mockResolvedValue({ count: 1 });
   vi.mocked(api.unsubscribePush).mockResolvedValue({ unsubscribed: true });
+  vi.mocked(api.testPush).mockResolvedValue({ queued: true });
 });
 
 describe("PushToggle", () => {
@@ -77,13 +79,31 @@ describe("PushToggle", () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain(t("push.on"));
-    await wrapper.get(".push-toggle .action").trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((item) => item.text() === t("push.disable"))!
+      .trigger("click");
     await flushPromises();
 
     expect(api.unsubscribePush).toHaveBeenCalledWith(
       "https://push.example/1",
     );
     expect(wrapper.text()).toContain(t("push.off"));
+  });
+
+  it("sends a test notification to the current subscription", async () => {
+    vi.mocked(push.currentSubscription).mockResolvedValue(subscription());
+    const wrapper = mountToggle();
+    await flushPromises();
+
+    await wrapper
+      .findAll("button")
+      .find((item) => item.text() === t("push.test"))!
+      .trigger("click");
+    await flushPromises();
+
+    expect(api.testPush).toHaveBeenCalledWith("https://push.example/1");
+    expect(wrapper.text()).toContain(t("push.testSent"));
   });
 
   it("explains when notifications are blocked", async () => {

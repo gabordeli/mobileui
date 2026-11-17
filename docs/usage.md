@@ -122,7 +122,8 @@ Push needs HTTPS (secure context) and a push-capable browser. Tap **Enable**,
 allow notifications, and the browser subscribes. Notifications are sent when a
 torrent finishes or enters the `Error` state. Tapping a notification opens the
 torrent detail via `/?torrent=<id>`. The setting is per browser/device; the
-server stores up to 20 subscriptions.
+server stores up to 20 subscriptions. Use **Test** to send one notification to
+the current device; the text follows the browser language (HU/EN).
 
 If notifications are blocked, the sheet explains how to allow them; on plain
 HTTP the button reports that HTTPS is required.

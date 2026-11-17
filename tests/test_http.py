@@ -180,6 +180,10 @@ class StubPlugin:
         self.write_calls.append(("push_unsub", endpoint))
         return {"unsubscribed": True}
 
+    def test_push(self, endpoint):
+        self.write_calls.append(("push_test", endpoint))
+        return {"queued": True}
+
     def get_session(self):
         return {"version": "2.2.0", "num_torrents": 0, "free_space": 4096}
 
@@ -679,6 +683,13 @@ def test_push_config_and_subscribe_endpoints():
     assert json.loads(body)["unsubscribed"] is True
     assert plugin.write_calls[1] == ("push_unsub", "https://push/1")
 
+    request = post_request([b"api", b"push", b"test"])
+    request.content = io.BytesIO(b'{"endpoint":"https://push/1"}')
+    body = root.getChildWithDefault(b"test", request).render_POST(request)
+    assert request.responseCode == 200
+    assert json.loads(body)["queued"] is True
+    assert plugin.write_calls[2] == ("push_test", "https://push/1")
+
 
 def test_push_subscribe_allows_readonly_level():
     plugin = StubPlugin(authorized=True, level=1)
@@ -692,6 +703,13 @@ def test_push_subscribe_allows_readonly_level():
 
     assert request.responseCode == 201
     assert json.loads(body)["subscribed"] is True
+
+    request = post_request([b"api", b"push", b"test"])
+    request.content = io.BytesIO(b'{"endpoint":"https://push/1"}')
+    body = root.getChildWithDefault(b"test", request).render_POST(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body)["queued"] is True
 
 
 def test_push_requires_auth():

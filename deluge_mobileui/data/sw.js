@@ -86,11 +86,31 @@ self.addEventListener("push", (event) => {
   } catch {
     payload = { body: event.data ? event.data.text() : "" };
   }
-  const title = payload.title || "Deluge Mobile";
+  const language = (
+    (self.navigator && self.navigator.language) ||
+    "en"
+  ).toLowerCase();
+  const hu = language.startsWith("hu");
+  let title = payload.title || "Deluge Mobile";
+  let body = payload.body || "";
+  if (payload.kind === "finished") {
+    title = hu ? "Torrent kész" : "Torrent finished";
+    body = payload.name || body;
+  } else if (payload.kind === "error") {
+    title = hu ? "Torrent hiba" : "Torrent error";
+    body = payload.name
+      ? `${payload.name}: ${payload.message || (hu ? "Hiba" : "Error")}`
+      : body;
+  } else if (payload.kind === "test") {
+    title = hu ? "Deluge Mobile teszt" : "Deluge Mobile test";
+    body = hu
+      ? "A push értesítések működnek."
+      : "Push notifications are working.";
+  }
   const url = payload.url || "/";
   event.waitUntil(
     self.registration.showNotification(title, {
-      body: payload.body || "",
+      body,
       tag: payload.tag,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",

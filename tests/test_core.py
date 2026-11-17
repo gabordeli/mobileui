@@ -520,13 +520,16 @@ def test_dispatch_push_sends_to_subscriptions(tmp_path, monkeypatch):
 
     monkeypatch.setattr(threads, "deferToThread", fake_defer)
 
-    plugin._dispatch_push("Torrent kész", "Demo", "abc")
+    plugin._dispatch_push("finished", "Demo", "abc")
 
     assert calls == [
         (
             plugin.config.config_file,
             {
-                "title": "Torrent kész",
+                "kind": "finished",
+                "name": "Demo",
+                "message": "",
+                "title": "Torrent finished",
                 "body": "Demo",
                 "url": "/?torrent=abc",
                 "tag": "mobileui-abc",
@@ -548,7 +551,7 @@ def test_dispatch_push_skips_without_subscriptions(tmp_path, monkeypatch):
         lambda *args: (_ for _ in ()).throw(AssertionError("no send")),
     )
 
-    plugin._dispatch_push("x", "y", "abc")
+    plugin._dispatch_push("finished", "Demo", "abc")
 
 
 def test_push_events_dedupe_errors(tmp_path, monkeypatch):
@@ -562,7 +565,9 @@ def test_push_events_dedupe_errors(tmp_path, monkeypatch):
     monkeypatch.setattr(
         plugin,
         "_dispatch_push",
-        lambda title, body, torrent_id: calls.append((title, body, torrent_id)),
+        lambda kind, name, torrent_id, message="": calls.append(
+            (kind, name, torrent_id, message)
+        ),
     )
 
     plugin._on_torrent_finished("abc")
@@ -572,9 +577,9 @@ def test_push_events_dedupe_errors(tmp_path, monkeypatch):
     plugin._on_torrent_state_changed("abc", "Error")
 
     assert calls == [
-        ("Torrent kész", "Demo", "abc"),
-        ("Torrent hiba", "Demo: Tracker error", "abc"),
-        ("Torrent hiba", "Demo: Tracker error", "abc"),
+        ("finished", "Demo", "abc", ""),
+        ("error", "Demo", "abc", "Tracker error"),
+        ("error", "Demo", "abc", "Tracker error"),
     ]
 
 
@@ -608,3 +613,32 @@ def test_push_config_and_subscriptions_delegate_to_store(tmp_path, monkeypatch):
     assert plugin.subscribe_push({"endpoint": "a"})["count"] == 1
     assert plugin.unsubscribe_push("a") == {"unsubscribed": True}
     assert [call[0] for call in calls] == ["add", "remove"]
+
+
+def test_test_push_queues_for_a_known_endpoint(tmp_path, monkeypatch):
+    from twisted.internet import threads
+
+    from deluge_mobileui import push
+
+    plugin = push_plugin(tmp_path)
+    subscription = {"endpoint": "https://push.example/1"}
+    monkeypatch.setattr(push, "load_subscriptions", lambda path: [subscription])
+    calls = []
+    monkeypatch.setattr(push, "send_push", lambda *args: calls.append(args) or 1)
+
+    class FakeDeferred:
+        def addErrback(self, callback):
+            self.errback = callback
+
+    monkeypatch.setattr(
+        threads, "deferToThread", lambda fn, *args: (fn(*args), FakeDeferred())[1]
+    )
+
+    assert plugin.test_push(subscription["endpoint"]) == {"queued": True}
+    assert calls[0][1]["kind"] == "test"
+    assert calls[0][2] == [subscription]
+
+    with pytest.raises(ValueError):
+        plugin.test_push("http://push.example/1")
+    with pytest.raises(KeyError):
+        plugin.test_push("https://push.example/missing")

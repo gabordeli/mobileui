@@ -173,8 +173,11 @@ server-side endpoint. The service worker's `push` event draws a system
 notification, and the click navigates to the `/?torrent=<id>` deep link
 (focusing the existing window), which the App opens in the detail sheet. The
 setting lives separately per browser and per device; the server stores at most
-20 subscriptions. If the browser blocks notifications, the toggle shows an
-explanation; on an HTTP LAN host the “HTTPS required” text appears.
+20 subscriptions. If notifications are blocked, the toggle shows an explanation; on an HTTP
+LAN host the “HTTPS required” text appears. When enabled, **Test** sends one
+notification to the current device via `POST /api/push/test`. The server sends
+a language-neutral `kind`/`name`/`message` payload and the service worker
+renders HU/EN text from `navigator.language`.
 
 ## Sharing (Android)
 

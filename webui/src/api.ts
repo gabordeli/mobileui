@@ -332,6 +332,13 @@ export function unsubscribePush(
   });
 }
 
+export function testPush(endpoint: string): Promise<{ queued: boolean }> {
+  return request("/api/push/test", {
+    method: "POST",
+    body: JSON.stringify({ endpoint }),
+  });
+}
+
 export function eventsUrl(): string {
   return `/api/events?token=${encodeURIComponent(getToken())}`;
 }

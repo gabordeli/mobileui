@@ -349,6 +349,23 @@ class PushSubscribeResource(ApiJsonResource):
         return self.write_json(request, 200, payload)
 
 
+class PushTestResource(ApiJsonResource):
+    isLeaf = True
+
+    def render_POST(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        try:
+            body = read_json_body(request)
+            payload = self.plugin.test_push(body.get("endpoint"))
+        except (KeyError, TypeError, ValueError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
 class PushRootResource(ApiJsonResource):
     def __init__(self, plugin):
         super().__init__(plugin)
@@ -360,6 +377,8 @@ class PushRootResource(ApiJsonResource):
             return PushConfigResource(self.plugin)
         if path == b"subscribe":
             return PushSubscribeResource(self.plugin)
+        if path == b"test":
+            return PushTestResource(self.plugin)
         return NotFoundResource()
 
 
@@ -884,6 +903,7 @@ class ApiRootResource(JsonResource):
                     "/api/torrents/{id}/move",
                     "/api/push/config",
                     "/api/push/subscribe",
+                    "/api/push/test",
                     "/api/events",
                 ],
             },
