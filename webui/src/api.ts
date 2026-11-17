@@ -150,7 +150,8 @@ export function listTorrentIds(filters: TorrentFilters): Promise<TorrentIds> {
   if (filters.state) params.set("state", filters.state);
   if (filters.label) params.set("label", filters.label);
   const query = params.toString();
-  return request<TorrentIds>(`/api/torrents/ids${query ? `?${query}` : ""}`);
+  const suffix = query ? `?${query}` : "";
+  return request<TorrentIds>(`/api/torrents/ids${suffix}`);
 }
 
 export function bulkAction(payload: BulkActionPayload): Promise<BulkResult> {

@@ -414,7 +414,7 @@ describe("App", () => {
 
     await selectFirstRow(wrapper);
 
-    const bar = wrapper.get(`[role="region"][aria-label="${t("bulk.title")}"]`);
+    const bar = wrapper.get(`section[aria-label="${t("bulk.title")}"]`);
     expect(bar.text()).toContain(t("bulk.selected", { count: 1 }));
 
     const pauseButton = bar.findAll("button")[2];
@@ -426,7 +426,7 @@ describe("App", () => {
       torrent_ids: [torrent.id],
     });
     expect(wrapper.text()).toContain(t("bulk.done", { ok: 1 }));
-    expect(wrapper.find(`[role="region"][aria-label="${t("bulk.title")}"]`).exists()).toBe(false);
+    expect(wrapper.find(`section[aria-label="${t("bulk.title")}"]`).exists()).toBe(false);
   });
 
   it("selects every matching torrent", async () => {
@@ -434,7 +434,7 @@ describe("App", () => {
     await flushPromises();
 
     await selectFirstRow(wrapper);
-    const bar = wrapper.get(`[role="region"][aria-label="${t("bulk.title")}"]`);
+    const bar = wrapper.get(`section[aria-label="${t("bulk.title")}"]`);
     bar.findAll("button")[1].element.dispatchEvent(
       new MouseEvent("click", { bubbles: true }),
     );
@@ -464,7 +464,7 @@ describe("App", () => {
 
     await selectFirstRow(wrapper);
 
-    const bar = wrapper.get(`[role="region"][aria-label="${t("bulk.title")}"]`);
+    const bar = wrapper.get(`section[aria-label="${t("bulk.title")}"]`);
     expect(bar.get(".readonly-note").text()).toBe(t("auth.readonly"));
     expect(
       bar.findAll("button").some((item) => item.text() === t("bulk.pause")),
@@ -501,7 +501,7 @@ describe("App", () => {
     await flushPromises();
 
     await wrapper.get(".filter-labels").trigger("click");
-    const selector = `[role="dialog"][aria-label="${t("labels.title")}"]`;
+    const selector = `dialog[aria-label="${t("labels.title")}"]`;
 
     await wrapper.get(`${selector} .label-add input`).setValue("new-label");
     await wrapper.get(`${selector} .label-add .action`).trigger("click");

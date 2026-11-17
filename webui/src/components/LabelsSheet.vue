@@ -29,10 +29,15 @@ function remove(id: string): void {
 
 <template>
   <Teleport to="body">
-    <div class="sheet-backdrop" @click.self="emit('close')">
-      <section
+    <div
+      class="sheet-backdrop"
+      tabindex="-1"
+      @click.self="emit('close')"
+      @keydown.esc="emit('close')"
+    >
+      <dialog
+        open
         class="sheet"
-        role="dialog"
         aria-modal="true"
         :aria-label="t('labels.title')"
         @keydown.esc="emit('close')"
@@ -82,7 +87,7 @@ function remove(id: string): void {
           </button>
         </div>
         <p v-else class="readonly-note">{{ t("auth.readonly") }}</p>
-      </section>
+      </dialog>
     </div>
   </Teleport>
 </template>

@@ -5,7 +5,7 @@ export function extractMagnet(search: string): string {
   for (const key of ["text", "url", "title"]) {
     const value = params.get(key);
     if (!value) continue;
-    const match = value.match(MAGNET_RE);
+    const match = MAGNET_RE.exec(value);
     if (match) return match[0];
   }
   return "";

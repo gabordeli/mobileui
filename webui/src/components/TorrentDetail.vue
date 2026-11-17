@@ -200,7 +200,7 @@ async function copyText(text: string): Promise<void> {
       document.body.appendChild(area);
       area.select();
       document.execCommand("copy");
-      document.body.removeChild(area);
+      area.remove();
     }
     emit("toast", t("toast.copied"));
   } catch {

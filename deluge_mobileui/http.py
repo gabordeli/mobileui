@@ -62,7 +62,7 @@ def read_json_body(request):
         return {}
     try:
         data = json.loads(raw)
-    except (TypeError, ValueError, UnicodeDecodeError) as ex:
+    except (TypeError, ValueError) as ex:
         raise BadRequest(f"invalid JSON body: {ex}") from ex
     if not isinstance(data, dict):
         raise BadRequest("JSON body must be an object")
@@ -239,7 +239,7 @@ class SessionLimitsResource(ApiJsonResource):
                 max_download_speed=body.get("max_download_speed"),
                 max_upload_speed=body.get("max_upload_speed"),
             )
-        except (KeyError, Conflict, BadRequest, TypeError, ValueError) as ex:
+        except (KeyError, Conflict, TypeError, ValueError) as ex:
             return self.api_error(request, ex)
         except Exception:
             return self.internal_error(request)
@@ -262,7 +262,7 @@ class LabelResource(ApiJsonResource):
             return forbidden
         try:
             payload = self.plugin.remove_label(self.label_id)
-        except (BadRequest, Conflict, ValueError, TypeError) as ex:
+        except (Conflict, ValueError, TypeError) as ex:
             return self.api_error(request, ex)
         except Exception:
             return self.internal_error(request)
@@ -298,7 +298,7 @@ class LabelsResource(ApiJsonResource):
         try:
             body = read_json_body(request)
             payload = self.plugin.add_label(body.get("id"))
-        except (BadRequest, Conflict, ValueError, TypeError) as ex:
+        except (Conflict, ValueError, TypeError) as ex:
             return self.api_error(request, ex)
         except Exception:
             return self.internal_error(request)
@@ -553,7 +553,7 @@ class TorrentFilesResource(ApiJsonResource):
             payload = self.plugin.set_torrent_files(
                 self.torrent_id, files=body.get("files"), only=body.get("only")
             )
-        except (KeyError, Conflict, BadRequest, TypeError, ValueError) as ex:
+        except (KeyError, Conflict, TypeError, ValueError) as ex:
             return self.api_error(request, ex)
         except Exception:
             return self.internal_error(request)
@@ -581,7 +581,7 @@ class TorrentLimitsResource(ApiJsonResource):
                 max_download_speed=body.get("max_download_speed"),
                 max_upload_speed=body.get("max_upload_speed"),
             )
-        except (KeyError, Conflict, BadRequest, TypeError, ValueError) as ex:
+        except (KeyError, Conflict, TypeError, ValueError) as ex:
             return self.api_error(request, ex)
         except Exception:
             return self.internal_error(request)
@@ -604,7 +604,7 @@ class TorrentReannounceResource(ApiJsonResource):
             return forbidden
         try:
             payload = self.plugin.reannounce_torrent(self.torrent_id)
-        except (KeyError, Conflict, BadRequest, TypeError, ValueError) as ex:
+        except (KeyError, Conflict, TypeError, ValueError) as ex:
             return self.api_error(request, ex)
         except Exception:
             return self.internal_error(request)
@@ -713,7 +713,7 @@ class TorrentBulkResource(ApiJsonResource):
                 label=body.get("label"),
                 remove_data=remove_data,
             )
-        except (BadRequest, Conflict, TypeError, ValueError) as ex:
+        except (Conflict, TypeError, ValueError) as ex:
             return self.api_error(request, ex)
         except Exception:
             return self.internal_error(request)

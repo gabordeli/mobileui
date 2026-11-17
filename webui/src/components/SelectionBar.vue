@@ -37,7 +37,7 @@ function applyLabel(): void {
 </script>
 
 <template>
-  <div class="selection-bar" role="region" :aria-label="t('bulk.title')">
+  <section class="selection-bar" :aria-label="t('bulk.title')">
     <div class="selection-head">
       <button
         class="icon-button"
@@ -84,5 +84,5 @@ function applyLabel(): void {
         {{ t("sheet.save") }}
       </button>
     </div>
-  </div>
+  </section>
 </template>

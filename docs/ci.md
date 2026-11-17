@@ -24,7 +24,13 @@
   a runneren lévő régi 5.0.1-es scanner JRE 17-tel a 26.11-es szerveren
   `Java 17 is not supported` hibával elhasal.
 - A `sonar` job csak a **main** ágon fut (Community Edition; PR-dekoráció nincs),
-  és egyelőre **report-only**: nincs `sonar.qualitygate.wait`.
+  és **blokkoló**: `sonar.qualitygate.wait=true`, 300 s timeout. Piros gate
+  esetén a `sonar` job elhasal, így a `build`/`release`/`deploy` stage el sem
+  indul. A deploy továbbra is manuális (a zöld gate csak a feltétel).
+- A gate a Sonar „Sonar way” küszöbeit használja az új kódra: coverage ≥ 80%,
+  duplikáció ≤ 3%, új violation = 0. A 0 violation szigorú, ezért a main-re
+  kerülő kódnak fixálnia kell az új smell-eket (a meglévő adósság nem
+  blokkolja a gate-et, mert az új kód periódusára szűr).
 - Coverage: a backend `pytest-cov` → `coverage.xml`; a frontend Vitest +
   `@vitest/coverage-v8` → `webui/coverage/lcov.info` (a `webui-test` artifactja).
   A Cobertura `<source>`-ot a CI `deluge_mobileui`-ra normalizálja, mert a
@@ -36,11 +42,12 @@
 - A `test` job `--cov-fail-under=80`-cal fut; a mostani backend fedettség 83%
   (165 teszt).
 - A `webui-test` Vitest threshold-jei: statements 75, branches 65, functions 75,
-  lines 78; a mostani 83.17 / 74.34 / 82.28 / 86.41 (140 teszt, `.vue`-kkal).
+  lines 78; a mostani 83.03 / 74.34 / 81.98 / 86.25 (140 teszt, `.vue`-kkal).
 - A GitLab a `coverage:` regexszel a joblogból olvassa a számot, és a pipeline /
   MR nézetben jeleníti meg — privát, nincs külső badge.
-- A Sonar továbbra is report-only; a `sonar.qualitygate.wait=true` külön döntés
-  (a gate-et előbb tuningolni kell).
+- A Sonar gate blokkoló a main-en (lásd fent); a `build` csak zöld gate után
+  fut. A deploy továbbra is manuális, tehát egy piros gate nem deployol, de
+  egy zöld gate sem deployol magától.
 - A `types.ts` type-only, 0% coverage-e normális; nem kell tesztelni.
 
 ## Deluge kompatibilitás

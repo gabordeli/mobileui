@@ -549,9 +549,10 @@ onMounted(() => {
   }
   if (shared || torrentId) {
     const query = params.toString();
+    const suffix = query ? `?${query}` : "";
     const path =
       window.location.pathname === "/share" ? "/" : window.location.pathname;
-    window.history.replaceState({}, "", `${path}${query ? `?${query}` : ""}`);
+    window.history.replaceState({}, "", `${path}${suffix}`);
   }
   window.addEventListener("online", updateOnline);
   window.addEventListener("offline", updateOnline);

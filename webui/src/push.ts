@@ -16,13 +16,13 @@ export function requestPermission(): Promise<NotificationPermission> {
 }
 
 export function decodeKey(value: string): Uint8Array {
-  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
   const padded = base64.padEnd(
     base64.length + ((4 - (base64.length % 4)) % 4),
     "=",
   );
   const raw = atob(padded);
-  return Uint8Array.from(raw, (char) => char.charCodeAt(0));
+  return Uint8Array.from(raw, (char) => char.codePointAt(0) ?? 0);
 }
 
 export async function currentSubscription(): Promise<PushSubscription | null> {

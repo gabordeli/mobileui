@@ -276,8 +276,8 @@ button {
 .row-error {
   padding: 1px 5px;
   border-radius: 6px;
-  background: rgba(239, 68, 68, 0.18);
-  color: #f87171;
+  background: #7f1d1d;
+  color: #fecaca;
   font-size: 9px;
 }
 
@@ -460,6 +460,12 @@ button {
   border-radius: 18px 18px 0 0;
   background: var(--panel);
   animation: slide-up 0.2s ease-out;
+}
+
+dialog.sheet {
+  position: static;
+  inset: auto;
+  color: inherit;
 }
 
 .sheet-handle {

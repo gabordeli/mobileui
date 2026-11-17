@@ -18,6 +18,7 @@ QUEUE_ACTIONS = {
 }
 
 BULK_ACTIONS = {"pause", "resume", "remove", "label"}
+LABEL_PLUGIN_MISSING = "Label plugin is not enabled"
 
 
 class BadRequest(ValueError):
@@ -79,7 +80,7 @@ def queue(core, torrent_id, action):
 def set_label(core, label_plugin, torrent_id, label):
     _torrent(core, torrent_id)
     if label_plugin is None:
-        raise Conflict("Label plugin is not enabled")
+        raise Conflict(LABEL_PLUGIN_MISSING)
     if label in (None, "", NO_LABEL):
         label_id = None
     else:
@@ -92,7 +93,7 @@ def set_label(core, label_plugin, torrent_id, label):
 
 def add_label(label_plugin, label_id):
     if label_plugin is None:
-        raise Conflict("Label plugin is not enabled")
+        raise Conflict(LABEL_PLUGIN_MISSING)
     if not isinstance(label_id, str):
         raise BadRequest("label id must be a string")
     name = label_id.strip().lower()
@@ -107,7 +108,7 @@ def add_label(label_plugin, label_id):
 
 def remove_label(label_plugin, label_id):
     if label_plugin is None:
-        raise Conflict("Label plugin is not enabled")
+        raise Conflict(LABEL_PLUGIN_MISSING)
     if not isinstance(label_id, str) or not label_id.strip():
         raise BadRequest("label id must not be empty")
     name = label_id.strip().lower()
@@ -179,6 +180,28 @@ def set_torrent_limits(
     return {"id": torrent_id, **status}
 
 
+def _apply_file_changes(files, priorities, changes, only):
+    if only is not None:
+        index = int(only)
+        if not 0 <= index < len(files):
+            raise BadRequest(f"file index out of range: {only}")
+        return [4 if position == index else 0 for position in range(len(files))]
+
+    if not isinstance(changes, list) or not changes:
+        raise BadRequest("files must be a non-empty list")
+    for change in changes:
+        if not isinstance(change, dict):
+            raise BadRequest("file changes must be objects")
+        index = int(change.get("index"))
+        priority = int(change.get("priority"))
+        if not 0 <= index < len(files):
+            raise BadRequest(f"file index out of range: {index}")
+        if priority not in (0, 1, 4, 7):
+            raise BadRequest("priority must be 0, 1, 4 or 7")
+        priorities[index] = priority
+    return priorities
+
+
 def set_file_priorities(core, torrent_id, changes=None, only=None):
     torrent = _torrent(core, torrent_id)
     files = torrent.get_files()
@@ -188,28 +211,20 @@ def set_file_priorities(core, torrent_id, changes=None, only=None):
     if len(priorities) != len(files):
         priorities = [4] * len(files)
 
-    if only is not None:
-        index = int(only)
-        if not 0 <= index < len(files):
-            raise BadRequest(f"file index out of range: {only}")
-        priorities = [0] * len(files)
-        priorities[index] = 4
-    else:
-        if not isinstance(changes, list) or not changes:
-            raise BadRequest("files must be a non-empty list")
-        for change in changes:
-            if not isinstance(change, dict):
-                raise BadRequest("file changes must be objects")
-            index = int(change.get("index"))
-            priority = int(change.get("priority"))
-            if not 0 <= index < len(files):
-                raise BadRequest(f"file index out of range: {index}")
-            if priority not in (0, 1, 4, 7):
-                raise BadRequest("priority must be 0, 1, 4 or 7")
-            priorities[index] = priority
-
+    priorities = _apply_file_changes(files, priorities, changes, only)
     torrent.set_file_priorities(priorities)
     return {"id": torrent_id, "priorities": list(torrent.get_file_priorities())}
+
+
+def _bulk_apply(core, label_plugin, torrent_id, action, label, remove_data):
+    if action == "pause":
+        pause(core, torrent_id)
+    elif action == "resume":
+        resume(core, torrent_id)
+    elif action == "remove":
+        remove(core, torrent_id, remove_data)
+    else:
+        set_label(core, label_plugin, torrent_id, label)
 
 
 def bulk(core, label_plugin, torrent_ids, action, label=None, remove_data=False):
@@ -222,7 +237,7 @@ def bulk(core, label_plugin, torrent_ids, action, label=None, remove_data=False)
         raise BadRequest(f"at most {MAX_BULK_IDS} torrent ids are allowed")
     if action == "label":
         if label_plugin is None:
-            raise Conflict("Label plugin is not enabled")
+            raise Conflict(LABEL_PLUGIN_MISSING)
         if label not in (None, "", NO_LABEL) and label not in label_plugin.labels:
             raise BadRequest(f"unknown label: {label}")
 
@@ -230,20 +245,41 @@ def bulk(core, label_plugin, torrent_ids, action, label=None, remove_data=False)
     failed = []
     for torrent_id in ids:
         try:
-            if action == "pause":
-                pause(core, torrent_id)
-            elif action == "resume":
-                resume(core, torrent_id)
-            elif action == "remove":
-                remove(core, torrent_id, remove_data)
-            else:
-                set_label(core, label_plugin, torrent_id, label)
+            _bulk_apply(core, label_plugin, torrent_id, action, label, remove_data)
         except (KeyError, Conflict) as ex:
             error = "unknown torrent" if isinstance(ex, KeyError) else str(ex)
             failed.append({"id": torrent_id, "error": error})
         else:
             ok += 1
     return {"ok": ok, "failed": failed}
+
+
+def _add_options(magnet, filedump, download_location, add_paused):
+    if bool(magnet) == bool(filedump):
+        raise BadRequest("exactly one of magnet or torrent file is required")
+    if magnet and not str(magnet).startswith("magnet:?"):
+        raise BadRequest("magnet must start with magnet:?")
+    if download_location and not os.path.isabs(download_location):
+        raise BadRequest("download_location must be an absolute path")
+    if not isinstance(add_paused, bool):
+        raise BadRequest("add_paused must be a bool")
+
+    options = {}
+    if download_location:
+        options["download_location"] = download_location
+    if add_paused:
+        options["add_paused"] = True
+    return options
+
+
+def _add_label_id(label_plugin, label):
+    if not label or label == NO_LABEL:
+        return None
+    if label_plugin is None:
+        raise Conflict(LABEL_PLUGIN_MISSING)
+    if label not in label_plugin.labels:
+        raise BadRequest(f"unknown label: {label}")
+    return label
 
 
 def add(
@@ -256,29 +292,8 @@ def add(
     download_location=None,
     add_paused=False,
 ):
-    if bool(magnet) == bool(filedump):
-        raise BadRequest("exactly one of magnet or torrent file is required")
-    if magnet and not str(magnet).startswith("magnet:?"):
-        raise BadRequest("magnet must start with magnet:?")
-    if download_location:
-        if not os.path.isabs(download_location):
-            raise BadRequest("download_location must be an absolute path")
-    if not isinstance(add_paused, bool):
-        raise BadRequest("add_paused must be a bool")
-
-    label_id = None
-    if label and label != NO_LABEL:
-        if label_plugin is None:
-            raise Conflict("Label plugin is not enabled")
-        if label not in label_plugin.labels:
-            raise BadRequest(f"unknown label: {label}")
-        label_id = label
-
-    options = {}
-    if download_location:
-        options["download_location"] = download_location
-    if add_paused:
-        options["add_paused"] = True
+    options = _add_options(magnet, filedump, download_location, add_paused)
+    label_id = _add_label_id(label_plugin, label)
 
     try:
         if magnet:
