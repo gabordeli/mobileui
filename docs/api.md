@@ -331,6 +331,23 @@ Force tracker reannounce (write szint; read-only → 403):
 `200 {"id": "...", "reannounced": true}`; ha a Deluge nem tudta elküldeni,
 `reannounced: false`; ismeretlen torrent → 404.
 
+## POST /api/torrents/{id}/move
+
+Tényleges fájlmozgatás a Deluge `Torrent.move_storage()`-jával (write szint;
+read-only → 403):
+
+```json
+{"location": "/data/downloads/filmek"}
+```
+
+- Abszolút, nem üres útvonal kell; relatív út → 400, ismeretlen torrent → 404.
+- Ha a torrent már `Moving`, vagy a Deluge nem tudta elindítani → 409.
+- `200 {"id": "...", "destination": "...", "moving": true}`; a mozgatás
+  libtorrentben aszinkron fut, a torrent állapota `Moving` lesz, a végén SSE
+  állapotdelta jelzi a befejezést. A célkönyvtárat a Deluge hozza létre; a
+  művelethez elég szabad hely kell, és a `flags=2` miatt nem ír felül meglévő
+  célfájlt.
+
 ## PATCH /api/torrents/{id}
 
 ```json

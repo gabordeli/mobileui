@@ -46,6 +46,9 @@ const downLimit = ref(-1);
 const upLimit = ref(-1);
 const removeData = ref(false);
 const trackersOpen = ref(false);
+const moveOpen = ref(false);
+const movePath = ref("");
+const moveBusy = ref(false);
 const backButton = ref<HTMLButtonElement | null>(null);
 
 const progress = computed(() =>
@@ -228,6 +231,35 @@ function copyHash(): void {
   if (detail.value) void copyText(detail.value.id);
 }
 
+function openMove(): void {
+  if (!detail.value) return;
+  movePath.value = detail.value.download_location || detail.value.save_path || "";
+  moveOpen.value = true;
+}
+
+async function moveStorage(): Promise<void> {
+  if (!detail.value || moveBusy.value) return;
+  const location = movePath.value.trim();
+  if (!location) return;
+  moveBusy.value = true;
+  actionError.value = "";
+  try {
+    const result = await api.moveTorrent(detail.value.id, location);
+    detail.value.download_location = result.destination;
+    detail.value.state = "Moving";
+    moveOpen.value = false;
+    emit("updated", {
+      id: detail.value.id,
+      fields: { state: "Moving" },
+    });
+    emit("toast", t("detail.moveStarted"));
+  } catch (err) {
+    actionError.value = messageOf(err);
+  } finally {
+    moveBusy.value = false;
+  }
+}
+
 async function saveLabel(): Promise<void> {
   actionLoading.value = true;
   actionError.value = "";
@@ -391,6 +423,34 @@ onMounted(() => {
           <div class="detail-path">
             <span>{{ t("detail.path") }}</span>
             <code>{{ detail.download_location || detail.save_path }}</code>
+            <button
+              v-if="canWrite"
+              class="action"
+              :disabled="actionLoading"
+              @click="openMove"
+            >
+              {{ t("detail.move") }}
+            </button>
+          </div>
+
+          <div v-if="moveOpen" class="move-panel">
+            <label>
+              <span>{{ t("detail.moveTo") }}</span>
+              <input v-model="movePath" type="text" autocapitalize="off" spellcheck="false" />
+            </label>
+            <p class="limits-hint">{{ t("detail.moveHint") }}</p>
+            <div class="move-actions">
+              <button class="action" @click="moveOpen = false">
+                {{ t("detail.moveCancel") }}
+              </button>
+              <button
+                class="action primary"
+                :disabled="moveBusy || !movePath.trim()"
+                @click="moveStorage"
+              >
+                {{ t("detail.moveConfirm") }}
+              </button>
+            </div>
           </div>
 
           <div class="detail-copy">

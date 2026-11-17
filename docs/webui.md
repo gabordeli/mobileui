@@ -113,8 +113,13 @@ események szűrő nélkül a totalt is korrigálják; reconnectet a böngésző
   HTTP-n textarea-fallback); a másolás toastot ad.
 - A detail SSE-ből kapja a progress/rate/state frissítést; a listát és a detailt
   a műveletek után a válasz + SSE szinkronban tartja.
-- A detail a **tracker listát** és a `tracker_status`-t is mutatja; a
+- A statisztika kompakt: 3 primer chip (↓, ↑, ETA) és egy vékony meta-sor
+  (ratio, peers, seeds, méret, hozzáadva); a tracker egy összecsukható sávban
+  van (host + állapot + darabszám), a teljes URL-lista kattintásra nyílik. A
   **Reannounce** gomb a `POST /api/torrents/{id}/reannounce`-ot hívja.
+- A **Mozgatás** gomb a mentési útvonal mellett nyílik: abszolút célútvonal,
+  megerősítés, majd `POST /api/torrents/{id}/move`; a torrent `Moving`
+  állapotba kerül, a fájlok ténylegesen átkerülnek (elég szabad hely kell).
 
 ## Címkék
 

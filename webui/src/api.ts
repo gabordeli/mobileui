@@ -294,6 +294,16 @@ export function reannounceTorrent(
   });
 }
 
+export function moveTorrent(
+  id: string,
+  location: string,
+): Promise<{ id: string; destination: string; moving: boolean }> {
+  return request(`/api/torrents/${encodeURIComponent(id)}/move`, {
+    method: "POST",
+    body: JSON.stringify({ location }),
+  });
+}
+
 export interface PushConfig {
   enabled: boolean;
   public_key: string;

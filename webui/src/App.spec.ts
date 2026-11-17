@@ -53,6 +53,7 @@ vi.mock("./api", () => {
     addLabel: vi.fn(),
     removeLabel: vi.fn(),
     reannounceTorrent: vi.fn(),
+    moveTorrent: vi.fn(),
     removeTorrent: vi.fn(),
     getTorrent: vi.fn(),
     getTorrentFiles: vi.fn(),

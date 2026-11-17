@@ -1310,6 +1310,50 @@ dialog.sheet {
   font-size: 11px;
 }
 
+.detail-path .action {
+  align-self: flex-start;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.move-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.move-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.move-panel input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.move-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.move-actions .action {
+  flex: 1;
+}
+
 .detail-copy {
   display: flex;
   gap: 6px;

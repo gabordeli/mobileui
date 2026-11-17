@@ -18,10 +18,16 @@ class FakeTorrent:
         self.set_speed_calls = []
         self.reannounce_result = True
         self.reannounced = 0
+        self.move_result = True
+        self.move_calls = []
 
     def force_reannounce(self):
         self.reannounced += 1
         return self.reannounce_result
+
+    def move_storage(self, dest):
+        self.move_calls.append(dest)
+        return self.move_result
 
     def get_files(self):
         return self.files
@@ -465,3 +471,38 @@ def test_reannounce():
 
     with pytest.raises(KeyError):
         write.reannounce(core, "missing")
+
+
+def test_move_storage_delegates_to_torrent():
+    core = FakeCore()
+    torrent = core.torrentmanager["abc"]
+
+    result = write.move_storage(core, "abc", "/data/new")
+
+    assert result == {
+        "id": "abc",
+        "destination": "/data/new",
+        "moving": True,
+    }
+    assert torrent.move_calls == ["/data/new"]
+
+
+def test_move_storage_validates_input():
+    core = FakeCore()
+    torrent = core.torrentmanager["abc"]
+
+    for location in (None, "", "relative/path"):
+        with pytest.raises(write.BadRequest):
+            write.move_storage(core, "abc", location)
+
+    torrent.state = "Moving"
+    with pytest.raises(write.Conflict):
+        write.move_storage(core, "abc", "/data/new")
+
+    torrent.state = "Paused"
+    torrent.move_result = False
+    with pytest.raises(write.Conflict):
+        write.move_storage(core, "abc", "/data/new")
+
+    with pytest.raises(KeyError):
+        write.move_storage(core, "missing", "/data/new")

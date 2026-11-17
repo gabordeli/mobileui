@@ -17,6 +17,7 @@ import {
   listTorrents,
   login,
   logout,
+  moveTorrent,
   pauseTorrent,
   queueTorrent,
   reannounceTorrent,
@@ -299,6 +300,21 @@ describe("torrent actions", () => {
     const [path, init] = fetchMock.mock.calls[0];
     expect(path).toBe("/api/torrents/abc/reannounce");
     expect(init.method).toBe("POST");
+  });
+
+  it("moves a torrent to a new location", async () => {
+    const fetchMock = mockFetch({
+      id: "abc",
+      destination: "/data/new",
+      moving: true,
+    });
+
+    await moveTorrent("abc", "/data/new");
+
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/torrents/abc/move");
+    expect(init.method).toBe("POST");
+    expect(init.body).toBe(JSON.stringify({ location: "/data/new" }));
   });
 
   it("loads the labels", async () => {

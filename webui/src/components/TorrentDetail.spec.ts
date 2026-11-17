@@ -20,6 +20,7 @@ vi.mock("../api", () => ({
   addLabel: vi.fn(),
   removeLabel: vi.fn(),
   reannounceTorrent: vi.fn(),
+  moveTorrent: vi.fn(),
   removeTorrent: vi.fn(),
 }));
 
@@ -50,6 +51,11 @@ beforeEach(() => {
   vi.mocked(api.reannounceTorrent).mockResolvedValue({
     id: detail.id,
     reannounced: true,
+  });
+  vi.mocked(api.moveTorrent).mockResolvedValue({
+    id: detail.id,
+    destination: "/data/new",
+    moving: true,
   });
 });
 
@@ -278,6 +284,22 @@ describe("TorrentDetail", () => {
     ]);
   });
 
+  it("starts a storage move", async () => {
+    const wrapper = factory();
+    await flushPromises();
+
+    await wrapper.get(".detail-path .action").trigger("click");
+    await wrapper.get(".move-panel input").setValue("/data/new");
+    await wrapper.get(".move-actions .action.primary").trigger("click");
+    await flushPromises();
+
+    expect(api.moveTorrent).toHaveBeenCalledWith(detail.id, "/data/new");
+    expect(wrapper.emitted("toast")?.[0]).toEqual([t("detail.moveStarted")]);
+    expect(wrapper.emitted("updated")?.[0]).toEqual([
+      { id: detail.id, fields: { state: "Moving" } },
+    ]);
+  });
+
   it("copies the magnet and the infohash", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText } });
@@ -318,6 +340,7 @@ describe("TorrentDetail", () => {
     expect(wrapper.find("select").exists()).toBe(false);
     expect(wrapper.find(".file-check").exists()).toBe(false);
     expect(wrapper.find(".trackers-head .action").exists()).toBe(false);
+    expect(wrapper.find(".detail-path .action").exists()).toBe(false);
     await wrapper.get(".tracker-bar").trigger("click");
     expect(wrapper.text()).toContain("tracker.example/announce");
     expect(wrapper.get(".readonly-note").text()).toBe(t("auth.readonly"));

@@ -165,6 +165,10 @@ class StubPlugin:
         self.write_calls.append(("reannounce", torrent_id))
         return {"id": torrent_id, "reannounced": True}
 
+    def move_torrent(self, torrent_id, location):
+        self.write_calls.append(("move", torrent_id, location))
+        return {"id": torrent_id, "destination": location, "moving": True}
+
     def get_push_config(self):
         return {"enabled": True, "public_key": "pk", "subscriptions": 0}
 
@@ -466,6 +470,17 @@ def mutation_cases(plugin):
             "render_POST",
             [b"api", b"torrents", b"abc", b"reannounce"],
         ),
+        case(
+            "move",
+            child(
+                torrent,
+                b"move",
+                [b"api", b"torrents", b"abc", b"move"],
+            ),
+            "render_POST",
+            [b"api", b"torrents", b"abc", b"move"],
+            {"location": "/data/new"},
+        ),
     ]
 
 
@@ -621,6 +636,21 @@ def test_reannounce_endpoint():
     assert request.responseCode == 200
     assert json.loads(body)["reannounced"] is True
     assert plugin.write_calls == [("reannounce", "abc")]
+
+
+def test_move_endpoint_forwards_location():
+    plugin = StubPlugin(authorized=True)
+    torrent = torrent_resource(plugin)
+    request = post_request([b"api", b"torrents", b"abc", b"move"])
+    request.content = io.BytesIO(b'{"location":"/data/new"}')
+
+    body = torrent.getChildWithDefault(b"move", request).render_POST(request)
+
+    assert request.responseCode == 200
+    payload = json.loads(body)
+    assert payload["moving"] is True
+    assert payload["destination"] == "/data/new"
+    assert plugin.write_calls == [("move", "abc", "/data/new")]
 
 
 def test_push_config_and_subscribe_endpoints():

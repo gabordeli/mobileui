@@ -124,6 +124,20 @@ def reannounce(core, torrent_id):
     return {"id": torrent_id, "reannounced": bool(torrent.force_reannounce())}
 
 
+def move_storage(core, torrent_id, location):
+    torrent = _torrent(core, torrent_id)
+    if not isinstance(location, str) or not location.strip():
+        raise BadRequest("location must be a non-empty string")
+    location = location.strip()
+    if not os.path.isabs(location):
+        raise BadRequest("location must be an absolute path")
+    if torrent.state == "Moving":
+        raise Conflict("Torrent is already moving")
+    if not torrent.move_storage(location):
+        raise Conflict("Deluge could not move the torrent storage")
+    return {"id": torrent_id, "destination": location, "moving": True}
+
+
 def _limit(value, key):
     try:
         number = float(value)

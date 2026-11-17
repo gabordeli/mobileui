@@ -300,6 +300,11 @@ class Core(CorePluginBase):
 
         return write.reannounce(component.get("Core"), torrent_id)
 
+    def move_torrent(self, torrent_id, location):
+        from . import write
+
+        return write.move_storage(component.get("Core"), torrent_id, location)
+
     def add_torrent(self, **kwargs):
         from . import write
 
