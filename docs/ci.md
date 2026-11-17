@@ -8,6 +8,7 @@
 | --- | --- | --- |
 | lint | `lint` | `ruff check`, SPA `vue-tsc` |
 | test | `test` | `pytest` + `pytest-cov`; Deluge nélkül a `tests/stubs/` shimek; artifact: `coverage.xml` |
+| test | `webui-test` | Vitest + `@vitest/coverage-v8`; artifact: `webui/coverage/lcov.info` |
 | quality | `sonar` | SonarQube main-branch elemzés a Docker scannerrel; report-only |
 | build | `build` | `npm run build`, `python -m build`, `package.sh`; artifact: `dist/` (sdist/wheel/egg/sha256), `data/` |
 | release | `release` | manuális; `RELEASE_TYPE=patch|minor|major`; verzióbump + CHANGELOG + tag + egg feltöltés + GitLab Release |
@@ -22,8 +23,8 @@
   `Java 17 is not supported` hibával elhasal.
 - A `sonar` job csak a **main** ágon fut (Community Edition; PR-dekoráció nincs),
   és egyelőre **report-only**: nincs `sonar.qualitygate.wait`.
-- Coverage: a backend `pytest-cov` → `coverage.xml`; a frontend
-  `webui/coverage/lcov.info` helye előkészítve, a Vitest bevezetése után tölti.
+- Coverage: a backend `pytest-cov` → `coverage.xml`; a frontend Vitest +
+  `@vitest/coverage-v8` → `webui/coverage/lcov.info` (a `webui-test` artifactja).
   A Cobertura `<source>`-ot a CI `deluge_mobileui`-ra normalizálja, mert a
   scanner konténerben a project base `/usr/src` (a host abszolút path nem
   oldható fel).

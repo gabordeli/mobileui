@@ -34,10 +34,10 @@ HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n
 - **M3 / #9 kész:** `https://cirice.ddns.net:8113/` — `.228` nginx TLS a
   meglévő certtel, router WAN TCP 8113 → `192.168.2.228:8113`; token auth,
   SSE, token-mentes access log.
-- **CI / SonarQube:** main-branch statikus elemzés + backend coverage
-  (`coverage.xml`), Docker scannerrel, report-only.
-- **Bugsink backend:** opcionális `sentry-sdk` + `sentry_dsn`; Twisted
-  kivételek, release/environment; a DSN élőben állítható.
+- **CI / SonarQube:** main-branch statikus elemzés + backend/frontend coverage,
+  Docker scannerrel, report-only.
+- **Bugsink:** backend `sentry-sdk` + frontend `@sentry/vue`, közös DSN;
+  a backend `sentry_dsn` élőben állítható.
 - Következik: M3 / #12 GitHub tükör, ha kell.
 
 ## Felépítés
@@ -86,8 +86,10 @@ tokent ír (`MOBILEUI_TOKEN`-nel felülírható), majd elindítja a daemont. A
 ```bash
 cd webui
 npm ci
-npm run build      # deluge_mobileui/data/
-npm run dev        # proxy: 127.0.0.1:8113
+npm run build          # deluge_mobileui/data/
+npm run test           # Vitest
+npm run test:coverage  # webui/coverage/lcov.info
+npm run dev            # proxy: 127.0.0.1:8113
 VITE_API_PROXY=http://192.168.2.27:8113 npm run dev
 ```
 
@@ -96,10 +98,11 @@ A részletek: [docs/webui.md](docs/webui.md).
 ## CI / release
 
 A `.gitlab-ci.yml` stage-ei: `lint` (ruff + vue-tsc), `test` (pytest +
-pytest-cov, Deluge nélkül stubokkal, `coverage.xml` artifact), `quality`
-(SonarQube main-branch elemzés, report-only), `build` (SPA + sdist/wheel/egg,
-artifact), `release` (manuális `RELEASE_TYPE=patch|minor|major`) és `deploy`
-(manuális rsync + `scripts/install.sh` a .27-re).
+pytest-cov és Vitest + coverage, Deluge nélkül stubokkal, `coverage.xml` +
+`webui/coverage/lcov.info` artifact), `quality` (SonarQube main-branch
+elemzés, report-only), `build` (SPA + sdist/wheel/egg, artifact), `release`
+(manuális `RELEASE_TYPE=patch|minor|major`) és `deploy` (manuális rsync +
+`scripts/install.sh` a .27-re).
 
 ```bash
 ./scripts/release.sh patch --dry-run

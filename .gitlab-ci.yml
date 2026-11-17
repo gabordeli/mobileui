@@ -43,9 +43,24 @@ test:
       - coverage.xml
     expire_in: 1 week
 
+webui-test:
+  stage: test
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - webui/node_modules/
+  script:
+    - cd webui
+    - npm ci --silent
+    - npm run test:coverage
+  artifacts:
+    paths:
+      - webui/coverage/lcov.info
+    expire_in: 1 week
+
 sonar:
   stage: quality
-  dependencies: [test]
+  dependencies: [test, webui-test]
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   script:
