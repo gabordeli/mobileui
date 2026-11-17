@@ -36,6 +36,8 @@ HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n
   SSE, token-mentes access log.
 - **CI / SonarQube:** main-branch statikus elemzés + backend coverage
   (`coverage.xml`), Docker scannerrel, report-only.
+- **Bugsink backend:** opcionális `sentry-sdk` + `sentry_dsn`; Twisted
+  kivételek, release/environment; a DSN élőben állítható.
 - Következik: M3 / #12 GitHub tükör, ha kell.
 
 ## Felépítés
@@ -62,7 +64,7 @@ docs/                 API és döntések
 
 ```bash
 python3 -m venv --system-site-packages .venv
-.venv/bin/pip install pytest ruff build
+.venv/bin/pip install pytest ruff build sentry-sdk
 
 .venv/bin/pytest
 .venv/bin/ruff check .
@@ -162,7 +164,8 @@ kicsomagolni, majd `systemctl restart deluged` és
 {
   "enabled": true,
   "port": 8113,
-  "token": ""
+  "token": "",
+  "sentry_dsn": ""
 }
 ```
 
@@ -171,8 +174,14 @@ minden `/api/*` 401-et ad. A `/health` mindig publikus. A token nem kerül logba
 Az SSE (`/api/events`) az `EventSource` miatt `?token=<token>` query paramétert is
 elfogad (a header az elsődleges).
 
+A `sentry_dsn` üresen hagyva nem küld eseményt; kitöltve a plugin a Bugsinkbe
+küldi a Twisted kivételeket (`release` = plugin verzió, `environment=production`).
+A DSN nem kerül a logba; a `set_config` élőben átállítja, a `sentry-sdk`-t az
+`install.sh` telepíti a Deluge venvbe.
+
 Élő átállítás a `mobileui.set_config` RPC-vel (a `deluge.ui.client`-en vagy a
-WebUI-n át); a token, a port és az `enabled` azonnal érvényesül, restart nem kell.
+WebUI-n át); a token, a port, az `enabled` és a `sentry_dsn` azonnal érvényesül,
+restart nem kell.
 Ha az új port nem bindolható, a plugin visszaállítja a régi portot és hibát ad.
 
 ```python

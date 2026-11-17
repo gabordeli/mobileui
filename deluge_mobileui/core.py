@@ -14,6 +14,16 @@ from twisted.web.server import Site
 from .http import build_root
 from .version import __version__
 
+try:
+    import sentry_sdk
+except ImportError:
+    sentry_sdk = None
+
+try:
+    from sentry_sdk.integrations.twisted import TwistedIntegration
+except ImportError:
+    TwistedIntegration = None
+
 log = logging.getLogger(__name__)
 
 CONFIG_FILE = "mobileui.conf"
@@ -21,6 +31,7 @@ CONFIG_DEFAULTS = {
     "enabled": True,
     "port": 8113,
     "token": "",
+    "sentry_dsn": "",
 }
 
 
@@ -38,11 +49,13 @@ class Core(CorePluginBase):
         if not self.config["enabled"]:
             log.info("MobileUi disabled by mobileui.conf; HTTP server not started")
             return
+        self._init_sentry()
         self._start_listener(int(self.config["port"]))
         self._start_events()
 
     def disable(self):
         self._stop_events()
+        self._flush_sentry()
         return self._stop_listener()
 
     def update(self):
@@ -136,9 +149,42 @@ class Core(CorePluginBase):
             self.events.stop()
             self.events = None
 
+    def _init_sentry(self):
+        if sentry_sdk is None:
+            if str(self.config.get("sentry_dsn", "")).strip():
+                log.warning(
+                    "MobileUi: sentry_dsn is set but sentry-sdk is not installed"
+                )
+            return
+        dsn = str(self.config.get("sentry_dsn", "")).strip()
+        if not dsn:
+            return
+        integrations = [TwistedIntegration()] if TwistedIntegration else []
+        try:
+            sentry_sdk.init(
+                dsn=dsn,
+                release=__version__,
+                environment="production",
+                integrations=integrations,
+                traces_sample_rate=0.0,
+                send_default_pii=False,
+            )
+        except Exception:
+            log.warning("MobileUi: Sentry initialization failed", exc_info=True)
+            return
+        log.info("MobileUi Sentry enabled (release %s)", __version__)
+
+    def _flush_sentry(self):
+        if sentry_sdk is None:
+            return
+        try:
+            sentry_sdk.flush(timeout=2)
+        except Exception:
+            log.warning("MobileUi: Sentry flush failed", exc_info=True)
+
     @export
     def set_config(self, config):
-        """Update token/port/enabled; token and port apply without a restart."""
+        """Update token/port/enabled/sentry_dsn; apply without a restart."""
         if not isinstance(config, dict):
             raise TypeError("config must be a dict")
         unknown = set(config) - set(CONFIG_DEFAULTS)
@@ -159,6 +205,10 @@ class Core(CorePluginBase):
             if not isinstance(config["token"], str):
                 raise TypeError("token must be a string")
             updates["token"] = config["token"]
+        if "sentry_dsn" in config:
+            if not isinstance(config["sentry_dsn"], str):
+                raise TypeError("sentry_dsn must be a string")
+            updates["sentry_dsn"] = config["sentry_dsn"]
 
         old = {key: self.config[key] for key in updates}
         for key, value in updates.items():
@@ -174,16 +224,22 @@ class Core(CorePluginBase):
             log.error("MobileUi config change failed, reverted", exc_info=True)
             raise
 
+        if "sentry_dsn" in updates:
+            self._init_sentry()
+
         log.info(
-            "MobileUi config updated (port=%s, enabled=%s, token_set=%s)",
+            "MobileUi config updated "
+            "(port=%s, enabled=%s, token_set=%s, sentry_set=%s)",
             self.config["port"],
             self.config["enabled"],
             bool(self.config["token"]),
+            bool(self.config.get("sentry_dsn", "")),
         )
         return {
             "port": int(self.config["port"]),
             "enabled": bool(self.config["enabled"]),
             "token_set": bool(self.config["token"]),
+            "sentry_set": bool(self.config.get("sentry_dsn", "")),
         }
 
     def is_authorized(self, request):

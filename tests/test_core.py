@@ -203,6 +203,7 @@ def test_set_config_can_disable_server(tmp_path, monkeypatch):
         ({"port": 0}, ValueError),
         ({"token": 123}, TypeError),
         ({"enabled": "yes"}, TypeError),
+        ({"sentry_dsn": 123}, TypeError),
     ],
 )
 def test_set_config_validates_input(config, exception, tmp_path):
@@ -214,3 +215,68 @@ def test_set_config_validates_input(config, exception, tmp_path):
 
     with pytest.raises(exception):
         plugin.set_config(config)
+
+
+def _fake_sentry():
+    calls = []
+
+    class FakeSentry:
+        def init(self, **kwargs):
+            calls.append(kwargs)
+
+    return FakeSentry(), calls
+
+
+def test_init_sentry_skips_without_dsn(monkeypatch):
+    fake, calls = _fake_sentry()
+    monkeypatch.setattr(core, "sentry_sdk", fake)
+    monkeypatch.setattr(core, "TwistedIntegration", lambda: "twisted")
+    plugin = make_plugin()
+    plugin.config = {"sentry_dsn": ""}
+
+    plugin._init_sentry()
+
+    assert calls == []
+
+
+def test_init_sentry_initializes_with_dsn(monkeypatch):
+    fake, calls = _fake_sentry()
+    monkeypatch.setattr(core, "sentry_sdk", fake)
+    monkeypatch.setattr(core, "TwistedIntegration", lambda: "twisted")
+    plugin = make_plugin()
+    plugin.config = {"sentry_dsn": "https://key@bugsink/4"}
+
+    plugin._init_sentry()
+
+    assert calls[0]["dsn"] == "https://key@bugsink/4"
+    assert calls[0]["release"] == core.__version__
+    assert calls[0]["integrations"] == ["twisted"]
+    assert calls[0]["traces_sample_rate"] == 0.0
+    assert calls[0]["send_default_pii"] is False
+
+
+def test_set_config_updates_sentry_dsn(tmp_path, monkeypatch):
+    config_file = tmp_path / "mobileui.conf"
+    config_file.write_text("{}")
+    plugin = make_plugin()
+    plugin.config = FakeConfig(
+        {
+            "enabled": True,
+            "port": 8113,
+            "token": "secret",
+            "sentry_dsn": "",
+        },
+        str(config_file),
+    )
+    plugin.listener = FakePort()
+    fake, calls = _fake_sentry()
+    monkeypatch.setattr(core, "reactor", FakeReactor())
+    monkeypatch.setattr(core, "sentry_sdk", fake)
+    monkeypatch.setattr(core, "TwistedIntegration", lambda: "twisted")
+
+    result = plugin.set_config({"sentry_dsn": "https://key@bugsink/4"})
+
+    assert result["sentry_set"] is True
+    assert plugin.config["sentry_dsn"] == "https://key@bugsink/4"
+    assert calls[0]["dsn"] == "https://key@bugsink/4"
+    assert config_file.stat().st_mode & 0o777 == 0o600

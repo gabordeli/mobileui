@@ -89,8 +89,8 @@ A release job pusholásához a projektben be van kapcsolva a
 A `gitlab_runner_toolchain` playbook a shell runnerre telepíti: python3-pip/venv,
 nodejs/npm, git, jq, curl, **rsync**, docker/trivy, mariadb-client. A CI saját
 venvben teszi fel a `pytest`, `pytest-cov`, `ruff`, `build`, `twisted`,
-`setuptools`, `wheel` csomagokat; a tesztek a `tests/stubs` Deluge shimekkel
-futnak. A SonarQube elemzés a Docker image-et használja (nem a runner régi
+`sentry-sdk`, `setuptools`, `wheel` csomagokat; a tesztek a `tests/stubs` Deluge
+shimekkel futnak. A SonarQube elemzés a Docker image-et használja (nem a runner régi
 `sonar-scanner` binaryjét). A deployhoz a `gitlab-runner` user SSH-kulcsa a .27
 root `authorized_keys`ében van.
 

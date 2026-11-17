@@ -92,6 +92,11 @@ find "$PLUGIN_DIR" -maxdepth 1 -type f -name 'MobileUi-*.egg' -delete
 mkdir -p "$EGG_DIR"
 "$PY" -m zipfile -e "$EGG" "$EGG_DIR"
 
+if ! "$PY" -c 'import sentry_sdk' >/dev/null 2>&1; then
+    "$PY" -m pip install --quiet 'sentry-sdk>=2.0' || \
+        echo "warning: sentry-sdk install failed; Sentry stays disabled" >&2
+fi
+
 systemctl restart "$SERVICE"
 for _ in $(seq 1 15); do
     ss -ltn "sport = :58846" | grep -q LISTEN && break
