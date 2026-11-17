@@ -220,3 +220,12 @@ callbackjein keresztül azonnal alkalmazza. A torrentenkénti érték a
 globális érték, `0` = korlátlan). A session sheet globális mezőket és
 éjszakai (512/128) / korlátlan preseteket ad, a detail torrentenkénti
 mezőket. A handler csak a megadott mezőket írja; a validáció `-1` vagy `>= 0`.
+
+## D17 – PWA share target: /share az SW-n, magnet az add sheetben (2026-11-17)
+
+A manifest `share_target` GET-tel a `/share` útvonalra mutat; a szerver nem
+ismeri ezt az utat, ezért a service worker a navigációt az app shell-lel
+szolgálja ki (a query megmarad). Az App a `text` / `url` / `title` paraméterből
+regexszel keresi a `magnet:?` linket, és előtöltve megnyitja az add sheetet; a
+címsorból a query-t `replaceState`-csel törli. Android Chrome + **telepített
+PWA** kell; az iOS Safari nem támogatja a share targetet.

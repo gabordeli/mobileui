@@ -258,6 +258,15 @@ test.describe("authenticated UI", () => {
     await expect(bar).toHaveCount(0);
   });
 
+  test("opens the add sheet from a shared magnet", async ({ page }) => {
+    const shared = "magnet:?xt=urn:btih:deadbeef&dn=Demo";
+    await page.goto(`/?text=${encodeURIComponent(shared)}`);
+
+    const dialog = page.getByRole("dialog", { name: "Torrent hozzáadása" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator("textarea")).toHaveValue(shared);
+  });
+
   test("opens the add sheet", async ({ page }) => {
     await page.getByRole("button", { name: "Torrent hozzáadása" }).click();
 

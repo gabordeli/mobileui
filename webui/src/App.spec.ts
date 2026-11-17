@@ -161,9 +161,29 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  window.history.replaceState({}, "", "/");
 });
 
 describe("App", () => {
+  it("opens the add sheet with a shared magnet", async () => {
+    const shared = "magnet:?xt=urn:btih:deadbeef&dn=Demo";
+    window.history.replaceState(
+      {},
+      "",
+      `/?text=${encodeURIComponent(shared)}`,
+    );
+
+    const wrapper = mountApp();
+    await flushPromises();
+
+    const dialog = wrapper.get(
+      `[role="dialog"][aria-label="${t("add.title")}"]`,
+    );
+    expect((dialog.get("textarea").element as HTMLTextAreaElement).value).toBe(
+      shared,
+    );
+  });
+
   it("loads the session, labels, list and version", async () => {
     const wrapper = mountApp();
     await flushPromises();

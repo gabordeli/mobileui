@@ -9,6 +9,7 @@ const props = defineProps<{
   labels: LabelInfo[];
   noLabelCount: number;
   defaultPath: string;
+  initialMagnet?: string;
 }>();
 const emit = defineEmits<{
   close: [];
@@ -17,7 +18,7 @@ const emit = defineEmits<{
 }>();
 
 const mode = ref<"magnet" | "file">("magnet");
-const magnet = ref("");
+const magnet = ref(props.initialMagnet ?? "");
 const file = ref<File | null>(null);
 const label = ref("");
 const downloadLocation = ref(props.defaultPath);

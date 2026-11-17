@@ -21,11 +21,11 @@ hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 ## Tesztek
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, komponensek, theme,
-  api, format, i18n, main); 105 teszt, a coverage threshold a `vite.config.ts`-ben.
+  api, format, i18n, main); 111 teszt, a coverage threshold a `vite.config.ts`-ben.
 - `npm run test:e2e` — Playwright smoke: token-kapu, fiók login, read-only UI,
-  lista+detail, fájlprioritás, session sheet, bulk selection, add sheet. Az API-t
-  `page.route` mockolja, ezért Deluge nélkül fut; az első futás előtt
-  `npx playwright install chromium` kell.
+  lista+detail, fájlprioritás, session sheet, bulk selection, megosztott magnet,
+  add sheet. Az API-t `page.route` mockolja, ezért Deluge nélkül fut; az első
+  futás előtt `npx playwright install chromium` kell.
 - A CI `webui-e2e` job ugyanezt futtatja; a böngészőt a `webui/.playwright/`
   cache alá tölti.
 
@@ -113,9 +113,18 @@ A fejléc stats sávja (↓/↑/darabszám) gomb: session sheetet nyit. Mutatja 
 `download_location` szabad helyét, a torrentszámot, a le/fel rate-et és a
 session állapotát; a gomb az **összes** torrentet szünetelteti vagy folytatja
 (`POST /api/session/pause|resume`). A sheetben **globális sebességkorlát**
-állítható (KiB/s, -1 = korlátlan), **Éjszakai mód** (512/128) és **Korlátlan**
+állítható (KiB/s, -1 vagy 0 = korlátlan), **Éjszakai mód** (512/128) és **Korlátlan**
 presetekkel. Read-only fióknál csak a note látszik. A válasz `paused` mezője
 alapján a gomb felirata azonnal vált; a listát az SSE delta frissíti.
+
+## Megosztás (Android)
+
+A manifest `share_target`-je a `/share` útvonalra mutat; a szerver ezt nem
+ismeri, ezért a **service worker** a `/share` navigációt az app shell-lel
+szolgálja ki (a query megmarad). Az App a `text` / `url` / `title` paraméterből
+kinyeri a `magnet:?` linket, és előtöltve megnyitja az add sheetet; a query-t
+`replaceState`-csel törli a címsorból. Csak **telepített PWA-ból, Androidon**
+(Chrome) működik; az iOS Safari nem támogatja a share targetet.
 
 ## Ismert korlátok / következő
 

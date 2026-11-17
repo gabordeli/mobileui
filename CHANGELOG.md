@@ -7,6 +7,8 @@
   loaded file list.
 - Global and per-torrent speed limits (`PATCH /api/session/limits`,
   `PATCH /api/torrents/{id}/limits`) with night-mode and unlimited presets.
+- PWA share target (Android): a shared magnet opens the add sheet prefilled;
+  the service worker serves `/share` with the app shell.
 
 ## [0.2.0] - 2026-11-17
 

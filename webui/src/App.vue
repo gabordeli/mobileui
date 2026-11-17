@@ -5,6 +5,7 @@ import { RecycleScroller } from "vue-virtual-scroller";
 import * as api from "./api";
 import { formatRate } from "./format";
 import { locale, t, toggleLocale } from "./i18n";
+import { extractMagnet } from "./share";
 import { theme, toggleTheme } from "./theme";
 import type {
   AuthInfo,
@@ -48,6 +49,7 @@ const bulkBusy = ref(false);
 const detail = ref<Torrent | null>(null);
 const detailLive = ref<Record<string, unknown>>({});
 const addOpen = ref(false);
+const pendingMagnet = ref("");
 const sessionOpen = ref(false);
 const online = ref(navigator.onLine);
 const toast = ref("");
@@ -470,6 +472,14 @@ function updateOnline(): void {
 }
 
 onMounted(() => {
+  const shared = extractMagnet(window.location.search);
+  if (shared) {
+    pendingMagnet.value = shared;
+    addOpen.value = true;
+    const path =
+      window.location.pathname === "/share" ? "/" : window.location.pathname;
+    window.history.replaceState({}, "", path);
+  }
   window.addEventListener("online", updateOnline);
   window.addEventListener("offline", updateOnline);
   void loadPluginVersion();
@@ -651,7 +661,8 @@ onBeforeUnmount(() => {
       :labels="labels"
       :no-label-count="noLabelCount"
       :default-path="session?.download_location ?? ''"
-      @close="addOpen = false"
+      :initial-magnet="pendingMagnet"
+      @close="addOpen = false; pendingMagnet = ''"
       @added="onAdded"
       @toast="showToast"
     />

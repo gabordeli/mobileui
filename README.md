@@ -72,6 +72,8 @@ Jelenlegi release: **v0.2.0** (GitLab + GitHub), az éles példányon telepítve
   kliensoldali fájllista-kereső; `PATCH /api/torrents/{id}/files`.
 - **Sebességkorlát:** globális és torrentenkénti limit (KiB/s, -1 = korlátlan),
   éjszakai mód és korlátlan preset a session sheetben.
+- **PWA share target:** Androidon a „Megosztás → Deluge Mobile” egy magnet
+  linket előtöltve nyit az add sheetben (telepített PWA).
 
 ## 🧱 Felépítés
 

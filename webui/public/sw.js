@@ -37,6 +37,14 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/api/")) return;
 
   if (request.mode === "navigate") {
+    if (url.pathname === "/share") {
+      event.respondWith(
+        caches
+          .match("/index.html")
+          .then((cached) => cached || fetch("/index.html")),
+      );
+      return;
+    }
     event.respondWith(
       fetch(request)
         .then((response) => {

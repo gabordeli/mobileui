@@ -37,6 +37,22 @@ function button(wrapper: ReturnType<typeof factory>, label: string) {
 }
 
 describe("AddDialog", () => {
+  it("prefills a shared magnet and submits it", async () => {
+    const wrapper = factory({ initialMagnet: "magnet:?xt=urn:btih:deadbeef" });
+
+    expect((wrapper.get("textarea").element as HTMLTextAreaElement).value).toBe(
+      "magnet:?xt=urn:btih:deadbeef",
+    );
+
+    await button(wrapper, t("add.submit")).trigger("click");
+    await flushPromises();
+
+    expect(api.addTorrentMagnet).toHaveBeenCalledWith(
+      "magnet:?xt=urn:btih:deadbeef",
+      expect.any(Object),
+    );
+  });
+
   it("prefills the default path and closes", async () => {
     const wrapper = factory();
     expect(
