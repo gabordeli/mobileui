@@ -89,5 +89,5 @@ deploy:
     - if [ -n "${DEPLOY_SSH_KEY:-}" ]; then install -d -m 700 ~/.ssh; printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519; chmod 600 ~/.ssh/id_ed25519; fi
   script:
     - command -v rsync >/dev/null
-    - rsync -az --exclude .git --exclude .venv --exclude .ci-venv --exclude .dev --exclude webui/node_modules --exclude .pytest_cache --exclude .ruff_cache ./ "$DEPLOY_HOST:/root/webui2/"
+    - rsync -az -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new" --exclude .git --exclude .venv --exclude .ci-venv --exclude .dev --exclude webui/node_modules --exclude .pytest_cache --exclude .ruff_cache ./ "$DEPLOY_HOST:/root/webui2/"
     - ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new "$DEPLOY_HOST" 'cd /root/webui2 && ./scripts/install.sh'
