@@ -11,6 +11,14 @@ Deluge **2.x** (Python 3.10+), élesben **2.2.0**-val tesztelve; 1.x nem támoga
 [![Node](https://img.shields.io/badge/node-22-339933?style=flat-square)](https://nodejs.org/)
 [![Release workflow](https://github.com/gabordeli/mobileui/actions/workflows/release.yml/badge.svg)](https://github.com/gabordeli/mobileui/actions/workflows/release.yml)
 
+## 📱 Képernyőképek
+
+| Lista | Részletek | Hozzáadás |
+| --- | --- | --- |
+| <img src="docs/assets/screenshot-list.png" width="240" alt="Torrent lista"> | <img src="docs/assets/screenshot-detail.png" width="240" alt="Torrent részletek"> | <img src="docs/assets/screenshot-add.png" width="240" alt="Torrent hozzáadása"> |
+
+Demó adatok a lokális `scripts/dev-daemon.sh`-ból (kitalált nevek), sötét téma.
+
 ## 📊 Állapot
 
 Jelenlegi release: **v0.1.3** (GitLab + GitHub), a .27-en telepítve.
