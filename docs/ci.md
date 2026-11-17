@@ -206,15 +206,18 @@ Check: `deploy_gitlab_runner_toolchain.yml --limit gitlab-runner --check --diff`
 
 ## Verified run
 
-- Pipeline: lint/test/build success; the `v0.1.1` release commit/tag was created.
-- Deploy job: success; on the deploy host `/health` **0.1.1**, several hundred
-  torrents, SPA/8112 200.
-- Cleaning up the old egg versions (`find ... -type d -name 'MobileUi-*.egg'`)
-  is necessary, otherwise the old plugin stays loaded.
-- GitHub mirror: `main` and `v0.1.3` went through; the GitHub Actions `Release`
-  run's 16 steps are success, the `v0.1.3` release with 4 assets (wheel, sdist,
-  egg, sha256). The `v0.1.1`/`v0.1.2` tags are up, but without a release (no
-  backfill).
+- Pipeline 6699: `lint`, `test`, `webui-test`, `webui-e2e`, `deluge-compat`,
+  `sonar` and `build` success; the release job created `chore(release) v1.0.0`
+  and the `v1.0.0` tag; the deploy job succeeded.
+- On the deploy host `/health` is **1.0.0**, the SPA is served with the release
+  assets; the stock `deluge-web` on 8112 is untouched.
+- GitLab and GitHub both expose **v1.0.0 as the first public release** with four
+  assets (wheel, sdist, egg, sha256); the earlier tags/releases were removed
+  from both remotes.
+- Cleaning up old unpacked egg versions (`find ... -type d -name
+  'MobileUi-*.egg'`) remains necessary, otherwise the old plugin stays loaded.
+- The GitHub Release workflow (run `44154691183`) completed successfully on the
+  `v1.0.0` tag.
 
 ## Known limitation
 
