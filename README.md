@@ -38,7 +38,7 @@ Jelenlegi release: **v0.1.3** (GitLab + GitHub), az éles példányon telepítve
   fájllista, add sheet magnet/.torrent + label + útvonal.
 - **M2 / #8 kész:** PWA manifest/ikonok/SW, light/dark téma, HU/EN i18n,
   skeleton/offline/error állapotok, safe-area + a11y alapok.
-- **M3 / #10 kész:** GitLab CI (lint/test/build + manuális release/deploy),
+- **M3 / #10 kész:** CI (lint/test/build + manuális release/deploy),
   `v0.1.2` release, deploy job a Deluge hostra; a #9 public HTTPS kész.
 - **M3 / #11 kész:** runner toolchain (python/venv, node/npm, git, jq, curl,
   rsync, docker/trivy), `--check --diff` changed=0, runner restart.
@@ -50,7 +50,7 @@ Jelenlegi release: **v0.1.3** (GitLab + GitHub), az éles példányon telepítve
 - **M3 / #15 kész:** a SPA a `/health` válaszából jeleníti meg a plugin
   verzióját (token-kapu + footer); release bump után automatikus.
 - **M3 / #9 kész:** publikus HTTPS nginx TLS proxy mögött, token auth, SSE,
-  token-mentes access log; a szerzői példány `https://cirice.ddns.net:8113/`.
+  token-mentes access log.
 - **CI / SonarQube:** main-branch statikus elemzés + backend/frontend coverage,
   Docker scannerrel, report-only.
 - **Bugsink:** backend `sentry-sdk` + frontend `@sentry/vue`, közös DSN;
@@ -135,23 +135,6 @@ VITE_API_PROXY=http://<deluge-host>:8113 npm run dev
 A `test:e2e` első futása előtt `npx playwright install chromium` kell.
 
 A részletek: [docs/webui.md](docs/webui.md).
-
-## 🚀 CI / release
-
-A `.gitlab-ci.yml` stage-ei: `lint` (ruff + vue-tsc), `test` (pytest +
-pytest-cov és Vitest + coverage, Deluge nélkül stubokkal, `coverage.xml` +
-`webui/coverage/lcov.info` artifact), `quality` (SonarQube main-branch
-elemzés, report-only), `build` (SPA + sdist/wheel/egg, artifact), `release`
-(manuális `RELEASE_TYPE=patch|minor|major`) és `deploy` (manuális rsync +
-`scripts/install.sh` a Deluge hostra).
-
-```bash
-./scripts/release.sh patch --dry-run
-./scripts/release.sh minor
-```
-
-Részletek: [docs/ci.md](docs/ci.md). A deploy jobhoz a runneren
-`DEPLOY_SSH_KEY` és rsync kell (#11).
 
 ## 📦 Telepítés
 

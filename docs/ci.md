@@ -140,8 +140,9 @@ tagekhez nem készül release; a workflow csak az új tagtól él.
 ## Deploy
 
 A `deploy` job a build artifact `data/`-ját rsynceli a `$DEPLOY_HOST:/root/webui2`-be,
-majd futtatja a `scripts/install.sh`-t (a hoston épít, változatlanul). Kézi
-telepítéshez a release eggje is használható:
+majd futtatja a `scripts/install.sh`-t (a hoston épít, változatlanul). A
+`DEPLOY_HOST` **kötelező** projekt CI/CD változó (pl. `root@deluge-host`); enélkül
+a job elhasal. Kézi telepítéshez a release eggje is használható:
 `EGG=/path/MobileUi-*.egg ./scripts/install.sh`. A runneren:
 - `rsync`,
 - a `gitlab-runner` user `~/.ssh/id_ed25519` kulcsa a deploy host root

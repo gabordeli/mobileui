@@ -44,28 +44,13 @@ EGG=/path/MobileUi-*.egg ./scripts/install.sh
 
 A kicsomagolás kötelező, mert a `static.File` nem tud zipből szolgálni. A Deluge
 pluginmanager `pkg_resources.Environment(..., python=None)`-t használ, ezért a
-runneren épült py3.13 tagű, pure-Python egg a 3.11-es célon is betöltődik (a
+CI-ben épült py3.13 tagű, pure-Python egg a 3.11-es célon is betöltődik (a
 stock pluginek is py3.10/py3.12 eggek a 3.11-en).
 
 Repó nélkül ugyanez kézzel: az egg tartalmát a
 `.../site-packages/deluge/plugins/MobileUi-<verzió>-py3.x.egg/` könyvtárba kell
 kicsomagolni, majd `systemctl restart deluged` és
 `deluge-console ... "plugin -e MobileUi"`.
-
-## Példa: a szerző telepítése (2026-11-17)
-
-Ez csak példa, nem követelmény; a saját környezeted ettől eltérhet.
-
-- Host: `cirice` (192.168.2.27), `deluged` systemd alatt; a plugin **enabled**,
-  a 8113 LAN-on figyel, a 8112-es `deluge-web` változatlanul fut.
-- Publikus: `https://cirice.ddns.net:8113/` a `.228` nginx TLS proxy mögött
-  (router WAN TCP 8113 → `192.168.2.228:8113`), token-kapuval.
-- SPA: `http://192.168.2.27:8113/` LAN-on, ugyanaz az API a `/api/*` alatt.
-- A generált API-token a `mobileui.conf`-ban van; a szerzői példányon külön
-  `/root/mobileui-token` (600) is készült. A `mobileui.conf` a `debian-deluged`
-  tulajdona, 600.
-- A token nem szerepel a daemon logban, és a `.228` nginx access logja is
-  `$uri`-t ír, így a `?token=` sem kerül bele.
 
 ## Konfiguráció
 

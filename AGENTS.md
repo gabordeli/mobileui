@@ -28,7 +28,7 @@ reactorjában fut, saját HTTP szervert indít a **8113**-on. A gyári `deluge-w
 
 - A 8112-es `deluge-web`-hez és a meglévő Label/AutoAdd/Scheduler/Execute
   flow-hoz nem nyúlunk.
-- A célhost (`.27`) módosítása (telepítés, restart) külön jóváhagyás után megy.
+- A Deluge host módosítása (telepítés, restart) külön jóváhagyás után megy.
 - Git művelet (commit/push/merge) csak kifejezett engedéllyel.
 - Egy lépés = egy issue, utána rövid státusz; ne hagyj félkész fájlt.
 
