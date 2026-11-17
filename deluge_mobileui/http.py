@@ -328,7 +328,9 @@ class PushSubscribeResource(ApiJsonResource):
             return unauthorized
         try:
             body = read_json_body(request)
-            payload = self.plugin.subscribe_push(body)
+            payload = self.plugin.subscribe_push(
+                body, request.getHeader("user-agent")
+            )
         except (TypeError, ValueError) as ex:
             return self.api_error(request, ex)
         except Exception:
@@ -366,6 +368,33 @@ class PushTestResource(ApiJsonResource):
         return self.write_json(request, 200, payload)
 
 
+class PushSubscriptionsResource(ApiJsonResource):
+    isLeaf = True
+
+    def render_GET(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        try:
+            payload = self.plugin.list_push_subscriptions()
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+    def render_DELETE(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        try:
+            body = read_json_body(request)
+            payload = self.plugin.remove_push_subscription(body.get("id"))
+        except (TypeError, ValueError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
 class PushRootResource(ApiJsonResource):
     def __init__(self, plugin):
         super().__init__(plugin)
@@ -379,6 +408,8 @@ class PushRootResource(ApiJsonResource):
             return PushSubscribeResource(self.plugin)
         if path == b"test":
             return PushTestResource(self.plugin)
+        if path == b"subscriptions":
+            return PushSubscriptionsResource(self.plugin)
         return NotFoundResource()
 
 
@@ -907,6 +938,7 @@ class ApiRootResource(JsonResource):
                     "/api/push/config",
                     "/api/push/subscribe",
                     "/api/push/test",
+                    "/api/push/subscriptions",
                     "/api/events",
                 ],
             },

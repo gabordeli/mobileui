@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 
 import * as api from "../api";
+import type { PushSubscriptionInfo } from "../api";
 import { t } from "../i18n";
 import * as push from "../push";
 
@@ -10,6 +11,7 @@ const state = ref<"loading" | "off" | "on" | "denied">("loading");
 const busy = ref(false);
 const error = ref("");
 const testState = ref("");
+const devices = ref<PushSubscriptionInfo[]>([]);
 
 const statusText = computed(() => {
   if (!supported) return t("push.unsupported");
@@ -29,8 +31,32 @@ async function refresh(): Promise<void> {
     } else {
       state.value = "off";
     }
+    await loadDevices();
   } catch {
     state.value = "off";
+  }
+}
+
+async function loadDevices(): Promise<void> {
+  try {
+    devices.value = (await api.getPushSubscriptions()).subscriptions;
+  } catch {
+    devices.value = [];
+  }
+}
+
+async function revokeDevice(id: string): Promise<void> {
+  if (busy.value) return;
+  busy.value = true;
+  error.value = "";
+  try {
+    await api.removePushSubscription(id);
+    await loadDevices();
+    testState.value = t("push.revoked");
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : t("push.error");
+  } finally {
+    busy.value = false;
   }
 }
 
@@ -47,6 +73,7 @@ async function enable(): Promise<void> {
     const subscription = await push.subscribe(config.public_key);
     await api.subscribePush(subscription.toJSON());
     state.value = "on";
+    await loadDevices();
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : t("push.error");
   } finally {
@@ -62,6 +89,7 @@ async function disable(): Promise<void> {
     const endpoint = await push.unsubscribe();
     if (endpoint) await api.unsubscribePush(endpoint);
     state.value = "off";
+    await loadDevices();
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : t("push.error");
   } finally {
@@ -115,6 +143,24 @@ onMounted(refresh);
       </button>
     </div>
   </div>
+  <details v-if="devices.length" class="push-devices">
+    <summary>{{ t("push.devices", { count: devices.length }) }}</summary>
+    <ul>
+      <li v-for="device in devices" :key="device.id">
+        <div>
+          <strong>{{ device.host }}</strong>
+          <small>{{ device.user_agent || "—" }}</small>
+        </div>
+        <button
+          class="action"
+          :disabled="busy"
+          @click="revokeDevice(device.id)"
+        >
+          {{ t("push.revoke") }}
+        </button>
+      </li>
+    </ul>
+  </details>
   <p v-if="state === 'denied'" class="limits-hint">{{ t("push.deniedHint") }}</p>
   <p v-if="testState" class="limits-hint">{{ testState }}</p>
   <p v-if="error" class="limits-hint">{{ error }}</p>

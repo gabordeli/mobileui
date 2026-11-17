@@ -45,6 +45,8 @@ def test_subscription_validation(tmp_path):
         None,
         {},
         {"endpoint": "http://push.example/1", "keys": {"p256dh": "a", "auth": "b"}},
+        {"endpoint": "https://127.0.0.1/1", "keys": {"p256dh": "a", "auth": "b"}},
+        {"endpoint": "https://localhost/1", "keys": {"p256dh": "a", "auth": "b"}},
         {"endpoint": "https://push.example/1", "keys": {}},
         {"endpoint": "https://push.example/1", "keys": {"p256dh": 1, "auth": "b"}},
     ]
@@ -52,6 +54,24 @@ def test_subscription_validation(tmp_path):
     for bad in bad_inputs:
         with pytest.raises(ValueError):
             push.add_subscription(config_file, bad)
+
+
+def test_subscription_list_and_remove_by_id(tmp_path):
+    config_file = str(tmp_path / "mobileui.conf")
+    push.add_subscription(
+        config_file,
+        {**SUBSCRIPTION, "user_agent": "Mobile Safari"},
+    )
+
+    items = push.list_subscriptions(config_file)
+    assert items[0]["host"] == "push.example"
+    assert items[0]["user_agent"] == "Mobile Safari"
+    assert items[0]["id"] == push.subscription_id(SUBSCRIPTION["endpoint"])
+
+    assert push.remove_subscription_by_id(config_file, items[0]["id"]) == {
+        "unsubscribed": True
+    }
+    assert push.list_subscriptions(config_file) == []
 
 
 def test_store_is_private_and_holds_json(tmp_path):
@@ -88,6 +108,10 @@ def test_send_push_marks_dead_subscriptions(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "deluge_mobileui.push._load_webpush",
         lambda: (fake_webpush, FakeWebPushError),
+    )
+    monkeypatch.setattr(
+        "deluge_mobileui.push.endpoint_allowed",
+        lambda endpoint, resolve=False: True,
     )
 
     sent = push.send_push(

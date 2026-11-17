@@ -504,7 +504,40 @@ Registers a browser's `PushSubscription.toJSON()` object. The same
 {"endpoint": "https://push.example/...", "keys": {"p256dh": "...", "auth": "..."}}
 ```
 
-Response: `201 {"count": 1}`. Invalid input → `400`.
+Response: `201 {"count": 1}`. Invalid input → `400`. The store keeps an
+optional `user_agent` for the device list; the request `User-Agent` is used when
+present.
+
+## GET /api/push/subscriptions
+
+Lists stored devices without their endpoints/keys (read-only accounts allowed):
+
+```json
+{
+  "subscriptions": [
+    {
+      "id": "a1b2c3d4e5f6",
+      "host": "push.example",
+      "added": 1797518452,
+      "last_seen": 1797518452,
+      "user_agent": "Mozilla/5.0 …"
+    }
+  ]
+}
+```
+
+The `id` is a short hash of the endpoint; use it for revocation. Endpoints that
+are loopback/private/link-local are rejected at registration (literal IPs and
+localhost); delivery also re-checks the resolved addresses and skips non-public
+hosts.
+
+## DELETE /api/push/subscriptions
+
+```json
+{"id": "a1b2c3d4e5f6"}
+```
+
+`200 {"unsubscribed": true|false}`. Unknown id → `200 false` (idempotent).
 
 ## DELETE /api/push/subscribe
 

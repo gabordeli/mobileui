@@ -1,16 +1,52 @@
 """Web Push: VAPID keys, the subscription store and delivery."""
 
 import base64
+import hashlib
+import ipaddress
 import json
 import logging
 import os
+import socket
 import tempfile
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 log = logging.getLogger(__name__)
 
 MAX_SUBSCRIPTIONS = 20
+
+
+def subscription_id(endpoint):
+    return hashlib.sha256(endpoint.encode("utf-8")).hexdigest()[:12]
+
+
+def endpoint_allowed(endpoint, resolve=False):
+    try:
+        parsed = urlparse(endpoint)
+    except ValueError:
+        return False
+    if parsed.scheme != "https" or not parsed.hostname:
+        return False
+    host = parsed.hostname.lower()
+    if host == "localhost" or host.endswith(".localhost"):
+        return False
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        address = None
+    if address is not None and not address.is_global:
+        return False
+    if not resolve or address is not None:
+        return True
+    try:
+        infos = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+    except OSError:
+        return False
+    addresses = {item[4][0] for item in infos}
+    return bool(addresses) and all(
+        ipaddress.ip_address(value).is_global for value in addresses
+    )
 
 
 def _config_dir(config_file):
@@ -84,7 +120,7 @@ def add_subscription(config_file, subscription):
         raise ValueError("subscription must be an object")
     endpoint = subscription.get("endpoint")
     keys = subscription.get("keys")
-    if not isinstance(endpoint, str) or not endpoint.startswith("https://"):
+    if not isinstance(endpoint, str) or not endpoint_allowed(endpoint):
         raise ValueError("invalid subscription endpoint")
     if not isinstance(keys, dict):
         raise ValueError("subscription keys are required")
@@ -93,10 +129,16 @@ def add_subscription(config_file, subscription):
     if not isinstance(p256dh, str) or not isinstance(auth, str):
         raise ValueError("invalid subscription keys")
 
+    now = int(time.time())
+    user_agent = subscription.get("user_agent")
+    if not isinstance(user_agent, str):
+        user_agent = ""
     entry = {
         "endpoint": endpoint,
         "keys": {"p256dh": p256dh, "auth": auth},
-        "added": int(time.time()),
+        "added": now,
+        "last_seen": now,
+        "user_agent": user_agent[:200],
     }
     subscriptions = [
         item
@@ -106,6 +148,36 @@ def add_subscription(config_file, subscription):
     subscriptions.insert(0, entry)
     save_subscriptions(config_file, subscriptions)
     return {"subscribed": True, "count": len(subscriptions[:MAX_SUBSCRIPTIONS])}
+
+
+def list_subscriptions(config_file):
+    items = []
+    for item in load_subscriptions(config_file):
+        endpoint = item.get("endpoint", "")
+        parsed = urlparse(endpoint)
+        items.append(
+            {
+                "id": subscription_id(endpoint),
+                "host": parsed.hostname or "",
+                "added": item.get("added"),
+                "last_seen": item.get("last_seen") or item.get("added"),
+                "user_agent": item.get("user_agent", "")[:120],
+            }
+        )
+    return items
+
+
+def remove_subscription_by_id(config_file, sub_id):
+    if not isinstance(sub_id, str) or not sub_id:
+        raise ValueError("subscription id is required")
+    subscriptions = load_subscriptions(config_file)
+    kept = [
+        item
+        for item in subscriptions
+        if subscription_id(str(item.get("endpoint", ""))) != sub_id
+    ]
+    save_subscriptions(config_file, kept)
+    return {"unsubscribed": len(kept) != len(subscriptions)}
 
 
 def remove_subscription(config_file, endpoint):
@@ -152,6 +224,10 @@ def send_push(
     sent = 0
     dead = []
     for item in targets:
+        endpoint = str(item.get("endpoint", ""))
+        if not endpoint_allowed(endpoint, resolve=True):
+            log.warning("MobileUi push: endpoint is not public: %s", endpoint)
+            continue
         try:
             webpush(
                 subscription_info=item,

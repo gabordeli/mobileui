@@ -326,6 +326,14 @@ export interface PushConfig {
   subscriptions: number;
 }
 
+export interface PushSubscriptionInfo {
+  id: string;
+  host: string;
+  added: number | null;
+  last_seen: number | null;
+  user_agent: string;
+}
+
 export function getPushConfig(): Promise<PushConfig> {
   return request<PushConfig>("/api/push/config");
 }
@@ -352,6 +360,21 @@ export function testPush(endpoint: string): Promise<{ queued: boolean }> {
   return request("/api/push/test", {
     method: "POST",
     body: JSON.stringify({ endpoint }),
+  });
+}
+
+export function getPushSubscriptions(): Promise<{
+  subscriptions: PushSubscriptionInfo[];
+}> {
+  return request("/api/push/subscriptions");
+}
+
+export function removePushSubscription(
+  id: string,
+): Promise<{ unsubscribed: boolean }> {
+  return request("/api/push/subscriptions", {
+    method: "DELETE",
+    body: JSON.stringify({ id }),
   });
 }
 

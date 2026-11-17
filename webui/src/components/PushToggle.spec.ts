@@ -11,6 +11,8 @@ vi.mock("../api", () => ({
   subscribePush: vi.fn(),
   unsubscribePush: vi.fn(),
   testPush: vi.fn(),
+  getPushSubscriptions: vi.fn(),
+  removePushSubscription: vi.fn(),
 }));
 
 vi.mock("../push", () => ({
@@ -53,6 +55,10 @@ beforeEach(() => {
   vi.mocked(api.subscribePush).mockResolvedValue({ count: 1 });
   vi.mocked(api.unsubscribePush).mockResolvedValue({ unsubscribed: true });
   vi.mocked(api.testPush).mockResolvedValue({ queued: true });
+  vi.mocked(api.getPushSubscriptions).mockResolvedValue({ subscriptions: [] });
+  vi.mocked(api.removePushSubscription).mockResolvedValue({
+    unsubscribed: true,
+  });
 });
 
 describe("PushToggle", () => {
@@ -104,6 +110,33 @@ describe("PushToggle", () => {
 
     expect(api.testPush).toHaveBeenCalledWith("https://push.example/1");
     expect(wrapper.text()).toContain(t("push.testSent"));
+  });
+
+  it("lists devices and revokes a subscription", async () => {
+    vi.mocked(push.currentSubscription).mockResolvedValue(subscription());
+    vi.mocked(api.getPushSubscriptions).mockResolvedValue({
+      subscriptions: [
+        {
+          id: "abc",
+          host: "push.example",
+          added: 1,
+          last_seen: 1,
+          user_agent: "Mobile Safari",
+        },
+      ],
+    });
+    const wrapper = mountToggle();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("push.example");
+    await wrapper
+      .findAll("button")
+      .find((item) => item.text() === t("push.revoke"))!
+      .trigger("click");
+    await flushPromises();
+
+    expect(api.removePushSubscription).toHaveBeenCalledWith("abc");
+    expect(wrapper.text()).toContain(t("push.revoked"));
   });
 
   it("explains when notifications are blocked", async () => {

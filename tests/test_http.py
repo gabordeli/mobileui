@@ -173,9 +173,16 @@ class StubPlugin:
     def get_push_config(self):
         return {"enabled": True, "public_key": "pk", "subscriptions": 0}
 
-    def subscribe_push(self, subscription):
-        self.write_calls.append(("push_sub", subscription))
+    def subscribe_push(self, subscription, user_agent=None):
+        self.write_calls.append(("push_sub", subscription, user_agent))
         return {"subscribed": True, "count": 1}
+
+    def list_push_subscriptions(self):
+        return {"subscriptions": [{"id": "abc123", "host": "push.example"}]}
+
+    def remove_push_subscription(self, subscription_id):
+        self.write_calls.append(("push_remove", subscription_id))
+        return {"unsubscribed": True}
 
     def unsubscribe_push(self, endpoint):
         self.write_calls.append(("push_unsub", endpoint))
@@ -690,6 +697,18 @@ def test_push_config_and_subscribe_endpoints():
     assert request.responseCode == 200
     assert json.loads(body)["queued"] is True
     assert plugin.write_calls[2] == ("push_test", "https://push/1")
+
+    request = DummyRequest([b"api", b"push", b"subscriptions"])
+    body = root.getChildWithDefault(b"subscriptions", request).render_GET(request)
+    assert request.responseCode == 200
+    assert json.loads(body)["subscriptions"][0]["id"] == "abc123"
+
+    request = post_request([b"api", b"push", b"subscriptions"])
+    request.method = b"DELETE"
+    request.content = io.BytesIO(b'{"id":"abc123"}')
+    body = root.getChildWithDefault(b"subscriptions", request).render_DELETE(request)
+    assert request.responseCode == 200
+    assert json.loads(body)["unsubscribed"] is True
 
 
 def test_push_subscribe_allows_readonly_level():

@@ -333,10 +333,24 @@ class Core(CorePluginBase):
             "subscriptions": len(push.load_subscriptions(self.config.config_file)),
         }
 
-    def subscribe_push(self, subscription):
+    def subscribe_push(self, subscription, user_agent=None):
         from . import push
 
+        if isinstance(subscription, dict) and user_agent:
+            subscription = {**subscription, "user_agent": user_agent}
         return push.add_subscription(self.config.config_file, subscription)
+
+    def list_push_subscriptions(self):
+        from . import push
+
+        return {"subscriptions": push.list_subscriptions(self.config.config_file)}
+
+    def remove_push_subscription(self, subscription_id):
+        from . import push
+
+        return push.remove_subscription_by_id(
+            self.config.config_file, subscription_id
+        )
 
     def unsubscribe_push(self, endpoint):
         from . import push

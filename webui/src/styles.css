@@ -906,6 +906,55 @@ dialog.sheet {
   font-size: 11px;
 }
 
+.push-devices {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.push-devices summary {
+  cursor: pointer;
+}
+
+.push-devices ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.push-devices li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.push-devices li div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.push-devices li strong {
+  color: var(--text);
+  font-size: 11px;
+}
+
+.push-devices li small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.push-devices .action {
+  flex: none;
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
 .limits-inline {
   flex-wrap: wrap;
 }
