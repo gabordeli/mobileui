@@ -62,6 +62,9 @@ Jelenlegi release: **v0.1.3** (GitLab + GitHub), az éles példányon telepítve
 - **Auth:** opcionális Deluge user/jelszó belépés a statikus API-token mellett
   (`auth_mode`), lejáró és visszahívható session tokennel, read-only (1) /
   normal (5) / admin (10) szintekkel; a token break-glass marad.
+- **Session sheet:** a fejléc stats sávjáról nyílik; szabad hely, torrentszám,
+  rate-ek és egy gombbal az összes torrent pause/resume (read-only nézetben
+  gomb nélkül).
 
 ## 🧱 Felépítés
 

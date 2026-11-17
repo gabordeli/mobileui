@@ -1,4 +1,5 @@
 import base64
+from types import SimpleNamespace
 
 import pytest
 from deluge.error import AddTorrentError
@@ -20,6 +21,16 @@ class FakeCore:
         self.remove_result = True
         self.add_result = "newid"
         self.add_error = None
+        self.paused = False
+        self.session = SimpleNamespace(is_paused=lambda: self.paused)
+
+    def pause_session(self):
+        self.calls.append(("pause_session",))
+        self.paused = True
+
+    def resume_session(self):
+        self.calls.append(("resume_session",))
+        self.paused = False
 
     def pause_torrent(self, torrent_id):
         self.calls.append(("pause", torrent_id))
@@ -227,3 +238,21 @@ def test_add_none_result_is_conflict():
 
     with pytest.raises(write.Conflict):
         write.add(core, FakeLabel(), magnet="magnet:?x")
+
+
+def test_set_session_paused_toggles_the_whole_session():
+    core = FakeCore()
+
+    assert write.set_session_paused(core, True) == {"paused": True}
+    assert core.calls[-1] == ("pause_session",)
+
+    assert write.set_session_paused(core, False) == {"paused": False}
+    assert core.calls[-1] == ("resume_session",)
+
+
+def test_set_session_paused_falls_back_without_session_state():
+    core = FakeCore()
+    core.session = object()
+
+    assert write.set_session_paused(core, True) == {"paused": True}
+    assert write.set_session_paused(core, False) == {"paused": False}

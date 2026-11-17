@@ -180,7 +180,10 @@ class ApiJsonResource(JsonResource):
 
 
 class SessionResource(ApiJsonResource):
-    isLeaf = True
+    def __init__(self, plugin):
+        super().__init__(plugin)
+        self.putChild(b"pause", SessionActionResource(plugin, "pause"))
+        self.putChild(b"resume", SessionActionResource(plugin, "resume"))
 
     def render_GET(self, request):
         unauthorized = self.unauthorized(request)
@@ -188,6 +191,32 @@ class SessionResource(ApiJsonResource):
             return unauthorized
         try:
             payload = self.plugin.get_session()
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
+class SessionActionResource(ApiJsonResource):
+    isLeaf = True
+
+    def __init__(self, plugin, action):
+        super().__init__(plugin)
+        self.action = action
+
+    def render_POST(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
+        try:
+            if self.action == "pause":
+                payload = self.plugin.pause_session()
+            else:
+                payload = self.plugin.resume_session()
+        except (KeyError, Conflict, ValueError, TypeError) as ex:
+            return self.api_error(request, ex)
         except Exception:
             return self.internal_error(request)
         return self.write_json(request, 200, payload)
@@ -561,6 +590,8 @@ class ApiRootResource(JsonResource):
                     "/api/login",
                     "/api/logout",
                     "/api/session",
+                    "/api/session/pause",
+                    "/api/session/resume",
                     "/api/labels",
                     "/api/torrents",
                     "/api/torrents/{id}",

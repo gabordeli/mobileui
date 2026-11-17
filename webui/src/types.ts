@@ -42,6 +42,7 @@ export interface Session {
   payload_upload_rate: number;
   num_torrents: number;
   paused: boolean;
+  free_space: number | null;
   version: string;
   download_location: string;
   queue: Record<string, unknown>;

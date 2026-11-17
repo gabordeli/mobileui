@@ -205,6 +205,11 @@ def get_session(core):
         status["paused"] = bool(core.session.is_paused())
     except (AttributeError, KeyError):
         pass
+    try:
+        free_space = int(core.get_free_space(config["download_location"]))
+        status["free_space"] = free_space if free_space >= 0 else None
+    except (AttributeError, KeyError, OSError, TypeError, ValueError):
+        status["free_space"] = None
     return status
 
 

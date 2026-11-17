@@ -30,12 +30,19 @@ class FakeCore:
     def __init__(self, torrents, config=None):
         self.torrentmanager = SimpleNamespace(torrents=torrents)
         self.config = config or {}
+        self.free_space = 4096
+        self.session = SimpleNamespace(is_paused=lambda: False)
 
     def get_session_status(self, keys):
         return {key: 1 for key in keys}
 
     def get_config_values(self, keys):
         return {key: self.config.get(key) for key in keys}
+
+    def get_free_space(self, path):
+        if self.free_space is None:
+            raise OSError(path)
+        return self.free_space
 
 
 class FakeLabel:
@@ -180,7 +187,27 @@ def test_session_returns_queue_and_count():
 
     assert result["num_torrents"] == 1
     assert result["queue"]["max_active_limit"] == 3
+    assert result["free_space"] == 4096
+    assert result["paused"] is False
     assert "version" in result
+
+
+def test_session_free_space_failure_is_null():
+    core = FakeCore({"a": make_torrent("a", "Dune")})
+    core.free_space = None
+
+    result = read.get_session(core)
+
+    assert result["free_space"] is None
+
+
+def test_session_negative_free_space_is_null():
+    core = FakeCore({"a": make_torrent("a", "Dune")})
+    core.free_space = -1
+
+    result = read.get_session(core)
+
+    assert result["free_space"] is None
 
 
 def test_labels_counts_only_existing_torrents():

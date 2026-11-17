@@ -102,6 +102,14 @@ export function getSession(): Promise<Session> {
   return request<Session>("/api/session");
 }
 
+export function pauseSession(): Promise<{ paused: boolean }> {
+  return request("/api/session/pause", { method: "POST" });
+}
+
+export function resumeSession(): Promise<{ paused: boolean }> {
+  return request("/api/session/resume", { method: "POST" });
+}
+
 export function getLabels(): Promise<Labels> {
   return request<Labels>("/api/labels");
 }

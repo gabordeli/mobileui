@@ -142,7 +142,15 @@ class StubPlugin:
         }
 
     def get_session(self):
-        return {"version": "2.2.0", "num_torrents": 0}
+        return {"version": "2.2.0", "num_torrents": 0, "free_space": 4096}
+
+    def pause_session(self):
+        self.write_calls.append(("pause_session",))
+        return {"paused": True}
+
+    def resume_session(self):
+        self.write_calls.append(("resume_session",))
+        return {"paused": False}
 
     def get_labels(self):
         return {"labels": [], "no_label": 0}
@@ -238,6 +246,38 @@ def test_session_requires_token_and_returns_payload():
 
     assert request.responseCode == 200
     assert json.loads(body)["version"] == "2.2.0"
+    assert json.loads(body)["free_space"] == 4096
+
+
+def test_session_pause_and_resume_actions():
+    plugin = StubPlugin(authorized=True)
+    session = api_child(plugin, b"session")
+
+    for action, expected in ((b"pause", True), (b"resume", False)):
+        request = post_request([b"api", b"session", action])
+        body = session.getChildWithDefault(action, request).render_POST(request)
+        assert request.responseCode == 200
+        assert json.loads(body)["paused"] is expected
+
+    assert plugin.write_calls == [("pause_session",), ("resume_session",)]
+
+
+def test_session_actions_require_auth_and_write_level():
+    plugin = StubPlugin(authorized=False)
+    session = api_child(plugin, b"session")
+    request = post_request([b"api", b"session", b"pause"])
+
+    session.getChildWithDefault(b"pause", request).render_POST(request)
+    assert request.responseCode == 401
+
+    plugin.authorized = True
+    plugin.level = 1
+    request = post_request([b"api", b"session", b"pause"])
+    body = session.getChildWithDefault(b"pause", request).render_POST(request)
+
+    assert request.responseCode == 403
+    assert json.loads(body)["error"] == "forbidden"
+    assert plugin.write_calls == []
 
 
 def test_torrents_forwards_filters_and_pagination():

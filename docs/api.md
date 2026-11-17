@@ -91,7 +91,8 @@ Tokenes index:
   "version": "0.1.3",
   "endpoints": [
     "/api/auth", "/api/login", "/api/logout", "/api/session",
-    "/api/labels", "/api/torrents", "/api/torrents/{id}", "/api/events"
+    "/api/session/pause", "/api/session/resume", "/api/labels",
+    "/api/torrents", "/api/torrents/{id}", "/api/events"
   ]
 }
 ```
@@ -113,12 +114,23 @@ Tokenes index:
   "num_torrents": 42,
   "version": "2.2.0",
   "download_location": "/data/downloads",
-  "paused": false
+  "paused": false,
+  "free_space": 53687091200
 }
 ```
 
 A `version` a Deluge verziója; a plugin verziója a `/health`-ben és a `/api`
-indexben van.
+indexben van. A `free_space` a `download_location` szabad helye byte-ban
+(ha nem mérhető, `null`).
+
+## POST /api/session/pause, /api/session/resume
+
+Az összes torrent szüneteltetése / folytatása (write szint kell; read-only →
+403). A válasz a tényleges állapot:
+
+```json
+{"paused": true}
+```
 
 ## GET /api/labels
 

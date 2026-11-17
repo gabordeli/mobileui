@@ -26,6 +26,18 @@ class Conflict(RuntimeError):
     pass
 
 
+def set_session_paused(core, paused):
+    if paused:
+        core.pause_session()
+    else:
+        core.resume_session()
+    try:
+        actual = bool(core.session.is_paused())
+    except (AttributeError, KeyError):
+        actual = bool(paused)
+    return {"paused": actual}
+
+
 def pause(core, torrent_id):
     torrent = _torrent(core, torrent_id)
     if torrent.state == "Error":

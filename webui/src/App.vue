@@ -20,6 +20,7 @@ import type {
 import AddDialog from "./components/AddDialog.vue";
 import ContextSheet from "./components/ContextSheet.vue";
 import FilterBar from "./components/FilterBar.vue";
+import SessionSheet from "./components/SessionSheet.vue";
 import TokenGate from "./components/TokenGate.vue";
 import TorrentDetail from "./components/TorrentDetail.vue";
 import TorrentRow from "./components/TorrentRow.vue";
@@ -43,6 +44,7 @@ const selected = ref<Torrent | null>(null);
 const detail = ref<Torrent | null>(null);
 const detailLive = ref<Record<string, unknown>>({});
 const addOpen = ref(false);
+const sessionOpen = ref(false);
 const online = ref(navigator.onLine);
 const toast = ref("");
 const sseState = ref<"off" | "live" | "reconnecting">("off");
@@ -343,6 +345,21 @@ async function applyAction(payload: ActionPayload): Promise<void> {
   }
 }
 
+async function toggleSession(): Promise<void> {
+  if (!session.value) return;
+  try {
+    const result = session.value.paused
+      ? await api.resumeSession()
+      : await api.pauseSession();
+    session.value.paused = result.paused;
+    showToast(
+      result.paused ? t("toast.sessionPaused") : t("toast.sessionResumed"),
+    );
+  } catch (error) {
+    reportError(error);
+  }
+}
+
 function showGate(): void {
   tokenInitial.value = api.getToken();
   authError.value = "";
@@ -441,11 +458,17 @@ onBeforeUnmount(() => {
           :title="sseTitle"
         />
       </div>
-      <div class="header-stats">
+      <button
+        class="header-stats"
+        type="button"
+        :aria-label="t('session.open')"
+        :title="t('session.open')"
+        @click="sessionOpen = true"
+      >
         <span>↓ {{ formatRate(downRate) }}</span>
         <span>↑ {{ formatRate(upRate) }}</span>
         <span>{{ torrentCount }}</span>
-      </div>
+      </button>
       <button
         class="icon-button compact"
         :aria-label="t('header.theme')"
@@ -533,6 +556,14 @@ onBeforeUnmount(() => {
     <footer v-if="pluginVersion" class="app-footer">
       MobileUi v{{ pluginVersion }}
     </footer>
+
+    <SessionSheet
+      v-if="sessionOpen && session"
+      :session="session"
+      :can-write="canWrite"
+      @close="sessionOpen = false"
+      @toggle="toggleSession"
+    />
 
     <ContextSheet
       v-if="selected"

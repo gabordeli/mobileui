@@ -104,6 +104,16 @@ class Core(CorePluginBase):
 
         return read.get_labels(self._label_plugin(), component.get("Core"))
 
+    def pause_session(self):
+        from . import write
+
+        return write.set_session_paused(component.get("Core"), True)
+
+    def resume_session(self):
+        from . import write
+
+        return write.set_session_paused(component.get("Core"), False)
+
     def pause_torrent(self, torrent_id):
         from . import write
 

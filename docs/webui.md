@@ -21,10 +21,10 @@ hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 ## Tesztek
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, komponensek, theme,
-  api, format, i18n, main); 86 teszt, a coverage threshold a `vite.config.ts`-ben.
+  api, format, i18n, main); 92 teszt, a coverage threshold a `vite.config.ts`-ben.
 - `npm run test:e2e` — Playwright smoke: token-kapu, fiók login, read-only UI,
-  lista+detail, add sheet. Az API-t `page.route` mockolja, ezért Deluge nélkül
-  fut; az első futás előtt `npx playwright install chromium` kell.
+  lista+detail, session sheet, add sheet. Az API-t `page.route` mockolja, ezért
+  Deluge nélkül fut; az első futás előtt `npx playwright install chromium` kell.
 - A CI `webui-e2e` job ugyanezt futtatja; a böngészőt a `webui/.playwright/`
   cache alá tölti.
 
@@ -93,6 +93,15 @@ események szűrő nélkül a totalt is korrigálják; reconnectet a böngésző
 - Offline banner (`navigator.onLine`), skeleton töltés közben, empty/error
   állapot retry gombbal; safe-area padding a header/filter/row/sheet/detail
   elemeken; `:focus-visible` és Esc a sheet/detail bezárásához.
+
+## Session sheet
+
+A fejléc stats sávja (↓/↑/darabszám) gomb: session sheetet nyit. Mutatja a
+`download_location` szabad helyét, a torrentszámot, a le/fel rate-et és a
+session állapotát; a gomb az **összes** torrentet szünetelteti vagy folytatja
+(`POST /api/session/pause|resume`). Read-only fióknál csak a note látszik. A
+válasz `paused` mezője alapján a gomb felirata azonnal vált; a listát az SSE
+delta frissíti.
 
 ## Ismert korlátok / következő
 

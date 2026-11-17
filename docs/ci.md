@@ -33,9 +33,9 @@
 ## Coverage
 
 - A `test` job `--cov-fail-under=80`-cal fut; a mostani backend fedettség 84%
-  (121 teszt).
+  (126 teszt).
 - A `webui-test` Vitest threshold-jei: statements 75, branches 65, functions 75,
-  lines 78; a mostani 80.67 / 70.09 / 80.92 / 83.67 (86 teszt, `.vue`-kkal).
+  lines 78; a mostani 80.82 / 71.58 / 80.00 / 83.83 (92 teszt, `.vue`-kkal).
 - A GitLab a `coverage:` regexszel a joblogból olvassa a számot, és a pipeline /
   MR nézetben jeleníti meg — privát, nincs külső badge.
 - A Sonar továbbra is report-only; a `sonar.qualitygate.wait=true` külön döntés
@@ -45,8 +45,8 @@
 ## E2E
 
 A `webui-e2e` job a `webui/e2e/smoke.spec.ts`-t futtatja: token-kapu, fiók
-login, read-only UI, lista + detail, add sheet. Az API-t `page.route` mockolja,
-ezért Deluge nélkül fut. A job a hivatalos
+login, read-only UI, lista + detail, session sheet, add sheet. Az API-t
+`page.route` mockolja, ezért Deluge nélkül fut. A job a hivatalos
 `mcr.microsoft.com/playwright:v1.65.1-jammy` image-ben fut
 (Docker), így a runneren nem kell Chromium rendszerlib. Az image tagjét a
 `@playwright/test` verziójához kell igazítani (most 1.65.1); a helyi futtatáshoz

@@ -9,6 +9,7 @@ const session = {
   payload_upload_rate: 0,
   num_torrents: 1,
   paused: false,
+  free_space: 8 * 1024 ** 3,
   version: "2.2.0",
   download_location: "/downloads",
   queue: {},
@@ -190,6 +191,17 @@ test.describe("authenticated UI", () => {
       dialog.getByRole("heading", { name: "Demo Movie 2024" }),
     ).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Folytatás" })).toBeVisible();
+  });
+
+  test("opens the session sheet", async ({ page }) => {
+    await page.getByRole("button", { name: "Munkamenet adatai" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Munkamenet" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("Szabad hely")).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Összes szüneteltetése" }),
+    ).toBeVisible();
   });
 
   test("opens the add sheet", async ({ page }) => {

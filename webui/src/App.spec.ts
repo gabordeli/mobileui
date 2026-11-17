@@ -37,6 +37,8 @@ vi.mock("./api", () => {
     login: vi.fn(),
     logout: vi.fn(),
     getSession: vi.fn(),
+    pauseSession: vi.fn(),
+    resumeSession: vi.fn(),
     getLabels: vi.fn(),
     listTorrents: vi.fn(),
     eventsUrl: vi.fn(),
@@ -60,6 +62,7 @@ const session: Session = {
   payload_upload_rate: 512,
   num_torrents: 1,
   paused: false,
+  free_space: 8 * 1024 ** 3,
   version: "2.2.0",
   download_location: "/data/downloads",
   queue: {},
@@ -120,6 +123,8 @@ beforeEach(() => {
     write: true,
   });
   vi.mocked(api.getSession).mockResolvedValue(session);
+  vi.mocked(api.pauseSession).mockResolvedValue({ paused: true });
+  vi.mocked(api.resumeSession).mockResolvedValue({ paused: false });
   vi.mocked(api.getLabels).mockResolvedValue({ labels, no_label: 1 });
   vi.mocked(api.listTorrents).mockResolvedValue({
     total: 1,
@@ -306,6 +311,32 @@ describe("App", () => {
       0,
       50,
     );
+  });
+
+  it("opens the session sheet and pauses every torrent", async () => {
+    const wrapper = mountApp();
+    await flushPromises();
+
+    await wrapper
+      .get(`button[aria-label="${t("session.open")}"]`)
+      .trigger("click");
+
+    const dialog = wrapper.get(
+      `[role="dialog"][aria-label="${t("session.title")}"]`,
+    );
+    expect(dialog.text()).toContain("8.00 GiB");
+    expect(dialog.text()).toContain(t("session.pause"));
+
+    await dialog.get("button.action").trigger("click");
+    await flushPromises();
+
+    expect(api.pauseSession).toHaveBeenCalled();
+    expect(wrapper.text()).toContain(t("toast.sessionPaused"));
+    expect(
+      wrapper
+        .get(`[role="dialog"][aria-label="${t("session.title")}"]`)
+        .text(),
+    ).toContain(t("session.resume"));
   });
 
   it("opens the add dialog and the detail", async () => {

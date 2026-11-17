@@ -10,6 +10,9 @@
   writes and a per-IP login rate limit (`429`).
 - Login gate with account/token tabs, sign-out in the account panel and a
   read-only UI that hides the write actions.
+- Session sheet from the header stats: free space, torrent count, rates and a
+  one-tap pause/resume for the whole session (`/api/session/pause|resume`).
+  Read-only accounts see the stats without the action.
 
 ## [0.1.3] - 2026-11-17
 
