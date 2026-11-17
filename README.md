@@ -34,6 +34,8 @@ HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n
 - **M3 / #9 kész:** `https://cirice.ddns.net:8113/` — `.228` nginx TLS a
   meglévő certtel, router WAN TCP 8113 → `192.168.2.228:8113`; token auth,
   SSE, token-mentes access log.
+- **CI / SonarQube:** main-branch statikus elemzés + backend coverage
+  (`coverage.xml`), Docker scannerrel, report-only.
 - Következik: M3 / #12 GitHub tükör, ha kell.
 
 ## Felépítés
@@ -91,10 +93,11 @@ A részletek: [docs/webui.md](docs/webui.md).
 
 ## CI / release
 
-A `.gitlab-ci.yml` stage-ei: `lint` (ruff + vue-tsc), `test` (pytest, Deluge
-nélkül stubokkal), `build` (SPA + sdist/wheel/egg, artifact), `release`
-(manuális `RELEASE_TYPE=patch|minor|major`) és `deploy` (manuális rsync +
-`scripts/install.sh` a .27-re).
+A `.gitlab-ci.yml` stage-ei: `lint` (ruff + vue-tsc), `test` (pytest +
+pytest-cov, Deluge nélkül stubokkal, `coverage.xml` artifact), `quality`
+(SonarQube main-branch elemzés, report-only), `build` (SPA + sdist/wheel/egg,
+artifact), `release` (manuális `RELEASE_TYPE=patch|minor|major`) és `deploy`
+(manuális rsync + `scripts/install.sh` a .27-re).
 
 ```bash
 ./scripts/release.sh patch --dry-run

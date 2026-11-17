@@ -7,10 +7,23 @@
 | Stage | Job | Mit csinál |
 | --- | --- | --- |
 | lint | `lint` | `ruff check`, SPA `vue-tsc` |
-| test | `test` | `pytest`; Deluge nélkül a `tests/stubs/` shimek |
+| test | `test` | `pytest` + `pytest-cov`; Deluge nélkül a `tests/stubs/` shimek; artifact: `coverage.xml` |
+| quality | `sonar` | SonarQube main-branch elemzés a Docker scannerrel; report-only |
 | build | `build` | `npm run build`, `python -m build`, `package.sh`; artifact: `dist/` (sdist/wheel/egg/sha256), `data/` |
 | release | `release` | manuális; `RELEASE_TYPE=patch|minor|major`; verzióbump + CHANGELOG + tag + egg feltöltés + GitLab Release |
 | deploy | `deploy` | manuális; rsync a `.27`-re + `scripts/install.sh` |
+
+## SonarQube
+
+- A projekt: **Webui2**, a kulcs a `sonar-project.properties`-ben.
+- CI-változók: **`SONAR_TOKEN`** és **`SONAR_HOST_URL`** (masked/protected).
+- A scanner a **`sonarsource/sonar-scanner-cli:latest`** Docker image (Java 21);
+  a runneren lévő régi 5.0.1-es scanner JRE 17-tel a 26.11-es szerveren
+  `Java 17 is not supported` hibával elhasal.
+- A `sonar` job csak a **main** ágon fut (Community Edition; PR-dekoráció nincs),
+  és egyelőre **report-only**: nincs `sonar.qualitygate.wait`.
+- Coverage: a backend `pytest-cov` → `coverage.xml`; a frontend
+  `webui/coverage/lcov.info` helye előkészítve, a Vitest bevezetése után tölti.
 
 ## Release
 
@@ -72,9 +85,11 @@ A release job pusholásához a projektben be van kapcsolva a
 
 A `gitlab_runner_toolchain` playbook a shell runnerre telepíti: python3-pip/venv,
 nodejs/npm, git, jq, curl, **rsync**, docker/trivy, mariadb-client. A CI saját
-venvben teszi fel a `pytest`, `ruff`, `build`, `twisted`, `setuptools`, `wheel`
-csomagokat; a tesztek a `tests/stubs` Deluge shimekkel futnak. A deployhoz a
-`gitlab-runner` user SSH-kulcsa a .27 root `authorized_keys`ében van.
+venvben teszi fel a `pytest`, `pytest-cov`, `ruff`, `build`, `twisted`,
+`setuptools`, `wheel` csomagokat; a tesztek a `tests/stubs` Deluge shimekkel
+futnak. A SonarQube elemzés a Docker image-et használja (nem a runner régi
+`sonar-scanner` binaryjét). A deployhoz a `gitlab-runner` user SSH-kulcsa a .27
+root `authorized_keys`ében van.
 
 Ellenőrzés: `deploy_gitlab_runner_toolchain.yml --limit gitlab-runner
 --check --diff` → **changed=0**; a runner restart megtörtént, a CI továbbra is
