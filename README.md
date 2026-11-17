@@ -1,9 +1,10 @@
 # Deluge MobileUi
 
-Mobil-first web UI Deluge-hez, **core pluginként a `deluged`-ben** futva. A saját
-HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n.
-Deluge **2.x** (Python 3.10+), élesben **2.2.0**-val tesztelve; a CI a backend
-suite-ot valódi Deluge 2.0.3 / 2.1.1 / 2.2.0 ellen is futtatja. 1.x nem támogatott.
+A mobile-first web UI for Deluge, running **as a core plugin inside `deluged`**.
+Its own HTTP API/SPA listens on port **8113**; the stock `deluge-web` stays on
+8112. Deluge **2.x** (Python 3.10+), tested in production with **2.2.0**; CI
+also runs the backend suite against real Deluge 2.0.3 / 2.1.1 / 2.2.0. Deluge
+1.x is not supported.
 
 [![Release](https://img.shields.io/github/v/release/gabordeli/mobileui?style=flat-square&color=2ea44f)](https://github.com/gabordeli/mobileui/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square)](LICENSE)
@@ -13,109 +14,86 @@ suite-ot valódi Deluge 2.0.3 / 2.1.1 / 2.2.0 ellen is futtatja. 1.x nem támoga
 [![Release workflow](https://github.com/gabordeli/mobileui/actions/workflows/release.yml/badge.svg)](https://github.com/gabordeli/mobileui/actions/workflows/release.yml)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-ff5e5b?style=flat-square&logo=ko-fi&logoColor=white)](https://ko-fi.com/gabordeli)
 
-## 📱 Képernyőképek
+## 📱 Screenshots
 
-| Lista | Részletek | Hozzáadás |
+| List | Details | Add |
 | --- | --- | --- |
-| <img src="docs/assets/screenshot-list.png" width="240" alt="Torrent lista"> | <img src="docs/assets/screenshot-detail.png" width="240" alt="Torrent részletek"> | <img src="docs/assets/screenshot-add.png" width="240" alt="Torrent hozzáadása"> |
+| <img src="docs/assets/screenshot-list.png" width="240" alt="Torrent list"> | <img src="docs/assets/screenshot-detail.png" width="240" alt="Torrent details"> | <img src="docs/assets/screenshot-add.png" width="240" alt="Add torrent"> |
 
-Demó adatok a lokális `scripts/dev-daemon.sh`-ból (kitalált nevek), sötét téma.
+Demo data from the local `scripts/dev-daemon.sh` (fictional names), dark theme.
 
-## 📊 Állapot
+## 📊 Status
 
-Jelenlegi release: **v0.2.0** (GitLab + GitHub), az éles példányon telepítve.
+Current release: **v1.0.0** (GitLab + GitHub), deployed on the production
+instance.
 
-- **M1 / #1 kész:** plugin váz, egg csomagolás, `GET /health`.
-- **M1 / #2 kész:** Bearer-token a `/api/*`-ra, JSON 401, 600-as config,
-  élő `set_config` (token/port/enabled).
-- **M1 / #3 kész:** `/api/session`, `/api/labels`, lapozott/szűrt
-  `/api/torrents`, `/api/torrents/{id}`; több száz torrenten p95 14 ms terhelés alatt.
-- **M1 / #4 kész:** pause/resume/remove/queue, label PATCH, magnet és `.torrent`
-  hozzáadás; az éles példányon eldobható torrenten végigtesztelve.
-- **M1 / #5 kész:** `/api/events` SSE, EventManager + 1/s diff, 15 s heartbeat,
-  reconnect; a token query paraméterben is adható.
-- **M2 / #6 kész:** Vue 3 + Vite + TS SPA a `data/`-ban, 50-es lapok +
-  virtualizált végtelen scroll, kereső/szűrők, long-press selection, SSE élő lista.
-- **M2 / #7 kész:** torrent detail (peers/ETA/ratio/útvonal), lapozott
-  fájllista, add sheet magnet/.torrent + label + útvonal.
-- **M2 / #8 kész:** PWA manifest/ikonok/SW, light/dark téma, HU/EN i18n,
-  skeleton/offline/error állapotok, safe-area + a11y alapok.
-- **M3 / #10 kész:** CI (lint/test/build + manuális release/deploy),
-  `v0.1.2` release, deploy job a Deluge hostra; a #9 public HTTPS kész.
-- **M3 / #11 kész:** runner toolchain (python/venv, node/npm, git, jq, curl,
-  rsync, docker/trivy), `--check --diff` changed=0, runner restart.
-- **M3 / #13 kész:** teljes plugin metadata (author email, URL, license,
-  classifiers) az egg/wheel `PKG-INFO`-ban.
-- **M3 / #14 kész:** hordozható `.egg` + sha256 a `v0.1.2` release-en,
-  `scripts/install.sh` `EGG=...` támogatással; az éles példányon a release
-  eggből telepítve.
-- **M3 / #15 kész:** a SPA a `/health` válaszából jeleníti meg a plugin
-  verzióját (token-kapu + footer); release bump után automatikus.
-- **M3 / #9 kész:** publikus HTTPS nginx TLS proxy mögött, token auth, SSE,
-  token-mentes access log.
-- **CI / SonarQube:** main-branch statikus elemzés + backend/frontend coverage,
-  Docker scannerrel, report-only.
-- **Bugsink:** backend `sentry-sdk` + frontend `@sentry/vue`, közös DSN;
-  a backend `sentry_dsn` élőben állítható.
-- **M3 / #12 kész:** nyilvános GitHub tükör (`gabordeli/mobileui`) GitLab push
-  mirrorral; `v0.1.3` óta a GitHub Actions release wheel/sdist/egg/sha256
-  assetekkel fut, CHANGELOG-alapú note-tal; a GitLab privát marad.
-- **Auth:** opcionális Deluge user/jelszó belépés a statikus API-token mellett
-  (`auth_mode`), lejáró és visszahívható session tokennel, read-only (1) /
-  normal (5) / admin (10) szintekkel; a token break-glass marad.
-- **Session sheet:** a fejléc stats sávjáról nyílik; szabad hely, torrentszám,
-  rate-ek, 60 mp-es sebesség-sparkline és egy gombbal az összes torrent
-  pause/resume (read-only nézetben gomb nélkül).
-- **Bulk selection:** long-press → kijelölés, alsó action barral; pause/resume/
-  label/remove N torrentre, „Összes” a szűrőre illeszkedő id-kkel (max 1000).
-- **Fájlprioritás:** a detailben fájlonkénti letöltés-checkbox és „Csak ez”,
-  kliensoldali fájllista-kereső; `PATCH /api/torrents/{id}/files`.
-- **Sebességkorlát:** globális és torrentenkénti limit (KiB/s, -1 = korlátlan),
-  éjszakai mód és korlátlan preset a session sheetben.
-- **PWA share target:** Androidon a „Megosztás → Deluge Mobile” egy magnet
-  linket előtöltve nyit az add sheetben (telepített PWA).
-- **Label + tracker:** címkék létrehozása/törlése a szűrősáv 🏷 gombjáról; a
-  detailben tracker lista és force reannounce.
-- **Hibakezelés:** a listán piros `Hiba` badge a state/message alapján; az
-  `Error` szűrő a szűrősávban.
-- **Kényelmi:** az add sheet megjegyzi az utolsó útvonalat/labelt; a detailből
-  magnet/infohash másolható.
-- **Web Push:** a session sheetben bekapcsolható értesítés torrent befejezésről
-  és hibáról; a notification a torrent detailre visz (`/?torrent=<id>`).
-  HTTPS + opcionális `pywebpush` kell, a VAPID kulcs automatikusan generálódik.
+- **Auth:** optional Deluge username/password login next to the static API token
+  (`auth_mode`), expiring and revocable session tokens, with read-only (1) /
+  normal (5) / admin (10) levels; the static token remains a break-glass path.
+- **Torrent list:** paginated and filtered API, virtualized infinite scroll,
+  search/filter controls, long-press selection, live SSE updates.
+- **Torrent details:** compact primary stats (down/up/ETA) plus a muted
+  ratio/peers/seeds/size/added line; collapsible tracker bar; per-file download
+  checkboxes and "Only this"; speed limits; label, reannounce and storage move.
+- **Session sheet:** free space, torrent count, rates, 60-second speed
+  sparkline, global pause/resume and global/torrent speed limits with a nightly
+  preset.
+- **Bulk selection:** long-press, bottom action bar for pause/resume/label/remove
+  across N torrents, "All" using the filtered IDs (max 1000).
+- **Add flow:** magnet or `.torrent` file, label, absolute save path and
+  "start paused"; remembers the last path/label; copy magnet/infohash from the
+  detail.
+- **PWA:** manifest/icons/service worker, Android share target, light/dark
+  theme, HU/EN i18n, skeleton/offline/error states, safe-area and a11y basics.
+- **Labels & trackers:** create/delete labels from the filter bar; tracker list
+  and force reannounce in the detail.
+- **Errors:** red `Error` badge on the row based on state/message; `Error` state
+  filter.
+- **Web Push:** opt-in in the session sheet for finished/failed torrents; the
+  notification opens the torrent detail (`/?torrent=<id>`). Requires HTTPS and
+  the optional `pywebpush`; the VAPID key is generated automatically.
+- **Torrent move:** actually moves the files via Deluge `move_storage`; the
+  torrent enters `Moving` state and the UI follows it through SSE.
+- **CI / SonarQube:** main-branch static analysis with backend/frontend
+  coverage, Docker scanner and a blocking quality gate.
+- **Bugsink:** backend `sentry-sdk` + frontend `@sentry/vue`, shared DSN; the
+  backend `sentry_dsn` is configurable live.
+- **GitHub mirror:** public `gabordeli/mobileui`, GitLab push mirror; GitHub
+  Actions builds wheel/sdist/egg/sha256 assets with a CHANGELOG-based note. The
+  GitLab repository stays private.
 
-## 🧱 Felépítés
+## 🧱 Architecture
 
 ```
-deluge_mobileui/     Deluge core plugin (Twisted Site a daemon reactorjában)
+deluge_mobileui/     Deluge core plugin (Twisted Site in the daemon reactor)
   core.py             enable()/disable(), config, auth, port bind
-  auth.py             session token, login limit, bearer parser
-  http.py             Twisted resource-ok (/health, /api végpontok, 401/403)
-  read.py             torrent/session/label olvasás (cache-elt státusz)
-  write.py            pause/resume/remove/label/queue/add
-  push.py             VAPID kulcs, feliratkozás-tár, pywebpush küldés
+  auth.py             session tokens, login limit, bearer parser
+  http.py             Twisted resources (/health, /api endpoints, 401/403)
+  read.py             torrent/session/label reads (cached status)
+  write.py            pause/resume/remove/label/queue/add/move
+  push.py             VAPID key, subscription store, pywebpush delivery
   events.py           SSE broadcaster (EventManager + 1/s diff)
-  data/               SPA build output (a plugin statikusan szolgálja ki)
-webui/                Vue 3 + Vite + TS SPA (M2)
-  src/                App, API-kliens, virtuális lista, sheet
-scripts/dev-daemon.sh Helyi, eldobható konfiggal futó deluged
-scripts/package.sh    Hordozható egg + sha256 (SPA-val)
-scripts/publish_release.sh  GitLab Release + Generic Package feltöltés
-scripts/install.sh    Telepítés/újraépítés a Deluge hoston (root)
-tests/                pytest (mock core, valódi Twisted resource-ok)
-docs/                 telepítés, API, üzemeltetés és döntések
+  data/               SPA build output (served statically by the plugin)
+webui/                Vue 3 + Vite + TS SPA
+  src/                App, API client, virtual list, sheets
+scripts/dev-daemon.sh Local, disposable-config deluged
+scripts/package.sh    Portable egg + sha256 (with the SPA)
+scripts/publish_release.sh  GitLab Release + Generic Package upload
+scripts/install.sh    Install/rebuild on the Deluge host (root)
+tests/                pytest (mock core, real Twisted resources)
+docs/                 install, API, operations and decisions
 ```
 
-Publikus út (LAN-on a böngésző közvetlenül a Deluge host `:8113`-át éri el):
+Public path (on the LAN the browser reaches the Deluge host's `:8113` directly):
 
 ```mermaid
 flowchart LR
-    B["📱 Mobil böngésző<br/>SPA + SSE"] -->|"HTTPS :8113"| N["nginx (proxy)<br/>TLS, $uri log"]
+    B["📱 Mobile browser<br/>SPA + SSE"] -->|"HTTPS :8113"| N["nginx (proxy)<br/>TLS, $uri log"]
     N -->|"proxy :8113"| P["deluged (host)<br/>MobileUi plugin"]
     P --> C["Deluge core<br/>torrentmanager"]
-    P --> L["Label plugin<br/>(opcionális)"]
+    P --> L["Label plugin<br/>(optional)"]
     P --> D["SPA static<br/>data/"]
-    P -.->|"opcionális"| S["Bugsink<br/>Sentry"]
+    P -.->|"optional"| S["Bugsink<br/>Sentry"]
     classDef edge fill:#1f6feb,color:#fff,stroke:#1f6feb
     classDef core fill:#2ea44f,color:#fff,stroke:#2ea44f
     classDef ext fill:#8250df,color:#fff,stroke:#8250df
@@ -124,7 +102,7 @@ flowchart LR
     class S ext
 ```
 
-## 🛠️ Fejlesztés
+## 🛠️ Development
 
 ```bash
 python3 -m venv --system-site-packages .venv
@@ -132,20 +110,20 @@ python3 -m venv --system-site-packages .venv
 
 .venv/bin/pytest
 .venv/bin/ruff check .
-./scripts/package.sh   # dist/MobileUi-<verzió>-py3.x.egg + .sha256
+./scripts/package.sh   # dist/MobileUi-<version>-py3.x.egg + .sha256
 
-# Helyi smoke: saját config a .dev/ alatt, a felhasználói Deluge-hoz nem nyúl
+# Local smoke: own config under .dev/, does not touch the user's Deluge
 ./scripts/dev-daemon.sh
 curl -s http://127.0.0.1:8113/health
 curl -s -H 'Authorization: Bearer dev-token' http://127.0.0.1:8113/api
 ```
 
-A `dev-daemon.sh` első indításnál létrehozza a `.dev/deluge/core.conf`-ot, felveszi
-az `enabled_plugins` közé a `MobileUi`-t, a `mobileui.conf`-ba pedig `dev-token`
-tokent ír (`MOBILEUI_TOKEN`-nel felülírható), majd elindítja a daemont. A
-`http://127.0.0.1:8113/` a SPA-t szolgálja ki.
+On first start, `dev-daemon.sh` creates `.dev/deluge/core.conf`, adds `MobileUi`
+to `enabled_plugins`, writes the `dev-token` token to `mobileui.conf`
+(overridable with `MOBILEUI_TOKEN`), then starts the daemon.
+`http://127.0.0.1:8113/` serves the SPA.
 
-### SPA fejlesztés
+### SPA development
 
 ```bash
 cd webui
@@ -153,48 +131,50 @@ npm ci
 npm run build          # deluge_mobileui/data/
 npm run test           # Vitest
 npm run test:coverage  # webui/coverage/lcov.info
-npm run test:e2e       # Playwright smoke (mockolt API)
-npm run dev            # proxy: 127.0.0.1:8113 (helyi deluged)
-# más gépen futó delugednél:
+npm run test:e2e       # Playwright smoke (mocked API)
+npm run dev            # proxy: 127.0.0.1:8113 (local deluged)
+# for a deluged on another host:
 VITE_API_PROXY=http://<deluge-host>:8113 npm run dev
 ```
 
-A `test:e2e` első futása előtt `npx playwright install chromium` kell.
+The first `test:e2e` run needs `npx playwright install chromium`.
 
-A részletek: [docs/webui.md](docs/webui.md).
+More details: [docs/webui.md](docs/webui.md).
 
-## 📦 Telepítés
+## 📦 Installation
 
-A hoston, rootként, a repó checkoutjából:
+On the host, as root, from the repository checkout:
 
 ```bash
 ./scripts/install.sh
 ```
 
-A script egg-et épít, kicsomagolja a `deluge.plugins` alá, újraindítja a
-`deluged`-et, engedélyezi a plugint és ellenőrzi a `/health`-t. A SPA
-`http://<host>:8113/`, a gyári `deluge-web` marad a 8112-n.
+The script builds the egg, extracts it under `deluge.plugins`, restarts
+`deluged`, enables the plugin and checks `/health`. The SPA is served at
+`http://<host>:8113/`; the stock `deluge-web` stays on 8112.
 
-Hordozható egg, config/RPC, a jelenlegi telepítés és a visszaállítás:
+Portable egg, config/RPC, the current installation and rollback:
 [docs/install.md](docs/install.md).
 
-## 📚 Dokumentáció
+## 📚 Documentation
 
-- [docs/install.md](docs/install.md) – telepítés, hordozható egg, config, visszaállítás
-- [docs/api.md](docs/api.md) – API séma
-- [docs/perf.md](docs/perf.md) – 833 torrentes mérés és a választott stratégia
-- [docs/webui.md](docs/webui.md) – SPA felépítés, lapozás/virtualizáció, SSE
-- [docs/ci.md](docs/ci.md) – CI stage-ek, release és deploy
-- [docs/decisions.md](docs/decisions.md) – döntések és korlátok
-- [AGENTS.md](AGENTS.md) – munkamód ügynököknek
+- [docs/install.md](docs/install.md) – install, portable egg, config, rollback
+- [docs/api.md](docs/api.md) – API schema
+- [docs/perf.md](docs/perf.md) – measurement with 833 torrents and the chosen strategy
+- [docs/webui.md](docs/webui.md) – SPA structure, pagination/virtualization, SSE
+- [docs/usage.md](docs/usage.md) – mobile usage guide with gestures and screenshots
+- [docs/ci.md](docs/ci.md) – CI stages, release and deploy
+- [docs/decisions.md](docs/decisions.md) – decisions and constraints
+- [AGENTS.md](AGENTS.md) – working notes for agents
 
-## 🤝 Közreműködés
+## 🤝 Contributing
 
-A GitHub repó a GitLab fejlesztés **egyirányú, read-only tükre** (nyilvános); a
-fejlesztés a privát GitLabon folyik. GitHub issue/PR esetén a maintainer
-portolhatja; a részletek: [CONTRIBUTING.md](CONTRIBUTING.md).
+The GitHub repository is a **one-way, read-only mirror** of the GitLab
+development repository (public). Development happens on the private GitLab.
+GitHub issues/PRs may be ported by the maintainer; see
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
-## ☕ Támogatás
+## ☕ Support
 
-Ha hasznos a projekt, a fejlesztést [Ko-fi](https://ko-fi.com/gabordeli)-val
-támogathatod.
+If the project is useful, you can support development via
+[Ko-fi](https://ko-fi.com/gabordeli).

@@ -26,6 +26,15 @@
   can copy the magnet link or the infohash to the clipboard.
 - The session sheet draws a download/upload sparkline for the last 60 seconds
   from the SSE session deltas.
+- The torrent detail is compact on mobile: three primary rate/ETA chips, one
+  muted ratio/peers/seeds/size/added line, and a collapsible tracker bar.
+- Torrent storage move from the detail (`POST /api/torrents/{id}/move`), using
+  Deluge `move_storage`; the UI follows the `Moving` state through SSE.
+- The account panel uses a person icon instead of the misleading gear icon.
+- English documentation (README, CONTRIBUTING, AGENTS and `docs/*.md`) with a
+  new `docs/usage.md` mobile guide and updated screenshots.
+- All open SonarQube issues fixed; the main-branch quality gate remains
+  blocking with zero new violations.
 
 ## [0.2.0] - 2026-11-17
 

@@ -1,12 +1,13 @@
-# Közreműködés
+# Contributing
 
-Ez a GitHub repó a `webui2` **egyirányú, read-only tükre** (nyilvános). A
-fejlesztés a privát GitLabon folyik; a GitHub csak a `main` ágat, a tageket és a
-release-eket tükrözi.
+This GitHub repository is a **one-way, read-only mirror** of `webui2` (public).
+Development happens on the private GitLab; GitHub only mirrors the `main` branch,
+tags and releases.
 
-- **Ne commitolj** a GitHub repóba; a következő mirror szinkron felülírhatja.
-- **Issue/PR:** nem a fő csatorna. Ha issue-t nyitsz, a maintainer kézzel
-  portolhatja a GitLabra; a PR-okat nem merge-eljük közvetlenül.
-- **Release:** a `vX.Y.Z` tagek a GitLab release jobból érkeznek; a GitHub
-  Actions a tag után építi a GitHub Release-t.
-- **Forrás:** a nyilvános GitLab repo; a GitHub csak tükör.
+- **Do not commit** to the GitHub repository; the next mirror sync may overwrite
+  your changes.
+- **Issues/PRs:** not the primary channel. If you open an issue, the maintainer
+  may port it to GitLab manually; PRs are not merged directly.
+- **Releases:** `vX.Y.Z` tags come from the GitLab release job; GitHub Actions
+  builds the GitHub Release after the tag.
+- **Source:** the public GitLab repository; GitHub is only a mirror.

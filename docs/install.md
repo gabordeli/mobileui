@@ -1,67 +1,68 @@
-# Telepítés és üzemeltetés
+# Installation and operations
 
-## Kompatibilitás
+## Compatibility
 
-- **Deluge 2.x** (Python 3.10+); a fejlesztés és az éles telepítés
-  **Deluge 2.2.0**-val, Python 3.11-en fut.
-- **Deluge 1.x nem támogatott** (Python 2, eltérő plugin API).
-- A 2.0/2.1 ugyanazt a plugin API-t használja, de nincs élesben tesztelve; a
-  futó Deluge verziója a `/api/session` válaszának `version` mezőjéből
-  ellenőrizhető.
-- A plugin **core plugin** a `deluged` reactorjában; nem kell külön service.
-  A saját API/SPA a 8113-on figyel, a gyári `deluge-web` (8112) érintetlen.
-- Az egg pure Python; a Deluge pluginmanager a `py3.x` taget nem szűri, ezért a
-  kicsomagolt egg a támogatott Python-verziókon betöltődik.
+- **Deluge 2.x** (Python 3.10+); development and the production deployment run
+  with **Deluge 2.2.0**, on Python 3.11.
+- **Deluge 1.x is not supported** (Python 2, different plugin API).
+- 2.0/2.1 use the same plugin API, but are not tested in production; the
+  running Deluge version can be checked from the `version` field of the
+  `/api/session` response.
+- The plugin is a **core plugin** in the `deluged` reactor; no separate service
+  is needed. Its own API/SPA listens on 8113, the stock `deluge-web` (8112) is
+  untouched.
+- The egg is pure Python; the Deluge pluginmanager does not filter on the
+  `py3.x` tag, so the unpacked egg loads on the supported Python versions.
 
-## Telepítés
+## Installation
 
-A Deluge hoston, rootként, a repó checkoutjából:
+On the Deluge host, as root, from the repository checkout:
 
 ```bash
 ./scripts/install.sh
 ```
 
-A script a Deluge venv Pythonjával épít egg-et, **kicsomagolja** a
-`deluge.plugins` könyvtárba (`MobileUi-<verzió>-py3.x.egg/`), újraindítja a
-`deluged`-et, `deluge-console`-lal engedélyezi a plugint, majd ellenőrzi a
-`/health`-t. A kicsomagolt forma kell a `data/` statikus kiszolgálásához.
-Felülírható: `EGG`, `DELUGE_VENV`, `DELUGE_CONFIG_DIR`, `DELUGE_USER`, `SERVICE`,
+The script builds the egg with the Deluge venv's Python, **unpacks** it into
+the `deluge.plugins` directory (`MobileUi-<version>-py3.x.egg/`), restarts
+`deluged`, enables the plugin with `deluge-console`, then checks `/health`.
+The unpacked form is required for serving the `data/` static files.
+Overridable: `EGG`, `DELUGE_VENV`, `DELUGE_CONFIG_DIR`, `DELUGE_USER`, `SERVICE`,
 `PORT`.
 
-A script alapértékei Debian/Deluge 2.2 telepítésre valók (`/opt/deluge-2.2.0`,
-`/var/lib/deluged/config`, `debian-deluged`); más venv/config/user esetén az
-env változókkal add meg őket.
+The script's defaults are meant for a Debian/Deluge 2.2 installation
+(`/opt/deluge-2.2.0`, `/var/lib/deluged/config`, `debian-deluged`); for a
+different venv/config/user, specify them with the env variables.
 
-A script opcionális Python-függőségeket is telepít a Deluge venvbe, ha még
-nincsenek: `sentry-sdk` (Sentry) és `pywebpush==2.2.0` + `py-vapid==1.9.0` +
-`cryptography<45` (Web Push). Utóbbiakat a `pyopenssl` 25 miatt kell a 45 alatt
-tartani; ha a telepítésük elbukik, a plugin a Sentry/push nélkül is elindul.
-A Web Push böngészőoldalon **HTTPS secure contextet** igényel (a push
-service worker csak ilyen originen regisztrálható).
+The script also installs optional Python dependencies into the Deluge venv if
+they are not present yet: `sentry-sdk` (Sentry) and `pywebpush==2.2.0` +
+`py-vapid==1.9.0` + `cryptography<45` (Web Push). The latter must be kept below
+45 because of `pyopenssl` 25; if their installation fails, the plugin starts
+without Sentry/push. On the browser side, Web Push requires an **HTTPS secure
+context** (the push service worker can only be registered on such an origin).
 
-## Hordozható egg
+## Portable egg
 
-A release-hez csatolt `MobileUi-<verzió>-py3.x.egg` és a hozzá tartozó
-`.sha256` önállóan is telepíthető. Repóval:
+The `MobileUi-<version>-py3.x.egg` attached to the release and its
+`.sha256` can also be installed standalone. With the repo:
 
 ```bash
 sha256sum -c MobileUi-*.egg.sha256
 EGG=/path/MobileUi-*.egg ./scripts/install.sh
 ```
 
-A kicsomagolás kötelező, mert a `static.File` nem tud zipből szolgálni. A Deluge
-pluginmanager `pkg_resources.Environment(..., python=None)`-t használ, ezért a
-CI-ben épült py3.13 tagű, pure-Python egg a 3.11-es célon is betöltődik (a
-stock pluginek is py3.10/py3.12 eggek a 3.11-en).
+Unpacking is mandatory, because `static.File` cannot serve from a zip. The
+Deluge pluginmanager uses `pkg_resources.Environment(..., python=None)`, so the
+pure-Python egg built in CI with the py3.13 tag also loads on the 3.11 target
+(the stock plugins are also py3.10/py3.12 eggs on 3.11).
 
-Repó nélkül ugyanez kézzel: az egg tartalmát a
-`.../site-packages/deluge/plugins/MobileUi-<verzió>-py3.x.egg/` könyvtárba kell
-kicsomagolni, majd `systemctl restart deluged` és
+Without the repo, the same by hand: the contents of the egg must be unpacked
+into the `.../site-packages/deluge/plugins/MobileUi-<version>-py3.x.egg/`
+directory, then `systemctl restart deluged` and
 `deluge-console ... "plugin -e MobileUi"`.
 
-## Konfiguráció
+## Configuration
 
-`mobileui.conf` a Deluge config könyvtárában (600, a daemon user tulajdona):
+`mobileui.conf` in the Deluge config directory (600, owned by the daemon user):
 
 ```json
 {
@@ -74,44 +75,46 @@ kicsomagolni, majd `systemctl restart deluged` és
 }
 ```
 
-A `vapid_subject` a Web Push VAPID `sub` claimje; éles használatnál írd be a
-saját `mailto:` címedet (egyes push szolgáltatások validálják).
+The `vapid_subject` is the `sub` claim of the Web Push VAPID; for production
+use, enter your own `mailto:` address (some push services validate it).
 
-A `/api/*` végpontok hitelesítést kérnek (`/health` és a login végpontok
-kivételével). Két mód van, az `auth_mode` dönt:
+The `/api/*` endpoints require authentication (except `/health` and the login
+endpoints). There are two modes, decided by `auth_mode`:
 
-- `token` – a fenti közös API-token; üres token esetén minden `/api/*` 401.
-- `password` – Deluge felhasználónév/jelszó; a kliens lejáró session tokent kap.
-- `both` – mindkettő (a statikus token break-glass, mindig admin).
+- `token` – the shared API token above; with an empty token every `/api/*`
+  returns 401.
+- `password` – Deluge username/password; the client receives an expiring
+  session token.
+- `both` – both (the static token is break-glass, always admin).
 
-A token nem kerül logba. Az SSE (`/api/events`) az `EventSource` miatt
-`?token=<token>` query paramétert is elfogad (a header az elsődleges; a session
-token is működik query paraméterben).
+The token never goes into the log. Because of `EventSource`, the SSE
+(`/api/events`) also accepts a `?token=<token>` query parameter (the header is
+primary; the session token also works in a query parameter).
 
-### User/jelszó belépés bekapcsolása
+### Enabling user/password login
 
-A plugin a daemon saját `auth` fájlját használja — ugyanazt, amivel a
-`deluge-gtk` és a `deluge-web` belép. Új fiók a fájlba írt sorral vehető fel
-(`username:password:level`, ahol 1 = read-only, 5 = normal, 10 = admin):
+The plugin uses the daemon's own `auth` file — the same one `deluge-gtk` and
+`deluge-web` log in with. A new account can be added by writing a line into the
+file (`username:password:level`, where 1 = read-only, 5 = normal, 10 = admin):
 
 ```bash
-sudo -u deluged sh -c 'printf "%s\n" "phoneuser:valami-jelszo:10" >> /var/lib/deluged/config/auth'
+sudo -u deluged sh -c 'printf "%s\n" "phoneuser:some-password:10" >> /var/lib/deluged/config/auth'
 sudo chmod 600 /var/lib/deluged/config/auth
 ```
 
-Az `AuthManager` a fájl mtime-változását figyeli, így restart nélkül, ~10 s
-alatt betölti. Ezután állítsd át a módot (lásd lent), és a belépőképernyőn
-megjelenik a **Fiók** fül.
+The `AuthManager` watches the file's mtime change, so it loads without a
+restart, within ~10 s. Then switch the mode (see below), and the **Account**
+tab appears on the login screen.
 
-Ismert korlátok: a Deluge `auth` fájl a jelszót **plaintext** tárolja; a
-session a `deluged` restartjakor elveszik (a kliens visszadobja a loginra);
-a login limit 5 hiba/perc/IP. Internet felé a TLS proxy mögött használd, mert a
-közvetlen `:8113` sima HTTP. A proxyban add át az
-`X-Forwarded-For: $proxy_add_x_forwarded_for` headert, különben minden kliens a
-proxy IP-jével esik a limit alá.
+Known limitations: the Deluge `auth` file stores the password in **plaintext**;
+the session is lost when `deluged` restarts (the client throws you back to the
+login); the login limit is 5 failures/minute/IP. Towards the internet, use it
+behind a TLS proxy, because the direct `:8113` is plain HTTP. In the proxy, pass
+through the `X-Forwarded-For: $proxy_add_x_forwarded_for` header, otherwise
+every client falls under the limit with the proxy's IP.
 
-Az SSE `?token=` query stringben megy, ezért a proxy access logjában **`$uri`-t**
-naplózz, ne `$request`-et:
+SSE goes in the `?token=` query string, so in the proxy access log **log
+`$uri`**, not `$request`:
 
 ```nginx
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -122,17 +125,19 @@ log_format mobileui '$remote_addr - $remote_user [$time_local] '
 access_log /var/log/nginx/mobileui.access.log mobileui;
 ```
 
-A plugin saját logja nem naplózza a requestet, így a token ott sem jelenik meg.
+The plugin's own log does not log the request, so the token does not appear
+there either.
 
-A `sentry_dsn` üresen hagyva nem küld eseményt; kitöltve a plugin a Bugsinkbe
-küldi a Twisted kivételeket (`release` = plugin verzió, `environment=production`).
-A DSN nem kerül a logba; a `set_config` élőben átállítja, a `sentry-sdk`-t az
-`install.sh` telepíti a Deluge venvbe.
+Left empty, `sentry_dsn` sends no events; when filled in, the plugin sends the
+Twisted exceptions to Bugsink (`release` = plugin version, `environment=production`).
+The DSN does not go into the log; `set_config` switches it live, `sentry-sdk` is
+installed into the Deluge venv by `install.sh`.
 
-Élő átállítás a `mobileui.set_config` RPC-vel (a `deluge.ui.client`-en vagy a
-WebUI-n át); a token, az `auth_mode`, a port, az `enabled` és a `sentry_dsn`
-azonnal érvényesül, restart nem kell.
-Ha az új port nem bindolható, a plugin visszaállítja a régi portot és hibát ad.
+Live switching with the `mobileui.set_config` RPC (through `deluge.ui.client` or
+the WebUI); the token, `auth_mode`, the port, `enabled` and `sentry_dsn`
+take effect immediately, no restart is needed.
+If the new port cannot be bound, the plugin restores the old port and returns an
+error.
 
 ```python
 from twisted.internet import defer, reactor
@@ -141,8 +146,8 @@ from deluge.ui.client import client
 
 @defer.inlineCallbacks
 def main():
-    yield client.connect('127.0.0.1', 58846, 'localclient', '<auth-jelszó>')
-    print((yield client.mobileui.set_config({'token': '<új-token>'})))
+    yield client.connect('127.0.0.1', 58846, 'localclient', '<auth-password>')
+    print((yield client.mobileui.set_config({'token': '<new-token>'})))
     yield client.disconnect()
     reactor.stop()
 
@@ -151,14 +156,14 @@ reactor.callWhenRunning(main)
 reactor.run()
 ```
 
-A `<auth-jelszó>` a Deluge config `auth` fájljából való (`localclient` sor).
-Új egg telepítése után viszont kell a `deluged` restart (a plugin kódja csak
-indításkor töltődik be).
+The `<auth-password>` comes from the Deluge config `auth` file (the `localclient`
+line). After installing a new egg, however, the `deluged` restart is needed (the
+plugin code only loads at startup).
 
-## Visszaállítás
+## Rollback
 
-A plugin letiltása a daemonban (a `DELUGE_*` értékeket a telepítésedhez
-igazítsd; az alapértékek Debian/Deluge 2.2-re valók):
+Disabling the plugin in the daemon (adjust the `DELUGE_*` values to your
+installation; the defaults are meant for Debian/Deluge 2.2):
 
 ```bash
 DELUGE_VENV="${DELUGE_VENV:-/opt/deluge-2.2.0}"
@@ -169,6 +174,6 @@ runuser -u "$DELUGE_USER" -- "$DELUGE_VENV/bin/deluge-console" \
   -c "$DELUGE_CONFIG_DIR" "plugin -d MobileUi"
 ```
 
-Majd a telepített `MobileUi-*.egg/` **könyvtár** törlése a
-`$DELUGE_VENV/lib/python3.*/site-packages/deluge/plugins/` alól és
+Then delete the installed `MobileUi-*.egg/` **directory** from under
+`$DELUGE_VENV/lib/python3.*/site-packages/deluge/plugins/` and
 `systemctl restart deluged`.

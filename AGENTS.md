@@ -1,18 +1,19 @@
 # AGENTS.md
 
-Deluge **2.x** core plugin mobil web UI-hoz. A plugin a `deluged` Twisted
-reactorjában fut, saját HTTP szervert indít a **8113**-on. A gyári `deluge-web`
-(8112) érintetlen marad.
+Deluge **2.x** core plugin with a mobile web UI. The plugin runs in the
+`deluged` Twisted reactor and starts its own HTTP server on **8113**. The stock
+`deluge-web` (8112) stays untouched.
 
 ## Layout
 
-- `deluge_mobileui/` – plugin csomag (`core.py`, `auth.py`, `http.py`,
+- `deluge_mobileui/` – plugin package (`core.py`, `auth.py`, `http.py`,
   `read.py`, `write.py`, `push.py`, `events.py`, `data/`)
-- `webui/` – Vue 3 + Vite SPA (M2), build a `deluge_mobileui/data/`-ba
-- `tests/` – pytest; Deluge nélkül is futó unit tesztek
-- `docs/` – `api.md`, `perf.md`, `webui.md`, `ci.md`, `install.md`, `decisions.md`
+- `webui/` – Vue 3 + Vite SPA, built into `deluge_mobileui/data/`
+- `tests/` – pytest; unit tests that run without Deluge
+- `docs/` – `api.md`, `perf.md`, `webui.md`, `usage.md`, `ci.md`, `install.md`,
+  `decisions.md`
 
-## Parancsok
+## Commands
 
 ```bash
 .venv/bin/pytest
@@ -20,36 +21,37 @@ reactorjában fut, saját HTTP szervert indít a **8113**-on. A gyári `deluge-w
 .venv/bin/python setup.py bdist_egg
 ./scripts/release.sh patch --dry-run
 (cd webui && npm ci && npm run build)
-./scripts/dev-daemon.sh        # helyi smoke, .dev/ config
-./scripts/install.sh           # célhoston, rootként
+./scripts/dev-daemon.sh        # local smoke, .dev/ config
+./scripts/install.sh           # on the target host, as root
 ```
 
-## Alapelvek
+## Principles
 
-- **Mobile-first:** amit mobilon kényelmes használni, desktopon is működjön
-  (long-press, safe-area, egykezes műveletek, reszponzív layout).
-- **Kevés, de hibátlan:** kis funkciók, nagy megbízhatóság; inkább kevesebb
-  kész, tesztelt dolog, mint sok félkész.
-- **Ne duplikáld a Deluge-t:** amit a gyári GUI/daemon tud, csak akkor építjük
-  újra, ha a mobil élmény miatt kell.
-- **A reactor nem blokkolható:** a handlerek a `deluged` event loopjában futnak;
-  olvasás cache-elt státuszból, lapozás/szűrés szerveroldalon.
-- **Token soha ne kerüljön naplóba:** az SSE `?token=` query miatt a proxy
-  `$uri`-t naplóz (`$request` helyett); a plugin nem naplóz requestet.
-- **Jogosultság:** minden módosító endpoint read-only (403) és normal (200/201)
-  szinten is tesztelt.
-- **Deluge 2.x:** új `deluge.*` importnál a CI `deluge-compat` mátrixa
-  (2.0.3 / 2.1.1 / 2.2.0) a mérce; a `tests/stubs` is frissül.
-- **Titkok/IP-k:** a repóban nincs host/IP/token; a deploy `$DEPLOY_HOST`,
-  a doksik környezetfüggetlenek.
+- **Mobile-first:** whatever is comfortable on a phone must also work on desktop
+  (long-press, safe-area, one-handed actions, responsive layout).
+- **Few, but flawless:** small features, high reliability; prefer fewer
+  finished, tested things over many half-done ones.
+- **Do not duplicate Deluge:** only rebuild what the stock GUI/daemon already
+  does when the mobile experience requires it.
+- **The reactor must not block:** handlers run in the `deluged` event loop;
+  read from the cached status, paginate/filter on the server.
+- **Never log the token:** because of the SSE `?token=` query, the proxy logs
+  `$uri` (not `$request`); the plugin does not log requests.
+- **Authorization:** every mutating endpoint is tested at read-only (403) and
+  normal (200/201) levels.
+- **Deluge 2.x:** for any new `deluge.*` import, the CI `deluge-compat` matrix
+  (2.0.3 / 2.1.1 / 2.2.0) is the gate; update `tests/stubs` too.
+- **Secrets/IPs:** no host/IP/token in the repository; deploy uses
+  `$DEPLOY_HOST`, docs stay environment-agnostic.
 
-## Szabályok
+## Rules
 
-- A 8112-es `deluge-web`-hez és a meglévő Label/AutoAdd/Scheduler/Execute
-  flow-hoz nem nyúlunk.
-- A Deluge host módosítása (telepítés, restart) külön jóváhagyás után megy.
-- Git művelet (commit/push/merge) csak kifejezett engedéllyel.
-- Egy lépés = egy issue, utána rövid státusz; ne hagyj félkész fájlt.
+- Do not touch the 8112 `deluge-web` or the existing Label/AutoAdd/Scheduler/
+  Execute flows.
+- Changing the Deluge host (install, restart) requires separate approval.
+- Git operations (commit/push/merge) require explicit approval.
+- One step = one issue, followed by a short status; do not leave half-finished
+  files.
 
-Részletek: [README.md](README.md), [docs/api.md](docs/api.md),
+Details: [README.md](README.md), [docs/api.md](docs/api.md),
 [docs/decisions.md](docs/decisions.md).
