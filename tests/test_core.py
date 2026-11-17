@@ -7,8 +7,15 @@ from deluge_mobileui import core
 from .test_http import FakeConfig, FakePort, FakeReactor
 
 
+class CoreStub(core.Core):
+    # CorePluginBase.__del__ deregisters from RPCServer, which does not exist
+    # in the unit-test process; keep GC from raising an unraisable KeyError.
+    def __del__(self):
+        pass
+
+
 def make_plugin():
-    plugin = object.__new__(core.Core)
+    plugin = object.__new__(CoreStub)
     plugin.config = None
     plugin.site = None
     plugin.listener = None
