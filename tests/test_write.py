@@ -190,8 +190,10 @@ def test_queue_actions(action, method):
 
 
 def test_queue_rejects_unknown_action():
+    core = FakeCore()
+
     with pytest.raises(write.BadRequest):
-        write.queue(FakeCore(), "abc", "sideways")
+        write.queue(core, "abc", "sideways")
 
 
 def test_set_label_validates_and_clears():
@@ -204,15 +206,27 @@ def test_set_label_validates_and_clears():
     assert labels.calls == [("abc", "movies"), ("abc", None)]
 
 
-def test_set_label_errors():
+def test_set_label_rejects_unknown_label():
     core = FakeCore()
+    labels = FakeLabel()
 
     with pytest.raises(write.BadRequest):
-        write.set_label(core, FakeLabel(), "abc", "nope")
+        write.set_label(core, labels, "abc", "nope")
+
+
+def test_set_label_requires_the_plugin():
+    core = FakeCore()
+
     with pytest.raises(write.Conflict):
         write.set_label(core, None, "abc", "movies")
+
+
+def test_set_label_rejects_unknown_torrent():
+    core = FakeCore()
+    labels = FakeLabel()
+
     with pytest.raises(KeyError):
-        write.set_label(core, FakeLabel(), "missing", "movies")
+        write.set_label(core, labels, "missing", "movies")
 
 
 def test_add_magnet_with_label_and_location():
@@ -263,41 +277,48 @@ def test_add_file_base64_encodes_dump():
 
 def test_add_duplicate_is_conflict():
     core = FakeCore()
+    labels = FakeLabel()
     core.add_error = AddTorrentError("Torrent already in session (abc).")
 
     with pytest.raises(write.Conflict):
-        write.add(core, FakeLabel(), magnet="magnet:?xt=urn:btih:abc")
+        write.add(core, labels, magnet="magnet:?xt=urn:btih:abc")
 
 
 def test_add_invalid_torrent_is_bad_request():
     core = FakeCore()
+    labels = FakeLabel()
     core.add_error = AddTorrentError("Unable to add torrent, decoding filedump failed")
 
     with pytest.raises(write.BadRequest):
-        write.add(core, FakeLabel(), filedump=b"nope")
+        write.add(core, labels, filedump=b"nope")
 
 
-def test_add_validation():
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        {"magnet": "magnet:?x", "filedump": b"x"},
+        {"magnet": "http://example.com"},
+        {"magnet": "magnet:?x", "download_location": "rel"},
+        {"magnet": "magnet:?x", "add_paused": "yes"},
+        {"magnet": "magnet:?x", "label": "nope"},
+    ],
+)
+def test_add_validation(kwargs):
+    core = FakeCore()
+    labels = FakeLabel()
+
     with pytest.raises(write.BadRequest):
-        write.add(FakeCore(), FakeLabel())
-    with pytest.raises(write.BadRequest):
-        write.add(FakeCore(), FakeLabel(), magnet="magnet:?x", filedump=b"x")
-    with pytest.raises(write.BadRequest):
-        write.add(FakeCore(), FakeLabel(), magnet="http://example.com")
-    with pytest.raises(write.BadRequest):
-        write.add(FakeCore(), FakeLabel(), magnet="magnet:?x", download_location="rel")
-    with pytest.raises(write.BadRequest):
-        write.add(FakeCore(), FakeLabel(), magnet="magnet:?x", add_paused="yes")
-    with pytest.raises(write.BadRequest):
-        write.add(FakeCore(), FakeLabel(), magnet="magnet:?x", label="nope")
+        write.add(core, labels, **kwargs)
 
 
 def test_add_none_result_is_conflict():
     core = FakeCore()
+    labels = FakeLabel()
     core.add_result = None
 
     with pytest.raises(write.Conflict):
-        write.add(core, FakeLabel(), magnet="magnet:?x")
+        write.add(core, labels, magnet="magnet:?x")
 
 
 def test_set_session_paused_toggles_the_whole_session():
@@ -487,22 +508,32 @@ def test_move_storage_delegates_to_torrent():
     assert torrent.move_calls == ["/data/new"]
 
 
-def test_move_storage_validates_input():
+@pytest.mark.parametrize("location", [None, "", "relative/path"])
+def test_move_storage_rejects_bad_location(location):
     core = FakeCore()
-    torrent = core.torrentmanager["abc"]
 
-    for location in (None, "", "relative/path"):
-        with pytest.raises(write.BadRequest):
-            write.move_storage(core, "abc", location)
+    with pytest.raises(write.BadRequest):
+        write.move_storage(core, "abc", location)
 
-    torrent.state = "Moving"
+
+def test_move_storage_rejects_a_moving_torrent():
+    core = FakeCore()
+    core.torrentmanager["abc"].state = "Moving"
+
     with pytest.raises(write.Conflict):
         write.move_storage(core, "abc", "/data/new")
 
-    torrent.state = "Paused"
-    torrent.move_result = False
+
+def test_move_storage_reports_deluge_failure():
+    core = FakeCore()
+    core.torrentmanager["abc"].move_result = False
+
     with pytest.raises(write.Conflict):
         write.move_storage(core, "abc", "/data/new")
+
+
+def test_move_storage_rejects_unknown_torrent():
+    core = FakeCore()
 
     with pytest.raises(KeyError):
         write.move_storage(core, "missing", "/data/new")

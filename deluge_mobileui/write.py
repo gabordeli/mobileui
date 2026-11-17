@@ -241,19 +241,29 @@ def _bulk_apply(core, label_plugin, torrent_id, action, label, remove_data):
         set_label(core, label_plugin, torrent_id, label)
 
 
-def bulk(core, label_plugin, torrent_ids, action, label=None, remove_data=False):
-    if action not in BULK_ACTIONS:
-        raise BadRequest("action must be one of: " + ", ".join(sorted(BULK_ACTIONS)))
+def _bulk_ids(torrent_ids):
     ids = [str(torrent_id) for torrent_id in torrent_ids or []]
     if not ids:
         raise BadRequest("torrent_ids must not be empty")
     if len(ids) > MAX_BULK_IDS:
         raise BadRequest(f"at most {MAX_BULK_IDS} torrent ids are allowed")
-    if action == "label":
-        if label_plugin is None:
-            raise Conflict(LABEL_PLUGIN_MISSING)
-        if label not in (None, "", NO_LABEL) and label not in label_plugin.labels:
-            raise BadRequest(f"unknown label: {label}")
+    return ids
+
+
+def _check_bulk_label(label_plugin, action, label):
+    if action != "label":
+        return
+    if label_plugin is None:
+        raise Conflict(LABEL_PLUGIN_MISSING)
+    if label not in (None, "", NO_LABEL) and label not in label_plugin.labels:
+        raise BadRequest(f"unknown label: {label}")
+
+
+def bulk(core, label_plugin, torrent_ids, action, label=None, remove_data=False):
+    if action not in BULK_ACTIONS:
+        raise BadRequest("action must be one of: " + ", ".join(sorted(BULK_ACTIONS)))
+    ids = _bulk_ids(torrent_ids)
+    _check_bulk_label(label_plugin, action, label)
 
     ok = 0
     failed = []

@@ -67,7 +67,7 @@ class EventBroadcaster:
         if event_manager is not None:
             for name, handler in self.handlers.items():
                 event_manager.deregister_event_handler(name, handler)
-        for request in list(self.subscribers):
+        for request in tuple(self.subscribers):
             self._close(request, "plugin disabled")
         self.subscribers.clear()
         log.info("MobileUi event stream stopped")
@@ -113,18 +113,16 @@ class EventBroadcaster:
         except Exception:
             log.exception("MobileUi event tick failed")
 
-    def _tick_inner(self):
-        self.ticks += 1
-        if not self.subscribers or self.core is None:
-            self.pending.clear()
-            self.pending_added.clear()
-            self.pending_removed.clear()
-            self.last_progress = {}
-            self.last_session = {}
-            self.primed = False
-            self.session_dirty = False
-            return
+    def _reset_pending(self):
+        self.pending.clear()
+        self.pending_added.clear()
+        self.pending_removed.clear()
+        self.last_progress = {}
+        self.last_session = {}
+        self.primed = False
+        self.session_dirty = False
 
+    def _drain_pending(self):
         deltas = []
         for torrent_id in sorted(self.pending_added):
             deltas.append({"type": "added", "id": torrent_id, "fields": {}})
@@ -137,19 +135,22 @@ class EventBroadcaster:
         self.pending.clear()
         self.pending_added.clear()
         self.pending_removed.clear()
+        return deltas
 
+    def _append_progress_deltas(self, deltas):
         current = self._progress_snapshot()
         if not self.primed:
             self.last_progress = current
             self.primed = True
-        else:
-            for torrent_id, fields in current.items():
-                if self.last_progress.get(torrent_id) != fields:
-                    deltas.append(
-                        {"type": "progress", "id": torrent_id, "fields": fields}
-                    )
-            self.last_progress = current
+            return
+        for torrent_id, fields in current.items():
+            if self.last_progress.get(torrent_id) != fields:
+                deltas.append(
+                    {"type": "progress", "id": torrent_id, "fields": fields}
+                )
+        self.last_progress = current
 
+    def _append_session_delta(self, deltas):
         session = read.get_session(self.core)
         if self.session_dirty:
             deltas.append({"type": "session", "id": None, "fields": session})
@@ -164,14 +165,26 @@ class EventBroadcaster:
                 deltas.append({"type": "session", "id": None, "fields": changed})
         self.last_session = session
 
+    def _broadcast(self, deltas):
         for delta in deltas:
             event_name = "session" if delta["type"] == "session" else "torrent"
-            for request in list(self.subscribers):
+            for request in tuple(self.subscribers):
                 self._write(request, event_name, delta)
 
         if self.ticks % HEARTBEAT_SECONDS == 0:
-            for request in list(self.subscribers):
+            for request in tuple(self.subscribers):
                 self._write_raw(request, b": heartbeat\n\n")
+
+    def _tick_inner(self):
+        self.ticks += 1
+        if not self.subscribers or self.core is None:
+            self._reset_pending()
+            return
+
+        deltas = self._drain_pending()
+        self._append_progress_deltas(deltas)
+        self._append_session_delta(deltas)
+        self._broadcast(deltas)
 
     def _progress_snapshot(self):
         snapshot = {}

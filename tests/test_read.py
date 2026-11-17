@@ -145,8 +145,10 @@ def test_list_sorts_eta_with_infinity_last():
     ],
 )
 def test_list_validates_query(kwargs, message):
+    core = make_core()
+
     with pytest.raises(ValueError, match=message):
-        read.list_torrents(make_core(), None, **kwargs)
+        read.list_torrents(core, None, **kwargs)
 
 
 def test_detail_includes_label_and_status_only():
@@ -191,13 +193,17 @@ def test_files_are_paginated():
     ],
 )
 def test_files_validate_query(kwargs, message):
+    core = make_core(make_torrent("a", "Dune"))
+
     with pytest.raises(ValueError, match=message):
-        read.get_files(make_core(make_torrent("a", "Dune")), "a", **kwargs)
+        read.get_files(core, "a", **kwargs)
 
 
 def test_files_unknown_torrent():
+    core = make_core()
+
     with pytest.raises(KeyError):
-        read.get_files(make_core(), "missing")
+        read.get_files(core, "missing")
 
 
 def test_session_returns_queue_and_count():

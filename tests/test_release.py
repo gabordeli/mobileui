@@ -5,7 +5,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SPEC = importlib.util.spec_from_file_location(
     "release_script", ROOT / "scripts" / "release.py"
 )
-assert SPEC and SPEC.loader
+assert SPEC is not None
+assert SPEC.loader is not None
 release = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(release)
 

@@ -52,6 +52,54 @@ CONFIG_DEFAULTS = {
 }
 
 
+def _string_config(key):
+    def validate(value):
+        if not isinstance(value, str):
+            raise TypeError(f"{key} must be a string")
+        return value
+
+    return validate
+
+
+def _bool_config(value):
+    if not isinstance(value, bool):
+        raise TypeError("enabled must be a bool")
+    return value
+
+
+def _port_config(value):
+    port = int(value)
+    if not 1 <= port <= 65535:
+        raise ValueError("port must be between 1 and 65535")
+    return port
+
+
+def _auth_mode_config(value):
+    value = _string_config("auth_mode")(value)
+    if value not in AUTH_MODES:
+        raise ValueError("auth_mode must be one of: " + ", ".join(AUTH_MODES))
+    return value
+
+
+CONFIG_VALIDATORS = {
+    "enabled": _bool_config,
+    "port": _port_config,
+    "token": _string_config("token"),
+    "auth_mode": _auth_mode_config,
+    "sentry_dsn": _string_config("sentry_dsn"),
+    "vapid_subject": _string_config("vapid_subject"),
+}
+
+
+def _validated_config(config):
+    if not isinstance(config, dict):
+        raise TypeError("config must be a dict")
+    unknown = set(config) - set(CONFIG_DEFAULTS)
+    if unknown:
+        raise ValueError(f"unknown config keys: {', '.join(sorted(unknown))}")
+    return {key: CONFIG_VALIDATORS[key](value) for key, value in config.items()}
+
+
 class Core(CorePluginBase):
     def __init__(self, plugin_name):
         super().__init__(plugin_name)
@@ -81,6 +129,7 @@ class Core(CorePluginBase):
         return self._stop_listener()
 
     def update(self):
+        # The Deluge event handlers keep the status cache fresh.
         pass
 
     def list_torrents(self, **kwargs):
@@ -377,40 +426,7 @@ class Core(CorePluginBase):
     @export
     def set_config(self, config):
         """Update auth/token/port/enabled/sentry_dsn; apply without a restart."""
-        if not isinstance(config, dict):
-            raise TypeError("config must be a dict")
-        unknown = set(config) - set(CONFIG_DEFAULTS)
-        if unknown:
-            raise ValueError(f"unknown config keys: {', '.join(sorted(unknown))}")
-
-        updates = {}
-        if "enabled" in config:
-            if not isinstance(config["enabled"], bool):
-                raise TypeError("enabled must be a bool")
-            updates["enabled"] = config["enabled"]
-        if "port" in config:
-            port = int(config["port"])
-            if not 1 <= port <= 65535:
-                raise ValueError("port must be between 1 and 65535")
-            updates["port"] = port
-        if "token" in config:
-            if not isinstance(config["token"], str):
-                raise TypeError("token must be a string")
-            updates["token"] = config["token"]
-        if "auth_mode" in config:
-            if not isinstance(config["auth_mode"], str):
-                raise TypeError("auth_mode must be a string")
-            if config["auth_mode"] not in AUTH_MODES:
-                raise ValueError("auth_mode must be one of: " + ", ".join(AUTH_MODES))
-            updates["auth_mode"] = config["auth_mode"]
-        if "sentry_dsn" in config:
-            if not isinstance(config["sentry_dsn"], str):
-                raise TypeError("sentry_dsn must be a string")
-            updates["sentry_dsn"] = config["sentry_dsn"]
-        if "vapid_subject" in config:
-            if not isinstance(config["vapid_subject"], str):
-                raise TypeError("vapid_subject must be a string")
-            updates["vapid_subject"] = config["vapid_subject"]
+        updates = _validated_config(config)
 
         old = {key: self.config[key] for key in updates}
         for key, value in updates.items():
@@ -423,7 +439,7 @@ class Core(CorePluginBase):
             for key, value in old.items():
                 self.config[key] = value
             self.config.save()
-            log.error("MobileUi config change failed, reverted", exc_info=True)
+            log.exception("MobileUi config change failed, reverted")
             raise
 
         if "auth_mode" in updates and "password" not in self.auth_modes():
