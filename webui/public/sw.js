@@ -1,4 +1,5 @@
-const CACHE = "deluge-mobileui-v1";
+const CACHE = "deluge-mobileui-v2";
+const API_CACHE = "deluge-mobileui-api-v1";
 const SHELL = [
   "/",
   "/index.html",
@@ -23,7 +24,11 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))),
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE && key !== API_CACHE)
+            .map((key) => caches.delete(key)),
+        ),
       )
       .then(() => self.clients.claim()),
   );
@@ -34,7 +39,17 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith("/api/")) return;
+  if (url.pathname.startsWith("/api/")) {
+    if (
+      request.method === "GET" &&
+      (url.pathname.startsWith("/api/torrents") ||
+        url.pathname === "/api/session" ||
+        url.pathname === "/api/labels")
+    ) {
+      event.respondWith(apiResponse(request));
+    }
+    return;
+  }
 
   if (request.mode === "navigate") {
     if (url.pathname === "/share") {
@@ -76,6 +91,33 @@ self.addEventListener("fetch", (event) => {
           }),
       ),
     );
+  }
+});
+
+async function apiResponse(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(API_CACHE);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (!cached) return Response.error();
+    const headers = new Headers(cached.headers);
+    headers.set("X-MobileUi-Stale", "1");
+    return new Response(await cached.blob(), {
+      status: cached.status,
+      statusText: cached.statusText,
+      headers,
+    });
+  }
+}
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "clear-api-cache") {
+    event.waitUntil(caches.delete(API_CACHE));
   }
 });
 

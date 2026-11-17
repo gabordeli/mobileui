@@ -148,7 +148,8 @@ from browsers and apps that support Android share targets.
   tooltip/message contains the tracker or Deluge error.
 - Use the **Error** state filter to show only failed torrents.
 - When the connection drops, an offline banner appears and SSE reconnects
-  automatically. The list/detail keep the last known values.
+  automatically. After an offline reload the service worker can serve the last
+  cached list/session; a “cached data” banner marks it as possibly stale.
 - A 401 response returns to the login screen; 403 means the account is
   read-only (mutating controls are hidden).
 

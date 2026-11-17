@@ -134,11 +134,11 @@ action. For a read-only account only the list is visible.
 
 ## PWA, theme, i18n
 
-- `manifest.webmanifest` + 192/512/apple icons + `public/sw.js`; the SW caches
-  the app shell, serves navigation network-first, assets cache-first, and
-  `/api/*` network-only. Registration only starts in a secure context (HTTPS or
-  localhost); on HTTP LAN the manifest/icons already work, the SW takes effect
-  after an HTTPS deploy.
+- The service worker caches the app shell, serves navigation network-first,
+  assets cache-first, and `/api/*` network-only. Successful `GET /api/torrents*`,
+  `/api/session` and `/api/labels` responses are also kept in a separate API
+  cache; on a network failure they are served with `X-MobileUi-Stale: 1`, and
+  the UI shows a “cached data” banner. Logout clears the API cache.
 - Dark/light theme: `data-theme` on `<html>`, stored in localStorage;
   `prefers-color-scheme` provides the initial value, the ☀/☾ button in the
   header switches.

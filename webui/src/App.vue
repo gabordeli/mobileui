@@ -57,6 +57,7 @@ const downHistory = ref<number[]>([]);
 const upHistory = ref<number[]>([]);
 const HISTORY_LEN = 60;
 const online = ref(navigator.onLine);
+const staleData = ref(false);
 const toast = ref("");
 const sseState = ref<"off" | "live" | "reconnecting">("off");
 const tokenInitial = ref(api.getToken());
@@ -537,6 +538,14 @@ function updateOnline(): void {
   online.value = navigator.onLine;
 }
 
+function markStale(): void {
+  staleData.value = true;
+}
+
+function markFresh(): void {
+  staleData.value = false;
+}
+
 onMounted(() => {
   const params = new URLSearchParams(window.location.search);
   const shared = extractMagnet(window.location.search);
@@ -559,6 +568,8 @@ onMounted(() => {
   }
   window.addEventListener("online", updateOnline);
   window.addEventListener("offline", updateOnline);
+  window.addEventListener("mobileui:stale", markStale);
+  window.addEventListener("mobileui:fresh", markFresh);
   void loadPluginVersion();
   void loadAuthInfo();
   void bootstrap();
@@ -567,6 +578,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("online", updateOnline);
   window.removeEventListener("offline", updateOnline);
+  window.removeEventListener("mobileui:stale", markStale);
+  window.removeEventListener("mobileui:fresh", markFresh);
   closeEvents();
   if (toastTimer !== null) clearTimeout(toastTimer);
   if (searchTimer !== null) clearTimeout(searchTimer);
@@ -647,6 +660,9 @@ onBeforeUnmount(() => {
 
     <output v-if="!online" class="offline-banner">
       {{ t("list.offline") }}
+    </output>
+    <output v-else-if="staleData" class="offline-banner">
+      {{ t("list.stale") }}
     </output>
 
     <FilterBar

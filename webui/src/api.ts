@@ -61,6 +61,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   const response = await fetch(path, { ...options, headers });
+  const cachedRead =
+    (!options.method || options.method === "GET") &&
+    (path.startsWith("/api/torrents") ||
+      path === "/api/session" ||
+      path === "/api/labels");
+  if (cachedRead) {
+    const stale = response.headers.get("X-MobileUi-Stale") === "1";
+    if (stale) window.dispatchEvent(new Event("mobileui:stale"));
+    else if (response.ok) window.dispatchEvent(new Event("mobileui:fresh"));
+  }
   if (response.status === 401) {
     throw new UnauthorizedError();
   }
@@ -101,8 +111,12 @@ export function login(username: string, password: string): Promise<LoginResult> 
   });
 }
 
-export function logout(): Promise<{ ok: boolean; session: boolean }> {
-  return request("/api/logout", { method: "POST" });
+export async function logout(): Promise<{ ok: boolean; session: boolean }> {
+  const result = await request<{ ok: boolean; session: boolean }>("/api/logout", {
+    method: "POST",
+  });
+  navigator.serviceWorker?.controller?.postMessage({ type: "clear-api-cache" });
+  return result;
 }
 
 export function getSession(): Promise<Session> {

@@ -356,6 +356,24 @@ describe("auth", () => {
     expect(init.body).toBe(JSON.stringify({ username: "admin", password: "pw" }));
   });
 
+  it("signals a stale cached API response", async () => {
+    const response = new Response(JSON.stringify({}), {
+      status: 200,
+      headers: {
+        "content-type": "application/json",
+        "X-MobileUi-Stale": "1",
+      },
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+    const listener = vi.fn();
+    window.addEventListener("mobileui:stale", listener);
+
+    await getSession();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    window.removeEventListener("mobileui:stale", listener);
+  });
+
   it("logs out with the bearer token", async () => {
     const fetchMock = vi
       .fn()
