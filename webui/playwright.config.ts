@@ -10,6 +10,7 @@ export default defineConfig({
     viewport: { width: 390, height: 844 },
     colorScheme: "dark",
     locale: "hu-HU",
+    serviceWorkers: "block",
     trace: "retain-on-failure",
   },
   projects: [
