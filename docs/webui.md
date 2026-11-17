@@ -21,7 +21,7 @@ hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 ## Tesztek
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, komponensek, theme,
-  api, format, i18n, main); 122 teszt, a coverage threshold a `vite.config.ts`-ben.
+  api, format, i18n, main); 125 teszt, a coverage threshold a `vite.config.ts`-ben.
 - `npm run test:e2e` — Playwright smoke: token-kapu, fiók login, read-only UI,
   lista+detail, fájlprioritás, session sheet, bulk selection, megosztott magnet,
   add sheet. Az API-t `page.route` mockolja, ezért Deluge nélkül fut; az első
@@ -89,8 +89,12 @@ események szűrő nélkül a totalt is korrigálják; reconnectet a böngésző
   globális érték, `0` = korlátlan) a `PATCH /api/torrents/{id}/limits`-en.
 - Az add sheet (`AddDialog.vue`) magnetet vagy `.torrent` fájlt fogad, labelt,
   abszolút mentési útvonalat és „szünetelve induljon” opciót. A default útvonal
-  a session `download_location` mezőjéből jön. Hibás magnet/fájl/mező esetén a
-  backend 400/409 üzenete jelenik meg.
+  a session `download_location` mezőjéből jön; az utolsó útvonal/label a
+  localStorage-ban (`mobileui.add.path/label`) megjegyződik, az
+  „Alapértelmezett” gomb törli a mentett útvonalat. Hibás magnet/fájl/mező
+  esetén a backend 400/409 üzenete jelenik meg.
+- A detail **magnet** és **infohash** másolás gombot ad (clipboard API,
+  HTTP-n textarea-fallback); a másolás toastot ad.
 - A detail SSE-ből kapja a progress/rate/state frissítést; a listát és a detailt
   a műveletek után a válasz + SSE szinkronban tartja.
 - A detail a **tracker listát** és a `tracker_status`-t is mutatja; a

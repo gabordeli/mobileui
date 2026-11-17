@@ -1163,6 +1163,15 @@ button {
   font-size: 11px;
 }
 
+.detail-copy {
+  display: flex;
+  gap: 6px;
+}
+
+.detail-copy .action {
+  flex: 1;
+}
+
 .detail-error {
   margin: 0;
   padding: 8px 10px;

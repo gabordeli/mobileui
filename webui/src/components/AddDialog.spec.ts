@@ -1,5 +1,5 @@
 import { flushPromises, mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as api from "../api";
 import { setLocale, t } from "../i18n";
@@ -17,6 +17,8 @@ beforeEach(() => {
   vi.mocked(api.addTorrentMagnet).mockResolvedValue({ id: "abc" });
   vi.mocked(api.addTorrentFile).mockResolvedValue({ id: "def" });
 });
+
+afterEach(() => localStorage.clear());
 
 function factory(overrides: Record<string, unknown> = {}) {
   return mount(AddDialog, {
@@ -51,6 +53,39 @@ describe("AddDialog", () => {
       "magnet:?xt=urn:btih:deadbeef",
       expect.any(Object),
     );
+  });
+
+  it("remembers the last path and label and resets the path", async () => {
+    localStorage.setItem("mobileui.add.path", "/saved/path");
+    localStorage.setItem("mobileui.add.label", "film");
+    const wrapper = factory();
+
+    expect(
+      (wrapper.get('input[type="text"]').element as HTMLInputElement).value,
+    ).toBe("/saved/path");
+    expect((wrapper.get("select").element as HTMLSelectElement).value).toBe(
+      "film",
+    );
+
+    await wrapper.get(".inline-field .action").trigger("click");
+
+    expect(
+      (wrapper.get('input[type="text"]').element as HTMLInputElement).value,
+    ).toBe("/data/downloads");
+    expect(localStorage.getItem("mobileui.add.path")).toBeNull();
+  });
+
+  it("stores the path and label after a successful add", async () => {
+    const wrapper = factory();
+    await wrapper.get("textarea").setValue("magnet:?xt=urn:btih:abc");
+    await wrapper.get('input[type="text"]').setValue("/new/path");
+    await wrapper.get("select").setValue("film");
+
+    await button(wrapper, t("add.submit")).trigger("click");
+    await flushPromises();
+
+    expect(localStorage.getItem("mobileui.add.path")).toBe("/new/path");
+    expect(localStorage.getItem("mobileui.add.label")).toBe("film");
   });
 
   it("prefills the default path and closes", async () => {

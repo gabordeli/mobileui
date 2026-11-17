@@ -78,6 +78,8 @@ Jelenlegi release: **v0.2.0** (GitLab + GitHub), az éles példányon telepítve
   detailben tracker lista és force reannounce.
 - **Hibakezelés:** a listán piros `Hiba` badge a state/message alapján; az
   `Error` szűrő a szűrősávban.
+- **Kényelmi:** az add sheet megjegyzi az utolsó útvonalat/labelt; a detailből
+  magnet/infohash másolható.
 
 ## 🧱 Felépítés
 

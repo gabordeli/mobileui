@@ -20,12 +20,40 @@ const emit = defineEmits<{
 const mode = ref<"magnet" | "file">("magnet");
 const magnet = ref(props.initialMagnet ?? "");
 const file = ref<File | null>(null);
-const label = ref("");
-const downloadLocation = ref(props.defaultPath);
+const STORAGE_PATH = "mobileui.add.path";
+const STORAGE_LABEL = "mobileui.add.label";
+
+function stored(key: string): string {
+  try {
+    return localStorage.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function store(key: string, value: string): void {
+  try {
+    if (value) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
+  } catch {
+    // Storage can be unavailable (private mode); the dialog still works.
+  }
+}
+
+const initialLabel = stored(STORAGE_LABEL);
+const label = ref(
+  props.labels.some((item) => item.id === initialLabel) ? initialLabel : "",
+);
+const downloadLocation = ref(stored(STORAGE_PATH) || props.defaultPath);
 const addPaused = ref(false);
 const loading = ref(false);
 const error = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
+
+function resetPath(): void {
+  store(STORAGE_PATH, "");
+  downloadLocation.value = props.defaultPath;
+}
 
 onMounted(() => closeButton.value?.focus());
 
@@ -56,6 +84,8 @@ async function submit(): Promise<void> {
       mode.value === "magnet"
         ? await api.addTorrentMagnet(magnet.value.trim(), options)
         : await api.addTorrentFile(file.value as File, options);
+    store(STORAGE_PATH, downloadLocation.value.trim());
+    store(STORAGE_LABEL, label.value);
     emit("added", result);
     emit("toast", t("toast.added"));
     emit("close");
@@ -147,13 +177,18 @@ async function submit(): Promise<void> {
 
           <label class="field">
             <span>{{ t("add.path") }}</span>
-            <input
-              v-model="downloadLocation"
-              type="text"
-              placeholder="/mnt/…"
-              autocapitalize="off"
-              spellcheck="false"
-            />
+            <div class="inline-field">
+              <input
+                v-model="downloadLocation"
+                type="text"
+                placeholder="/mnt/…"
+                autocapitalize="off"
+                spellcheck="false"
+              />
+              <button class="action" type="button" @click="resetPath">
+                {{ t("add.defaultPath") }}
+              </button>
+            </div>
             <small>{{ t("add.pathHint") }}</small>
           </label>
 

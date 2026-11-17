@@ -13,6 +13,8 @@
   to No label), plus a tracker list and force reannounce in the detail.
 - The torrent list shows an error badge when the state is `Error` or the
   status message is not `OK`; the `Error` filter is available in the UI.
+- The add sheet remembers the last path and label (clearable), and the detail
+  can copy the magnet link or the infohash to the clipboard.
 
 ## [0.2.0] - 2026-11-17
 

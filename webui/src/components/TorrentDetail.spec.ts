@@ -277,6 +277,27 @@ describe("TorrentDetail", () => {
     ]);
   });
 
+  it("copies the magnet and the infohash", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const wrapper = factory();
+    await flushPromises();
+
+    const buttons = wrapper.findAll(".detail-copy .action");
+    await buttons[0].trigger("click");
+    await flushPromises();
+
+    expect(writeText).toHaveBeenCalledWith(
+      `magnet:?xt=urn:btih:${detail.id}&dn=${encodeURIComponent(detail.name)}`,
+    );
+
+    await buttons[1].trigger("click");
+    await flushPromises();
+
+    expect(writeText).toHaveBeenLastCalledWith(detail.id);
+    expect(wrapper.emitted("toast")?.[0]).toEqual([t("toast.copied")]);
+  });
+
   it("applies live fields to the detail", async () => {
     const wrapper = factory();
     await flushPromises();

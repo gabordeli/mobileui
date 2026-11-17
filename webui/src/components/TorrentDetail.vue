@@ -188,6 +188,36 @@ async function reannounce(): Promise<void> {
   }
 }
 
+async function copyText(text: string): Promise<void> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      document.body.removeChild(area);
+    }
+    emit("toast", t("toast.copied"));
+  } catch {
+    emit("toast", t("toast.copyFailed"));
+  }
+}
+
+function copyMagnet(): void {
+  if (!detail.value) return;
+  const name = encodeURIComponent(detail.value.name);
+  void copyText(`magnet:?xt=urn:btih:${detail.value.id}&dn=${name}`);
+}
+
+function copyHash(): void {
+  if (detail.value) void copyText(detail.value.id);
+}
+
 async function saveLabel(): Promise<void> {
   actionLoading.value = true;
   actionError.value = "";
@@ -340,6 +370,15 @@ onMounted(() => {
           <div class="detail-path">
             <span>{{ t("detail.path") }}</span>
             <code>{{ detail.download_location || detail.save_path }}</code>
+          </div>
+
+          <div class="detail-copy">
+            <button class="action" @click="copyMagnet">
+              {{ t("detail.copyMagnet") }}
+            </button>
+            <button class="action" @click="copyHash">
+              {{ t("detail.copyHash") }}
+            </button>
           </div>
 
           <section v-if="detail.trackers.length" class="trackers">
