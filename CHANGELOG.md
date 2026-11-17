@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-17
+
 - Optional Deluge username/password login next to the static API token
   (`auth_mode`: `token` / `password` / `both`). Sessions are revocable, expire
   after 30 days and map Deluge auth levels, so a read-only (1) account can view
