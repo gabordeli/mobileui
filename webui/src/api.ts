@@ -2,6 +2,8 @@ import type {
   Labels,
   Session,
   Torrent,
+  TorrentDetail,
+  TorrentFiles,
   TorrentFilters,
   TorrentList,
 } from "./types";
@@ -87,6 +89,57 @@ export function listTorrents(
   if (filters.state) params.set("state", filters.state);
   if (filters.label) params.set("label", filters.label);
   return request<TorrentList>(`/api/torrents?${params.toString()}`);
+}
+
+export function getTorrent(id: string): Promise<TorrentDetail> {
+  return request<TorrentDetail>(`/api/torrents/${encodeURIComponent(id)}`);
+}
+
+export function getTorrentFiles(
+  id: string,
+  offset: number,
+  limit: number,
+): Promise<TorrentFiles> {
+  const params = new URLSearchParams({
+    offset: String(offset),
+    limit: String(limit),
+  });
+  return request<TorrentFiles>(
+    `/api/torrents/${encodeURIComponent(id)}/files?${params.toString()}`,
+  );
+}
+
+export interface AddTorrentOptions {
+  label?: string;
+  download_location?: string;
+  add_paused?: boolean;
+}
+
+export function addTorrentMagnet(
+  magnet: string,
+  options: AddTorrentOptions = {},
+): Promise<{ id: string }> {
+  return request("/api/torrents", {
+    method: "POST",
+    body: JSON.stringify({ magnet, ...options }),
+  });
+}
+
+export function addTorrentFile(
+  file: File,
+  options: AddTorrentOptions = {},
+): Promise<{ id: string }> {
+  const params = new URLSearchParams({ filename: file.name });
+  if (options.label) params.set("label", options.label);
+  if (options.download_location) {
+    params.set("download_location", options.download_location);
+  }
+  if (options.add_paused) params.set("add_paused", "true");
+  return request(`/api/torrents?${params.toString()}`, {
+    method: "POST",
+    headers: { "content-type": "application/x-bittorrent" },
+    body: file,
+  });
 }
 
 export function pauseTorrent(id: string): Promise<{ state: string }> {

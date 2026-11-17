@@ -16,10 +16,14 @@ class FakeTorrent:
         return {key: self.fields.get(key) for key in keys}
 
     def get_files(self):
-        return [{"index": 0, "path": "file.mkv", "size": 10, "offset": 0}]
+        return [
+            {"index": 0, "path": "file0.mkv", "size": 10, "offset": 0},
+            {"index": 1, "path": "file1.mkv", "size": 20, "offset": 10},
+            {"index": 2, "path": "file2.mkv", "size": 30, "offset": 30},
+        ]
 
     def get_file_progress(self):
-        return [0.5]
+        return [0.1, 0.2, 0.3]
 
 
 class FakeCore:
@@ -125,7 +129,7 @@ def test_list_validates_query(kwargs, message):
         read.list_torrents(make_core(), None, **kwargs)
 
 
-def test_detail_includes_label_and_files():
+def test_detail_includes_label_and_status_only():
     torrent = make_torrent("a", "Dune")
     core = make_core(torrent)
 
@@ -133,9 +137,40 @@ def test_detail_includes_label_and_files():
 
     assert result["id"] == "a"
     assert result["label"] == "movies"
-    assert result["files"][0]["path"] == "file.mkv"
-    assert result["file_progress"] == [0.5]
+    assert "files" not in result
+    assert "file_progress" not in result
     assert torrent.update_flags == [True]
+
+
+def test_files_are_paginated():
+    core = make_core(make_torrent("a", "Dune"))
+
+    result = read.get_files(core, "a", offset=1, limit=1)
+
+    assert result["total"] == 3
+    assert result["offset"] == 1
+    assert result["limit"] == 1
+    assert result["files"] == [
+        {"index": 1, "path": "file1.mkv", "size": 20, "offset": 10, "progress": 0.2}
+    ]
+
+
+@pytest.mark.parametrize(
+    "kwargs,message",
+    [
+        ({"limit": 0}, "limit must be"),
+        ({"limit": 501}, "limit must be"),
+        ({"offset": -1}, "offset must be"),
+    ],
+)
+def test_files_validate_query(kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        read.get_files(make_core(make_torrent("a", "Dune")), "a", **kwargs)
+
+
+def test_files_unknown_torrent():
+    with pytest.raises(KeyError):
+        read.get_files(make_core(), "missing")
 
 
 def test_session_returns_queue_and_count():

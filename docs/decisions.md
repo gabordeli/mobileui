@@ -120,3 +120,17 @@ state/label/sort szerveroldali. A token localStorage-ban van; az SSE
 Ellenőrzés a .27-en: 833 torrent, 50→100 betöltés scrollra, 360/390 px-en
 nincs vízszintes scroll, long-press sheet + label mentés toast, SSE
 számláló 834→833, nulla console error.
+
+## D10 – Detail: külön lapozott files API (2026-11-17)
+
+A `GET /api/torrents/{id}` válasza kicsi marad: a fájllista külön
+`GET /api/torrents/{id}/files?offset=&limit=` végponton jön, 100-as lapokkal
+(max 500), `{index, path, size, offset, progress}` mezőkkel. A detail UI ezt
+„További fájlok” gombbal lapozza (522 fájlos torrenten 100→200 ellenőrizve),
+így egy nagy torrent detailje nem hozza át egyszerre a teljes listát.
+
+Az add sheet magnetet vagy `.torrent` fájlt küld a write API-nak, labellel,
+abszolút `download_location`-nel és opcionális `add_paused`-dal; a default
+útvonal a session `download_location`. A .27-en UI-ból hozzáadott teszt torrent
+`Paused`/`filmek`/`/tmp/mobileui-add-test` állapotban jött létre, majd eltávolítva
+a 833-as darabszám visszaállt. Tap → detail, long-press → gyors műveletek.

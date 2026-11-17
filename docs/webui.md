@@ -40,9 +40,24 @@ minden kérés `Authorization: Bearer` headert kap. Az SSE `?token=` queryt hasz
 frissítik, a `session` delta a header számait/rate-jeit. Az `added`/`removed`
 események szűrő nélkül a totalt is korrigálják; reconnectet a böngésző intéz.
 
+## Detail és hozzáadás
+
+- A sorra koppintva teljes képernyős detail nyílik (`TorrentDetail.vue`):
+  progress, sebességek, peers/seeds, ETA, ratio, méret, mentési útvonal,
+  label, műveletek. A hosszú nyomás továbbra is a gyors context sheetet nyitja.
+- A fájllista külön, lapozott API-ból jön (`/api/torrents/{id}/files`,
+  100-as lapok, max 500); a detail csak a `num_files`-t hozza. 522 fájlos
+  torrentnél a „További fájlok” 100→200-at tölt.
+- Az add sheet (`AddDialog.vue`) magnetet vagy `.torrent` fájlt fogad, labelt,
+  abszolút mentési útvonalat és „szünetelve induljon” opciót. A default útvonal
+  a session `download_location` mezőjéből jön. Hibás magnet/fájl/mező esetén a
+  backend 400/409 üzenete jelenik meg.
+- A detail SSE-ből kapja a progress/rate/state frissítést; a listát és a detailt
+  a műveletek után a válasz + SSE szinkronban tartja.
+
 ## Ismert korlátok / következő
 
-- Detail nézet és add dialógus: #7.
 - PWA/manifest, HU/EN i18n, safe-area finomítás: #8.
 - A token localStorage-ban van (nem httpOnly cookie); a plugin LAN-only.
 - A lista végtelen scrollos, nincs „ugrás N. elemre"; a szűrők ezt kezelik.
+- A detail fájllistája „További fájlok” gombbal lapoz, nem virtualizált.

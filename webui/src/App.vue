@@ -12,9 +12,11 @@ import type {
   TorrentEvent,
   TorrentFilters,
 } from "./types";
+import AddDialog from "./components/AddDialog.vue";
 import ContextSheet from "./components/ContextSheet.vue";
 import FilterBar from "./components/FilterBar.vue";
 import TokenGate from "./components/TokenGate.vue";
+import TorrentDetail from "./components/TorrentDetail.vue";
 import TorrentRow from "./components/TorrentRow.vue";
 
 const PAGE_SIZE = 50;
@@ -31,6 +33,9 @@ const loadingMore = ref(false);
 const listError = ref("");
 const authError = ref("");
 const selected = ref<Torrent | null>(null);
+const detail = ref<Torrent | null>(null);
+const detailLive = ref<Record<string, unknown>>({});
+const addOpen = ref(false);
 const toast = ref("");
 const sseState = ref<"off" | "live" | "reconnecting">("off");
 const tokenInitial = ref(api.getToken());
@@ -164,6 +169,26 @@ function onLongPress(torrent: Torrent): void {
   selected.value = torrent;
 }
 
+function openDetail(torrent: Torrent): void {
+  detailLive.value = {};
+  detail.value = torrent;
+}
+
+function onDetailUpdated(payload: { id: string; fields: Record<string, unknown> }): void {
+  const row = torrents.value.find((item) => item.id === payload.id);
+  if (row) api.updateTorrent(row, payload.fields);
+}
+
+function onDetailRemoved(id: string): void {
+  torrents.value = torrents.value.filter((row) => row.id !== id);
+  total.value = Math.max(0, total.value - 1);
+  detail.value = null;
+}
+
+function onAdded(): void {
+  resetList();
+}
+
 watch(
   () => filters.q,
   () => {
@@ -191,11 +216,15 @@ function handleTorrentEvent(event: TorrentEvent): void {
       torrents.value.splice(index, 1);
       total.value = Math.max(0, total.value - 1);
     }
+    if (detail.value?.id === event.id) detail.value = null;
     return;
   }
   if (!event.id) return;
   const row = torrents.value.find((item) => item.id === event.id);
   if (row) api.updateTorrent(row, event.fields);
+  if (detail.value?.id === event.id) {
+    detailLive.value = { ...detailLive.value, ...event.fields };
+  }
 }
 
 function handleSessionEvent(event: TorrentEvent): void {
@@ -322,6 +351,9 @@ onBeforeUnmount(() => {
         <span>↑ {{ formatRate(upRate) }}</span>
         <span>{{ torrentCount }}</span>
       </div>
+      <button class="icon-button" aria-label="Torrent hozzáadása" @click="addOpen = true">
+        +
+      </button>
       <button class="icon-button" aria-label="Token beállítása" @click="showGate">
         ⚙
       </button>
@@ -348,7 +380,11 @@ onBeforeUnmount(() => {
         @update="onScrollerUpdate"
       >
         <template #default="{ item }">
-          <TorrentRow :torrent="item" @long-press="onLongPress" />
+          <TorrentRow
+            :torrent="item"
+            @long-press="onLongPress"
+            @select="openDetail"
+          />
         </template>
       </RecycleScroller>
       <div v-if="loading" class="list-state">Betöltés…</div>
@@ -363,6 +399,28 @@ onBeforeUnmount(() => {
       :no-label-count="noLabelCount"
       @close="selected = null"
       @action="applyAction"
+    />
+
+    <TorrentDetail
+      v-if="detail"
+      :torrent-id="detail.id"
+      :live-fields="detailLive"
+      :labels="labels"
+      :no-label-count="noLabelCount"
+      @close="detail = null"
+      @updated="onDetailUpdated"
+      @removed="onDetailRemoved"
+      @toast="showToast"
+    />
+
+    <AddDialog
+      v-if="addOpen"
+      :labels="labels"
+      :no-label-count="noLabelCount"
+      :default-path="session?.download_location ?? ''"
+      @close="addOpen = false"
+      @added="onAdded"
+      @toast="showToast"
     />
 
     <div v-if="toast" class="toast" role="status">{{ toast }}</div>

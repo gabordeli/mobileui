@@ -11,11 +11,16 @@ import {
 import type { Torrent } from "../types";
 
 const props = defineProps<{ torrent: Torrent }>();
-const emit = defineEmits<{ longPress: [torrent: Torrent] }>();
+const emit = defineEmits<{
+  longPress: [torrent: Torrent];
+  select: [torrent: Torrent];
+}>();
 
 let timer: ReturnType<typeof setTimeout> | null = null;
 let startX = 0;
 let startY = 0;
+let moved = false;
+let longPressed = false;
 
 const progress = computed(() => Math.max(0, Math.min(100, props.torrent.progress)));
 const paused = computed(() => props.torrent.state.includes("Paused"));
@@ -31,9 +36,12 @@ function onPointerDown(event: PointerEvent): void {
   if (event.button !== 0) return;
   startX = event.clientX;
   startY = event.clientY;
+  moved = false;
+  longPressed = false;
   clearTimer();
   timer = setTimeout(() => {
     timer = null;
+    longPressed = true;
     if ("vibrate" in navigator) {
       navigator.vibrate(10);
     }
@@ -43,8 +51,18 @@ function onPointerDown(event: PointerEvent): void {
 
 function onPointerMove(event: PointerEvent): void {
   if (Math.abs(event.clientX - startX) > 10 || Math.abs(event.clientY - startY) > 10) {
+    moved = true;
     clearTimer();
   }
+}
+
+function onClick(): void {
+  if (longPressed || moved) {
+    longPressed = false;
+    moved = false;
+    return;
+  }
+  emit("select", props.torrent);
 }
 
 onBeforeUnmount(clearTimer);
@@ -58,6 +76,7 @@ onBeforeUnmount(clearTimer);
     @pointerup="clearTimer"
     @pointercancel="clearTimer"
     @pointerleave="clearTimer"
+    @click="onClick"
     @contextmenu.prevent
   >
     <div class="row-top">

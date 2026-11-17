@@ -16,7 +16,9 @@ HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n
   reconnect; a token query paraméterben is adható.
 - **M2 / #6 kész:** Vue 3 + Vite + TS SPA a `data/`-ban, 50-es lapok +
   virtualizált végtelen scroll, kereső/szűrők, long-press sheet, SSE élő lista.
-- Következik: M2 / #7 hozzáadás + torrent detail.
+- **M2 / #7 kész:** torrent detail (peers/ETA/ratio/útvonal), lapozott
+  fájllista, add sheet magnet/.torrent + label + útvonal.
+- Következik: M2 / #8 mobil/PWA polish.
 
 ## Felépítés
 

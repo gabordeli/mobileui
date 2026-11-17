@@ -249,6 +249,28 @@ class QueueActionResource(ApiJsonResource):
         return self.write_json(request, 200, payload)
 
 
+class TorrentFilesResource(ApiJsonResource):
+    isLeaf = True
+
+    def __init__(self, plugin, torrent_id):
+        super().__init__(plugin)
+        self.torrent_id = torrent_id
+
+    def render_GET(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        try:
+            offset = int(query_arg(request, "offset", "0"))
+            limit = int(query_arg(request, "limit", "100"))
+            payload = self.plugin.get_torrent_files(self.torrent_id, offset, limit)
+        except (KeyError, ValueError, TypeError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
 class TorrentResource(ApiJsonResource):
     def __init__(self, plugin, torrent_id):
         super().__init__(plugin)
@@ -264,6 +286,8 @@ class TorrentResource(ApiJsonResource):
             return RemoveActionResource(self.plugin, self.torrent_id)
         if action == "queue":
             return QueueActionResource(self.plugin, self.torrent_id)
+        if action == "files":
+            return TorrentFilesResource(self.plugin, self.torrent_id)
         return NotFoundResource()
 
     def render_GET(self, request):

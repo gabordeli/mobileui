@@ -58,6 +58,11 @@ class Core(CorePluginBase):
 
         return read.get_torrent(component.get("Core"), self._label_plugin(), torrent_id)
 
+    def get_torrent_files(self, torrent_id, offset=0, limit=100):
+        from . import read
+
+        return read.get_files(component.get("Core"), torrent_id, offset, limit)
+
     def get_session(self):
         from . import read
 

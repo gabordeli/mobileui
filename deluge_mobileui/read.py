@@ -87,6 +87,8 @@ QUEUE_KEYS = [
 
 MAX_LIMIT = 200
 DEFAULT_LIMIT = 50
+MAX_FILES_LIMIT = 500
+DEFAULT_FILES_LIMIT = 100
 
 
 def _label_plugin_labels(label_plugin):
@@ -164,14 +166,39 @@ def get_torrent(core, label_plugin, torrent_id):
     status = torrent.get_status(DETAIL_KEYS, update=True)
     status["id"] = torrent_id
     status["label"] = _label_plugin_labels(label_plugin).get(torrent_id, NO_LABEL)
-    status["files"] = torrent.get_files()
-    status["file_progress"] = torrent.get_file_progress()
     return status
+
+
+def get_files(core, torrent_id, offset=0, limit=100):
+    offset = int(offset)
+    limit = int(limit)
+    if offset < 0:
+        raise ValueError("offset must be >= 0")
+    if not 1 <= limit <= MAX_FILES_LIMIT:
+        raise ValueError(f"limit must be between 1 and {MAX_FILES_LIMIT}")
+
+    torrent = core.torrentmanager.torrents[torrent_id]
+    files = torrent.get_files()
+    progress = torrent.get_file_progress()
+    rows = []
+    for index, entry in enumerate(files):
+        row = dict(entry)
+        row["progress"] = progress[index] if index < len(progress) else 0.0
+        rows.append(row)
+    total = len(rows)
+    return {
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "files": rows[offset : offset + limit],
+    }
 
 
 def get_session(core):
     status = core.get_session_status(SESSION_KEYS)
-    status["queue"] = core.get_config_values(QUEUE_KEYS)
+    config = core.get_config_values([*QUEUE_KEYS, "download_location"])
+    status["queue"] = {key: config[key] for key in QUEUE_KEYS}
+    status["download_location"] = config["download_location"]
     status["num_torrents"] = len(core.torrentmanager.torrents)
     status["version"] = _deluge_version()
     try:

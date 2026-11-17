@@ -636,3 +636,374 @@ button {
     transition: none;
   }
 }
+
+/* Detail view */
+.detail-backdrop {
+  position: fixed;
+  z-index: 25;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  max-width: 720px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding-top: env(safe-area-inset-top);
+  background: var(--bg);
+}
+
+.detail-head {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(11, 13, 16, 0.94);
+  backdrop-filter: blur(12px);
+}
+
+.detail-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-title h2 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-title p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px 14px calc(24px + env(safe-area-inset-bottom));
+}
+
+.detail-state {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  min-height: 40dvh;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.detail-state.small {
+  min-height: 60px;
+  font-size: 12px;
+}
+
+.detail-progress {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.detail-progress-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-progress-head strong {
+  color: var(--text);
+  font-size: 18px;
+}
+
+.detail-message {
+  margin: 8px 0 0;
+  color: var(--up);
+  font-size: 11px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stats-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.stats-grid span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.stats-grid strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.down {
+  color: var(--down) !important;
+}
+
+.up {
+  color: var(--up) !important;
+}
+
+.detail-path {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.detail-path span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.detail-path code {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 11px;
+}
+
+.detail-error {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #6b2b2b;
+  border-radius: 10px;
+  background: #3a1b1b;
+  color: #ffb4b4;
+  font-size: 12px;
+}
+
+.detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.files {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.files-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.files-head h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.files-head h3 small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.files-head > span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.files-empty {
+  margin: 10px 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.file-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(36, 44, 57, 0.6);
+}
+
+.file-main {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.file-path {
+  flex: 1;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  flex: none;
+  color: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.file-progress {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.file-progress .progress-track {
+  flex: 1;
+  margin: 0;
+}
+
+.files-more {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.detail-remove {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* Add dialog */
+.add-sheet {
+  max-height: 92dvh;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.segment {
+  padding: 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.segment.active {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.field textarea,
+.field > input[type="text"],
+.field > input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+}
+
+.field textarea {
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+}
+
+.field > input[type="file"] {
+  padding: 8px;
+  font-size: 12px;
+}
+
+.field small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.field select {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.add-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+button:disabled {
+  opacity: 0.55;
+}
+
+.torrent-row {
+  cursor: pointer;
+}

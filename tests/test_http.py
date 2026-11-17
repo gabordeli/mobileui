@@ -100,6 +100,19 @@ class StubPlugin:
             raise KeyError(torrent_id)
         return {"id": torrent_id, "name": "Example"}
 
+    def get_torrent_files(self, torrent_id, offset, limit):
+        if torrent_id == "missing":
+            raise KeyError(torrent_id)
+        if limit < 1:
+            raise ValueError("limit must be between 1 and 500")
+        self.write_calls.append(("files", torrent_id, offset, limit))
+        return {
+            "total": 3,
+            "offset": offset,
+            "limit": limit,
+            "files": [{"index": 0, "path": "file.mkv", "size": 10, "progress": 1.0}],
+        }
+
     def get_session(self):
         return {"version": "2.2.0", "num_torrents": 0}
 
@@ -492,3 +505,32 @@ def test_root_without_build_returns_json_404(tmp_path, monkeypatch):
 
     assert request.responseCode == 404
     assert json.loads(body)["error"] == "not_found"
+
+
+def test_torrent_files_are_paginated():
+    plugin = StubPlugin(authorized=True)
+    torrent = torrent_resource(plugin)
+    request = DummyRequest([b"api", b"torrents", b"abc", b"files"])
+    request.args = {b"offset": [b"1"], b"limit": [b"5"]}
+
+    body = torrent.getChild(b"files", request).render_GET(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body)["total"] == 3
+    assert plugin.write_calls[-1] == ("files", "abc", 1, 5)
+
+
+def test_torrent_files_errors():
+    plugin = StubPlugin(authorized=True)
+    torrent = torrent_resource(plugin)
+
+    request = DummyRequest([b"api", b"torrents", b"abc", b"files"])
+    request.args = {b"limit": [b"0"]}
+    body = torrent.getChild(b"files", request).render_GET(request)
+    assert request.responseCode == 400
+    assert json.loads(body)["error"] == "bad_request"
+
+    missing = torrent_resource(plugin, "missing")
+    request = DummyRequest([b"api", b"torrents", b"missing", b"files"])
+    missing.getChild(b"files", request).render_GET(request)
+    assert request.responseCode == 404

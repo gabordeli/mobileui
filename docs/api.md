@@ -50,6 +50,7 @@ Tokenes index:
   },
   "num_torrents": 833,
   "version": "2.2.0",
+  "download_location": "/home/gabor/Letöltések",
   "paused": false
 }
 ```
@@ -122,11 +123,32 @@ Egy torrent részletes státusza. A `get_status` mezői mellett:
 | --- | --- |
 | `id` | torrent hash |
 | `label` | label id vagy `No Label` |
-| `files` | `[{index, path, size, offset}]` |
-| `file_progress` | fájlonkénti progress (0–1) |
+| `num_files` | fájlok száma |
 
-Ismeretlen id → `404 {"error": "not_found", ...}`. A `files` csak itt van, a
-listában nem.
+Ismeretlen id → `404 {"error": "not_found", ...}`. A fájllista külön, lapozott
+endpointon jön (lásd alább), így a detail válasz kicsi marad.
+
+## GET /api/torrents/{id}/files
+
+Lapozott fájllista (csak detailhez; a listában nincs):
+
+| Param | Alap | Leírás |
+| --- | --- | --- |
+| `offset` | `0` | >= 0 |
+| `limit` | `100` | 1–500 |
+
+```json
+{
+  "total": 522,
+  "offset": 100,
+  "limit": 100,
+  "files": [
+    {"index": 100, "path": "dir/file.mkv", "size": 12345, "offset": 0, "progress": 1.0}
+  ]
+}
+```
+
+A `progress` 0–1. Ismeretlen torrent → 404, hibás limit/offset → 400.
 
 ## POST /api/torrents/{id}/pause
 
@@ -246,7 +268,7 @@ Utána torrent-delták (`event: torrent`) és session-delták (`event: session`)
 ## M1 végpontok
 
 Az M1 összes végpontja implementálva: `/health`, `/api/session`, `/api/labels`,
-`/api/torrents`, `/api/torrents/{id}` (GET/PATCH), a torrent-műveletek
+`/api/torrents`, `/api/torrents/{id}` (GET/PATCH), `/api/torrents/{id}/files`, a torrent-műveletek
 (`pause`, `resume`, `remove`, `queue`), `POST /api/torrents` és `/api/events`.
 
 ## Hibák
