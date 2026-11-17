@@ -170,3 +170,19 @@ limit kulcsa.
 Korlát: a Deluge `auth` fájl plaintext jelszót tárol; a session a daemon
 restartjakor elveszik; a `deluge-web` saját `web.conf` jelszava külön rendszer,
 azt nem használjuk.
+
+## D13 – Deluge 2.x kompatibilitás CI-ből (2026-11-17)
+
+A `test` job a `tests/stubs/` shimekkel fut (gyors, Deluge nélkül), ezért a
+valódi `deluge.*` API-változásokat külön **`deluge-compat`** job fogja meg:
+Dockerben `deluge==2.0.3` (Python 3.9), `2.1.1` és `2.2.0` (Python 3.11) +
+`libtorrent`, majd a teljes `tests/` suite. A 2.0.3 a régi Python-igénye miatt
+3.9-en fut; a másik kettő 3.11-en. A mátrix a plugin által ténylegesen
+használt szimbólumokra épül (`AuthManager.authorize`, `Core.pause_session` /
+`resume_session` / `get_free_space`, `Torrent.get_status/files`,
+`AUTH_LEVEL_*`).
+
+Az authz mátrix (minden módosító endpoint read-only → 403, normal → 200/201) és
+a `?token=` query naplózási szabálya (`$uri`, nem `$request`) ugyanezt a
+biztonsági vonalat erősíti; a részletek a `docs/ci.md` és `docs/api.md`
+dokumentumban.

@@ -13,6 +13,11 @@
 - Session sheet from the header stats: free space, torrent count, rates and a
   one-tap pause/resume for the whole session (`/api/session/pause|resume`).
   Read-only accounts see the stats without the action.
+- Authorization matrix tests for every mutating endpoint (read-only → 403,
+  normal → 200/201) and a documented `$uri` proxy log format so the SSE
+  `?token=` never reaches access logs.
+- `deluge-compat` CI job running the backend suite against real Deluge 2.0.3,
+  2.1.1 and 2.2.0.
 
 ## [0.1.3] - 2026-11-17
 

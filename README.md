@@ -2,7 +2,8 @@
 
 Mobil-first web UI Deluge-hez, **core pluginként a `deluged`-ben** futva. A saját
 HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n.
-Deluge **2.x** (Python 3.10+), élesben **2.2.0**-val tesztelve; 1.x nem támogatott.
+Deluge **2.x** (Python 3.10+), élesben **2.2.0**-val tesztelve; a CI a backend
+suite-ot valódi Deluge 2.0.3 / 2.1.1 / 2.2.0 ellen is futtatja. 1.x nem támogatott.
 
 [![Release](https://img.shields.io/badge/release-v0.1.3-2ea44f?style=flat-square)](https://github.com/gabordeli/mobileui/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square)](LICENSE)

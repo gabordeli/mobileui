@@ -75,6 +75,19 @@ webui-e2e:
       - webui/test-results/
     expire_in: 1 week
 
+# A backend suite a valódi Deluge API ellen, több 2.x verzióval. Ez fogja
+# meg, ha egy általunk használt szimbólum/szignatúra megváltozik.
+deluge-compat:
+  stage: test
+  parallel:
+    matrix:
+      - DELUGE_VERSION: ["2.0.3"]
+        PY_IMAGE: ["python:3.9-slim"]
+      - DELUGE_VERSION: ["2.1.1", "2.2.0"]
+        PY_IMAGE: ["python:3.11-slim"]
+  script:
+    - docker run --rm -e PYTHONDONTWRITEBYTECODE=1 -e DELUGE_VERSION="$DELUGE_VERSION" -v "$PWD:/work" -w /work "$PY_IMAGE" bash -lc 'pip install -q "deluge==$DELUGE_VERSION" libtorrent pytest twisted && python -m pytest -q -p no:cacheprovider tests'
+
 sonar:
   stage: quality
   dependencies: [test, webui-test]

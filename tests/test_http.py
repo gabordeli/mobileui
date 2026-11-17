@@ -280,6 +280,99 @@ def test_session_actions_require_auth_and_write_level():
     assert plugin.write_calls == []
 
 
+def mutation_cases(plugin):
+    session = api_child(plugin, b"session")
+    torrent = torrent_resource(plugin)
+    torrents = api_child(plugin, b"torrents")
+
+    def case(name, resource, method, path, payload=None):
+        request = post_request(path)
+        if payload is not None:
+            request.content = io.BytesIO(json.dumps(payload).encode("utf-8"))
+        return (name, resource, method, request)
+
+    def child(resource, action, path):
+        return resource.getChildWithDefault(action, DummyRequest(path))
+
+    return [
+        case(
+            "session pause",
+            child(session, b"pause", [b"api", b"session", b"pause"]),
+            "render_POST",
+            [b"api", b"session", b"pause"],
+        ),
+        case(
+            "session resume",
+            child(session, b"resume", [b"api", b"session", b"resume"]),
+            "render_POST",
+            [b"api", b"session", b"resume"],
+        ),
+        case(
+            "torrent pause",
+            child(torrent, b"pause", [b"api", b"torrents", b"abc", b"pause"]),
+            "render_POST",
+            [b"api", b"torrents", b"abc", b"pause"],
+        ),
+        case(
+            "torrent resume",
+            child(torrent, b"resume", [b"api", b"torrents", b"abc", b"resume"]),
+            "render_POST",
+            [b"api", b"torrents", b"abc", b"resume"],
+        ),
+        case(
+            "torrent remove",
+            child(torrent, b"remove", [b"api", b"torrents", b"abc", b"remove"]),
+            "render_POST",
+            [b"api", b"torrents", b"abc", b"remove"],
+            {"remove_data": True},
+        ),
+        case(
+            "torrent queue",
+            child(torrent, b"queue", [b"api", b"torrents", b"abc", b"queue"]),
+            "render_POST",
+            [b"api", b"torrents", b"abc", b"queue"],
+            {"action": "top"},
+        ),
+        case(
+            "torrent label",
+            torrent,
+            "render_PATCH",
+            [b"api", b"torrents", b"abc"],
+            {"label": "No Label"},
+        ),
+        case(
+            "add torrent",
+            torrents,
+            "render_POST",
+            [b"api", b"torrents"],
+            {"magnet": "magnet:?x"},
+        ),
+    ]
+
+
+def test_every_mutation_rejects_readonly_level():
+    plugin = StubPlugin(authorized=True, level=1)
+
+    for name, resource, method, request in mutation_cases(plugin):
+        body = getattr(resource, method)(request)
+        assert request.responseCode == 403, name
+        assert json.loads(body)["error"] == "forbidden", name
+
+    assert plugin.write_calls == []
+
+
+def test_every_mutation_allows_normal_level():
+    plugin = StubPlugin(authorized=True, level=5)
+    cases = mutation_cases(plugin)
+
+    for name, resource, method, request in cases:
+        body = getattr(resource, method)(request)
+        assert request.responseCode in (200, 201), name
+        assert "error" not in json.loads(body), name
+
+    assert len(plugin.write_calls) == len(cases)
+
+
 def test_torrents_forwards_filters_and_pagination():
     plugin = StubPlugin(authorized=True)
     torrents = api_child(plugin, b"torrents")

@@ -313,6 +313,11 @@ SSE (`text/event-stream`) élő frissítés. A token vagy `Authorization: Bearer
 headerben, vagy `?token=<token>` query paraméterben adható (az `EventSource`
 nem tud egyedi headert küldeni). A stream a kapcsolat bontásáig nyitva marad.
 
+> **Naplózás:** a token a query stringben utazik, ezért a proxy access
+> logjában `$uri`-t kell naplózni, nem `$request`-et (utóbbi a queryt is
+> tartalmazza). A plugin saját logja nem naplózza a requestet; a `.228`
+> nginx `$uri` logformatet használ.
+
 Első esemény:
 
 ```text

@@ -99,6 +99,20 @@ közvetlen `:8113` sima HTTP. A proxyban add át az
 `X-Forwarded-For: $proxy_add_x_forwarded_for` headert, különben minden kliens a
 proxy IP-jével esik a limit alá.
 
+Az SSE `?token=` query stringben megy, ezért a proxy access logjában **`$uri`-t**
+naplózz, ne `$request`-et:
+
+```nginx
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+log_format mobileui '$remote_addr - $remote_user [$time_local] '
+                    '"$request_method $uri $server_protocol" $status '
+                    '$body_bytes_sent "$http_referer" "$http_user_agent"';
+access_log /var/log/nginx/mobileui.access.log mobileui;
+```
+
+A plugin saját logja nem naplózza a requestet, így a token ott sem jelenik meg.
+
 A `sentry_dsn` üresen hagyva nem küld eseményt; kitöltve a plugin a Bugsinkbe
 küldi a Twisted kivételeket (`release` = plugin verzió, `environment=production`).
 A DSN nem kerül a logba; a `set_config` élőben átállítja, a `sentry-sdk`-t az

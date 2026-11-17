@@ -10,6 +10,7 @@
 | test | `test` | `pytest` + `pytest-cov`; Deluge nélkül a `tests/stubs/` shimek; artifact: `coverage.xml` |
 | test | `webui-test` | Vitest + `@vitest/coverage-v8`; artifact: `webui/coverage/lcov.info` |
 | test | `webui-e2e` | Playwright smoke a hivatalos Playwright Docker image-ben |
+| test | `deluge-compat` | a backend suite valódi Deluge API ellen: 2.0.3 / 2.1.1 / 2.2.0 (Docker) |
 | quality | `sonar` | SonarQube main-branch elemzés a Docker scannerrel; report-only |
 | build | `build` | `npm run build`, `python -m build`, `package.sh`; artifact: `dist/` (sdist/wheel/egg/sha256), `data/` |
 | release | `release` | manuális; `RELEASE_TYPE=patch|minor|major`; verzióbump + CHANGELOG + tag + egg feltöltés + GitLab Release |
@@ -33,7 +34,7 @@
 ## Coverage
 
 - A `test` job `--cov-fail-under=80`-cal fut; a mostani backend fedettség 84%
-  (126 teszt).
+  (129 teszt).
 - A `webui-test` Vitest threshold-jei: statements 75, branches 65, functions 75,
   lines 78; a mostani 80.82 / 71.58 / 80.00 / 83.83 (92 teszt, `.vue`-kkal).
 - A GitLab a `coverage:` regexszel a joblogból olvassa a számot, és a pipeline /
@@ -41,6 +42,23 @@
 - A Sonar továbbra is report-only; a `sonar.qualitygate.wait=true` külön döntés
   (a gate-et előbb tuningolni kell).
 - A `types.ts` type-only, 0% coverage-e normális; nem kell tesztelni.
+
+## Deluge kompatibilitás
+
+A `deluge-compat` job a backend suite-ot **valódi Deluge** ellen futtatja, nem a
+stubok ellen, három 2.x verzión:
+
+| Deluge | Python image |
+| --- | --- |
+| 2.0.3 | `python:3.9-slim` |
+| 2.1.1 | `python:3.11-slim` |
+| 2.2.0 | `python:3.11-slim` |
+
+A konténerben `pip install deluge==<ver> libtorrent pytest twisted`, majd
+`pytest -q tests`. Így a plugin által használt `deluge.*` szimbólumok és
+szignatúrák változása (pl. `AuthManager.authorize`, `Core.pause_session`,
+`deluge.common.AUTH_LEVEL_*`) azonnal kiderül. A helyi `test` job továbbra is a
+stubokkal fut (gyors, Deluge nélkül); a kettő együtt adja a lefedettséget.
 
 ## E2E
 
