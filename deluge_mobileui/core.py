@@ -140,6 +140,25 @@ class Core(CorePluginBase):
 
         return write.set_session_paused(component.get("Core"), False)
 
+    def set_session_limits(self, max_download_speed=None, max_upload_speed=None):
+        from . import write
+
+        return write.set_session_limits(
+            component.get("Core"), max_download_speed, max_upload_speed
+        )
+
+    def set_torrent_limits(
+        self, torrent_id, max_download_speed=None, max_upload_speed=None
+    ):
+        from . import write
+
+        return write.set_torrent_limits(
+            component.get("Core"),
+            torrent_id,
+            max_download_speed,
+            max_upload_speed,
+        )
+
     def pause_torrent(self, torrent_id):
         from . import write
 

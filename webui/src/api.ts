@@ -6,6 +6,8 @@ import type {
   FilePriorityResult,
   Health,
   Labels,
+  LimitPayload,
+  LimitState,
   LoginResult,
   Session,
   Torrent,
@@ -115,6 +117,13 @@ export function resumeSession(): Promise<{ paused: boolean }> {
   return request("/api/session/resume", { method: "POST" });
 }
 
+export function setSessionLimits(payload: LimitPayload): Promise<LimitState> {
+  return request<LimitState>("/api/session/limits", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function getLabels(): Promise<Labels> {
   return request<Labels>("/api/labels");
 }
@@ -175,6 +184,16 @@ export function setFilePriorities(
 ): Promise<FilePriorityResult> {
   return request<FilePriorityResult>(
     `/api/torrents/${encodeURIComponent(id)}/files`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
+}
+
+export function setTorrentLimits(
+  id: string,
+  payload: LimitPayload,
+): Promise<LimitState & { id: string }> {
+  return request<LimitState & { id: string }>(
+    `/api/torrents/${encodeURIComponent(id)}/limits`,
     { method: "PATCH", body: JSON.stringify(payload) },
   );
 }

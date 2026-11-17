@@ -22,7 +22,9 @@ import {
   resumeTorrent,
   setFilePriorities,
   setLabel,
+  setSessionLimits,
   setToken,
+  setTorrentLimits,
 } from "./api";
 
 function jsonResponse(payload: unknown, status = 200): Response {
@@ -237,6 +239,37 @@ describe("torrent actions", () => {
     expect(path).toBe("/api/torrents/abc/files");
     expect(init.method).toBe("PATCH");
     expect(init.body).toBe(JSON.stringify({ only: 1 }));
+  });
+
+  it("patches the session limits", async () => {
+    const fetchMock = mockFetch({
+      max_download_speed: 512,
+      max_upload_speed: 128,
+    });
+
+    await setSessionLimits({ max_download_speed: 512, max_upload_speed: 128 });
+
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/session/limits");
+    expect(init.method).toBe("PATCH");
+    expect(init.body).toBe(
+      JSON.stringify({ max_download_speed: 512, max_upload_speed: 128 }),
+    );
+  });
+
+  it("patches the torrent limits", async () => {
+    const fetchMock = mockFetch({
+      id: "abc",
+      max_download_speed: 0,
+      max_upload_speed: -1,
+    });
+
+    await setTorrentLimits("abc", { max_download_speed: 0 });
+
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/torrents/abc/limits");
+    expect(init.method).toBe("PATCH");
+    expect(init.body).toBe(JSON.stringify({ max_download_speed: 0 }));
   });
 
   it("loads the labels", async () => {

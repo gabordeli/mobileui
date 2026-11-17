@@ -21,7 +21,7 @@ hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 ## Tesztek
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, komponensek, theme,
-  api, format, i18n, main); 99 teszt, a coverage threshold a `vite.config.ts`-ben.
+  api, format, i18n, main); 105 teszt, a coverage threshold a `vite.config.ts`-ben.
 - `npm run test:e2e` — Playwright smoke: token-kapu, fiók login, read-only UI,
   lista+detail, fájlprioritás, session sheet, bulk selection, add sheet. Az API-t
   `page.route` mockolja, ezért Deluge nélkül fut; az első futás előtt
@@ -82,6 +82,8 @@ események szűrő nélkül a totalt is korrigálják; reconnectet a böngésző
   (`PATCH /api/torrents/{id}/files`); a kihagyott fájl `Kihagyva` jelzést kap.
   A kereső a **betöltött** fájlok path-jaira szűr (kliensoldali), és jelzi, ha
   még vannak be nem töltött fájlok.
+- A detailben torrentenkénti **sebességkorlát** is állítható (KiB/s; `-1` = a
+  globális érték, `0` = korlátlan) a `PATCH /api/torrents/{id}/limits`-en.
 - Az add sheet (`AddDialog.vue`) magnetet vagy `.torrent` fájlt fogad, labelt,
   abszolút mentési útvonalat és „szünetelve induljon” opciót. A default útvonal
   a session `download_location` mezőjéből jön. Hibás magnet/fájl/mező esetén a
@@ -110,9 +112,10 @@ események szűrő nélkül a totalt is korrigálják; reconnectet a böngésző
 A fejléc stats sávja (↓/↑/darabszám) gomb: session sheetet nyit. Mutatja a
 `download_location` szabad helyét, a torrentszámot, a le/fel rate-et és a
 session állapotát; a gomb az **összes** torrentet szünetelteti vagy folytatja
-(`POST /api/session/pause|resume`). Read-only fióknál csak a note látszik. A
-válasz `paused` mezője alapján a gomb felirata azonnal vált; a listát az SSE
-delta frissíti.
+(`POST /api/session/pause|resume`). A sheetben **globális sebességkorlát**
+állítható (KiB/s, -1 = korlátlan), **Éjszakai mód** (512/128) és **Korlátlan**
+presetekkel. Read-only fióknál csak a note látszik. A válasz `paused` mezője
+alapján a gomb felirata azonnal vált; a listát az SSE delta frissíti.
 
 ## Ismert korlátok / következő
 

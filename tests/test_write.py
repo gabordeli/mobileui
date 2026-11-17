@@ -13,6 +13,9 @@ class FakeTorrent:
         self.files = [{"index": 0, "path": "a"}, {"index": 1, "path": "b"}]
         self.priorities = [4, 4]
         self.set_priorities_calls = []
+        self.max_download_speed = -1
+        self.max_upload_speed = -1
+        self.set_speed_calls = []
 
     def get_files(self):
         return self.files
@@ -23,6 +26,20 @@ class FakeTorrent:
     def set_file_priorities(self, priorities):
         self.priorities = list(priorities)
         self.set_priorities_calls.append(list(priorities))
+
+    def set_max_download_speed(self, value):
+        self.max_download_speed = value
+        self.set_speed_calls.append(("down", value))
+
+    def set_max_upload_speed(self, value):
+        self.max_upload_speed = value
+        self.set_speed_calls.append(("up", value))
+
+    def get_status(self, keys, update=False):
+        return {
+            "max_download_speed": self.max_download_speed,
+            "max_upload_speed": self.max_upload_speed,
+        }
 
 
 class FakeCore:
@@ -36,6 +53,14 @@ class FakeCore:
         self.add_error = None
         self.paused = False
         self.session = SimpleNamespace(is_paused=lambda: self.paused)
+        self.config = {"max_download_speed": -1.0, "max_upload_speed": -1.0}
+
+    def set_config(self, updates):
+        self.config.update(updates)
+        self.calls.append(("config", dict(updates)))
+
+    def get_config_values(self, keys):
+        return {key: self.config.get(key) for key in keys}
 
     def pause_session(self):
         self.calls.append(("pause_session",))
@@ -345,3 +370,49 @@ def test_file_priorities_validate_input():
     torrent.files = []
     with pytest.raises(write.Conflict):
         write.set_file_priorities(core, "abc", only=0)
+
+
+def test_session_limits_are_applied():
+    core = FakeCore()
+
+    result = write.set_session_limits(
+        core, max_download_speed=512, max_upload_speed=128
+    )
+
+    assert result == {"max_download_speed": 512, "max_upload_speed": 128}
+    assert core.config["max_download_speed"] == 512
+    assert core.calls[-1] == (
+        "config",
+        {"max_download_speed": 512, "max_upload_speed": 128},
+    )
+
+
+def test_torrent_limits_are_applied():
+    core = FakeCore()
+    torrent = core.torrentmanager["abc"]
+
+    result = write.set_torrent_limits(core, "abc", max_download_speed=0)
+
+    assert result == {
+        "id": "abc",
+        "max_download_speed": 0,
+        "max_upload_speed": -1,
+    }
+    assert torrent.set_speed_calls == [("down", 0)]
+
+
+def test_limits_validate_input():
+    core = FakeCore()
+
+    with pytest.raises(write.BadRequest):
+        write.set_session_limits(core)
+    with pytest.raises(write.BadRequest):
+        write.set_session_limits(core, max_download_speed=-2)
+    with pytest.raises(write.BadRequest):
+        write.set_session_limits(core, max_download_speed="x")
+    with pytest.raises(write.BadRequest):
+        write.set_torrent_limits(core, "abc")
+    with pytest.raises(write.BadRequest):
+        write.set_torrent_limits(core, "abc", max_upload_speed=-2)
+    with pytest.raises(KeyError):
+        write.set_torrent_limits(core, "missing", max_download_speed=0)

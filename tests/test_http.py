@@ -164,6 +164,27 @@ class StubPlugin:
         self.write_calls.append(("resume_session",))
         return {"paused": False}
 
+    def set_session_limits(self, max_download_speed=None, max_upload_speed=None):
+        self.write_calls.append(
+            ("limits", "session", max_download_speed, max_upload_speed)
+        )
+        return {
+            "max_download_speed": max_download_speed,
+            "max_upload_speed": max_upload_speed,
+        }
+
+    def set_torrent_limits(
+        self, torrent_id, max_download_speed=None, max_upload_speed=None
+    ):
+        self.write_calls.append(
+            ("limits", torrent_id, max_download_speed, max_upload_speed)
+        )
+        return {
+            "id": torrent_id,
+            "max_download_speed": max_download_speed,
+            "max_upload_speed": max_upload_speed,
+        }
+
     def list_torrent_ids(self, state=None, label=None, q=None):
         self.list_calls.append((state, label, q))
         return {"ids": ["abc"], "total": 1, "limit": 1000}
@@ -384,6 +405,20 @@ def mutation_cases(plugin):
             [b"api", b"torrents", b"abc", b"files"],
             {"files": [{"index": 0, "priority": 0}]},
         ),
+        case(
+            "session limits",
+            child(session, b"limits", [b"api", b"session", b"limits"]),
+            "render_PATCH",
+            [b"api", b"session", b"limits"],
+            {"max_download_speed": 512, "max_upload_speed": 128},
+        ),
+        case(
+            "torrent limits",
+            child(torrent, b"limits", [b"api", b"torrents", b"abc", b"limits"]),
+            "render_PATCH",
+            [b"api", b"torrents", b"abc", b"limits"],
+            {"max_download_speed": 0},
+        ),
     ]
 
 
@@ -476,6 +511,36 @@ def test_torrent_files_patch_forwards_the_body():
     assert request.responseCode == 200
     assert json.loads(body)["id"] == "abc"
     assert plugin.write_calls == [("files", "abc", None, 1)]
+
+
+def test_session_limits_patch_forwards_values():
+    plugin = StubPlugin(authorized=True)
+    session = api_child(plugin, b"session")
+    request = post_request([b"api", b"session", b"limits"])
+    request.method = b"PATCH"
+    request.content = io.BytesIO(
+        b'{"max_download_speed":512,"max_upload_speed":128}'
+    )
+
+    body = session.getChildWithDefault(b"limits", request).render_PATCH(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body)["max_download_speed"] == 512
+    assert plugin.write_calls == [("limits", "session", 512, 128)]
+
+
+def test_torrent_limits_patch_forwards_values():
+    plugin = StubPlugin(authorized=True)
+    torrent = torrent_resource(plugin)
+    request = post_request([b"api", b"torrents", b"abc", b"limits"])
+    request.method = b"PATCH"
+    request.content = io.BytesIO(b'{"max_download_speed":0}')
+
+    body = torrent.getChildWithDefault(b"limits", request).render_PATCH(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body)["id"] == "abc"
+    assert plugin.write_calls == [("limits", "abc", 0, None)]
 
 
 def test_torrents_forwards_filters_and_pagination():

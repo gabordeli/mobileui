@@ -45,7 +45,19 @@ export interface Session {
   free_space: number | null;
   version: string;
   download_location: string;
+  max_download_speed: number;
+  max_upload_speed: number;
   queue: Record<string, unknown>;
+}
+
+export interface LimitPayload {
+  max_download_speed?: number;
+  max_upload_speed?: number;
+}
+
+export interface LimitState {
+  max_download_speed: number;
+  max_upload_speed: number;
 }
 
 export interface TorrentDetail extends Torrent {
@@ -74,6 +86,8 @@ export interface TorrentDetail extends Torrent {
   active_time: number;
   seeding_time: number;
   finished_time: number;
+  max_download_speed: number;
+  max_upload_speed: number;
 }
 
 export interface TorrentFile {

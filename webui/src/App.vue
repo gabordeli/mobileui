@@ -12,6 +12,7 @@ import type {
   BulkActionPayload,
   GatePayload,
   LabelInfo,
+  LimitPayload,
   Session,
   Torrent,
   TorrentEvent,
@@ -400,6 +401,19 @@ async function toggleSession(): Promise<void> {
   }
 }
 
+async function applySessionLimits(payload: LimitPayload): Promise<void> {
+  try {
+    const result = await api.setSessionLimits(payload);
+    if (session.value) {
+      session.value.max_download_speed = result.max_download_speed;
+      session.value.max_upload_speed = result.max_upload_speed;
+    }
+    showToast(t("toast.limits"));
+  } catch (error) {
+    reportError(error);
+  }
+}
+
 function showGate(): void {
   tokenInitial.value = api.getToken();
   authError.value = "";
@@ -605,6 +619,7 @@ onBeforeUnmount(() => {
       :can-write="canWrite"
       @close="sessionOpen = false"
       @toggle="toggleSession"
+      @limits="applySessionLimits"
     />
 
     <SelectionBar

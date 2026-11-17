@@ -39,6 +39,7 @@ vi.mock("./api", () => {
     getSession: vi.fn(),
     pauseSession: vi.fn(),
     resumeSession: vi.fn(),
+    setSessionLimits: vi.fn(),
     getLabels: vi.fn(),
     listTorrents: vi.fn(),
     listTorrentIds: vi.fn(),
@@ -68,6 +69,8 @@ const session: Session = {
   free_space: 8 * 1024 ** 3,
   version: "2.2.0",
   download_location: "/data/downloads",
+  max_download_speed: -1,
+  max_upload_speed: -1,
   queue: {},
 };
 
@@ -128,6 +131,10 @@ beforeEach(() => {
   vi.mocked(api.getSession).mockResolvedValue(session);
   vi.mocked(api.pauseSession).mockResolvedValue({ paused: true });
   vi.mocked(api.resumeSession).mockResolvedValue({ paused: false });
+  vi.mocked(api.setSessionLimits).mockResolvedValue({
+    max_download_speed: -1,
+    max_upload_speed: -1,
+  });
   vi.mocked(api.getLabels).mockResolvedValue({ labels, no_label: 1 });
   vi.mocked(api.listTorrents).mockResolvedValue({
     total: 1,
@@ -336,7 +343,7 @@ describe("App", () => {
     expect(dialog.text()).toContain("8.00 GiB");
     expect(dialog.text()).toContain(t("session.pause"));
 
-    await dialog.get("button.action").trigger("click");
+    await dialog.get(".sheet-actions .action").trigger("click");
     await flushPromises();
 
     expect(api.pauseSession).toHaveBeenCalled();
@@ -420,6 +427,30 @@ describe("App", () => {
     expect(
       bar.findAll("button").some((item) => item.text() === t("bulk.pause")),
     ).toBe(false);
+  });
+
+  it("applies the global speed limits", async () => {
+    const wrapper = mountApp();
+    await flushPromises();
+
+    await wrapper
+      .get(`button[aria-label="${t("session.open")}"]`)
+      .trigger("click");
+
+    const dialog = wrapper.get(
+      `[role="dialog"][aria-label="${t("session.title")}"]`,
+    );
+    const inputs = dialog.findAll(".limits-row input");
+    await inputs[0].setValue(512);
+    await inputs[1].setValue(128);
+    await dialog.get(".limits-actions .action").trigger("click");
+    await flushPromises();
+
+    expect(api.setSessionLimits).toHaveBeenCalledWith({
+      max_download_speed: 512,
+      max_upload_speed: 128,
+    });
+    expect(wrapper.text()).toContain(t("toast.limits"));
   });
 
   it("opens the add dialog and the detail", async () => {

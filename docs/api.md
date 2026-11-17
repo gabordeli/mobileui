@@ -116,13 +116,16 @@ Tokenes index:
   "version": "2.2.0",
   "download_location": "/data/downloads",
   "paused": false,
-  "free_space": 53687091200
+  "free_space": 53687091200,
+  "max_download_speed": -1.0,
+  "max_upload_speed": -1.0
 }
 ```
 
 A `version` a Deluge verziója; a plugin verziója a `/health`-ben és a `/api`
 indexben van. A `free_space` a `download_location` szabad helye byte-ban
-(ha nem mérhető, `null`).
+(ha nem mérhető, `null`). A `max_*_speed` a globális limit KiB/s-ban;
+`-1` = korlátlan.
 
 ## POST /api/session/pause, /api/session/resume
 
@@ -132,6 +135,18 @@ Az összes torrent szüneteltetése / folytatása (write szint kell; read-only �
 ```json
 {"paused": true}
 ```
+
+## PATCH /api/session/limits
+
+Globális sebességkorlát (KiB/s; `-1` = korlátlan). Write szint, read-only → 403.
+Legalább az egyik mező kell:
+
+```json
+{"max_download_speed": 512, "max_upload_speed": 128}
+```
+
+`200 {"max_download_speed": 512.0, "max_upload_speed": 128.0}`; `-2` → 400.
+A Deluge `core.conf`-jába ír, a PreferencesManager callback azonnal alkalmazza.
 
 ## GET /api/labels
 
@@ -299,6 +314,19 @@ ismeretlen action → 400, ismeretlen torrent → 404.
 
 A label a Label plugin `set_torrent`-jén megy át, így a label opciói
 (`move_completed`, sebességlimitek, queue) a meglévő logika szerint érvényesülnek.
+
+## PATCH /api/torrents/{id}/limits
+
+Torrentenkénti sebességkorlát (KiB/s): `-1` = a globális érték, `0` =
+korlátlan, `>0` = limit. Write szint, read-only → 403; legalább az egyik mező
+kell:
+
+```json
+{"max_download_speed": 64, "max_upload_speed": 32}
+```
+
+`200 {"id": "...", "max_download_speed": 64.0, "max_upload_speed": 32.0}`;
+`-2` → 400. A `get_torrent` válaszban is megjelenik a két mező.
 
 ## POST /api/torrents/bulk
 

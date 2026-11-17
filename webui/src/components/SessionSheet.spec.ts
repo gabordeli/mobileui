@@ -18,6 +18,8 @@ const session: Session = {
   free_space: 1024 ** 3,
   version: "2.2.0",
   download_location: "/data/downloads",
+  max_download_speed: -1,
+  max_upload_speed: -1,
   queue: {},
 };
 
@@ -58,7 +60,7 @@ describe("SessionSheet", () => {
   it("emits toggle and close", async () => {
     const wrapper = factory();
 
-    await wrapper.get("button.action").trigger("click");
+    await wrapper.get(".sheet-actions .action").trigger("click");
     expect(wrapper.emitted("toggle")).toHaveLength(1);
 
     await wrapper
@@ -67,10 +69,39 @@ describe("SessionSheet", () => {
     expect(wrapper.emitted("close")).toHaveLength(1);
   });
 
+  it("emits the custom speed limits", async () => {
+    const wrapper = factory();
+    const inputs = wrapper.findAll(".limits-row input");
+
+    await inputs[0].setValue(512);
+    await inputs[1].setValue(128);
+    await wrapper.get(".limits-actions .action").trigger("click");
+
+    expect(wrapper.emitted("limits")?.[0]).toEqual([
+      { max_download_speed: 512, max_upload_speed: 128 },
+    ]);
+  });
+
+  it("applies the night mode and unlimited presets", async () => {
+    const wrapper = factory();
+    const buttons = wrapper.findAll(".limits-actions .action");
+
+    await buttons[1].trigger("click");
+    await buttons[2].trigger("click");
+
+    expect(wrapper.emitted("limits")?.[0]).toEqual([
+      { max_download_speed: 512, max_upload_speed: 128 },
+    ]);
+    expect(wrapper.emitted("limits")?.[1]).toEqual([
+      { max_download_speed: -1, max_upload_speed: -1 },
+    ]);
+  });
+
   it("hides the toggle for a read-only account", () => {
     const wrapper = factory({ canWrite: false });
 
     expect(wrapper.find("button.action").exists()).toBe(false);
+    expect(wrapper.find(".limits").exists()).toBe(false);
     expect(wrapper.get(".readonly-note").text()).toBe(t("auth.readonly"));
   });
 });

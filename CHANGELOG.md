@@ -5,6 +5,8 @@
 - File priorities in the torrent detail: a per-file download toggle and
   "Only this" (`PATCH /api/torrents/{id}/files`), plus a search box over the
   loaded file list.
+- Global and per-torrent speed limits (`PATCH /api/session/limits`,
+  `PATCH /api/torrents/{id}/limits`) with night-mode and unlimited presets.
 
 ## [0.2.0] - 2026-11-17
 

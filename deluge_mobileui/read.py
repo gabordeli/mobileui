@@ -56,6 +56,8 @@ DETAIL_KEYS = [
     "active_time",
     "seeding_time",
     "finished_time",
+    "max_download_speed",
+    "max_upload_speed",
 ]
 
 SORT_FIELDS = {
@@ -84,6 +86,8 @@ QUEUE_KEYS = [
     "max_active_limit",
     "queue_new_to_top",
 ]
+
+SPEED_KEYS = ["max_download_speed", "max_upload_speed"]
 
 MAX_LIMIT = 200
 DEFAULT_LIMIT = 50
@@ -214,9 +218,13 @@ def get_files(core, torrent_id, offset=0, limit=100):
 
 def get_session(core):
     status = core.get_session_status(SESSION_KEYS)
-    config = core.get_config_values([*QUEUE_KEYS, "download_location"])
+    config = core.get_config_values(
+        [*QUEUE_KEYS, "download_location", *SPEED_KEYS]
+    )
     status["queue"] = {key: config[key] for key in QUEUE_KEYS}
     status["download_location"] = config["download_location"]
+    for key in SPEED_KEYS:
+        status[key] = config[key]
     status["num_torrents"] = len(core.torrentmanager.torrents)
     status["version"] = _deluge_version()
     try:

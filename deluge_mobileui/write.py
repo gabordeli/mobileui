@@ -90,6 +90,62 @@ def set_label(core, label_plugin, torrent_id, label):
     return {"id": torrent_id, "label": label_id or NO_LABEL}
 
 
+def _limit(value, key):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        raise BadRequest(f"{key} must be a number") from None
+    if number < -1:
+        raise BadRequest(f"{key} must be -1 or >= 0")
+    return number
+
+
+def set_session_limits(
+    core, max_download_speed=None, max_upload_speed=None
+):
+    updates = {}
+    if max_download_speed is not None:
+        updates["max_download_speed"] = _limit(
+            max_download_speed, "max_download_speed"
+        )
+    if max_upload_speed is not None:
+        updates["max_upload_speed"] = _limit(max_upload_speed, "max_upload_speed")
+    if not updates:
+        raise BadRequest("at least one speed limit is required")
+
+    core.set_config(updates)
+    values = core.get_config_values(list(updates))
+    return {key: values[key] for key in updates}
+
+
+def set_torrent_limits(
+    core, torrent_id, max_download_speed=None, max_upload_speed=None
+):
+    torrent = _torrent(core, torrent_id)
+    down = (
+        _limit(max_download_speed, "max_download_speed")
+        if max_download_speed is not None
+        else None
+    )
+    up = (
+        _limit(max_upload_speed, "max_upload_speed")
+        if max_upload_speed is not None
+        else None
+    )
+    if down is None and up is None:
+        raise BadRequest("at least one speed limit is required")
+
+    if down is not None:
+        torrent.set_max_download_speed(down)
+    if up is not None:
+        torrent.set_max_upload_speed(up)
+
+    status = torrent.get_status(
+        ["max_download_speed", "max_upload_speed"], update=False
+    )
+    return {"id": torrent_id, **status}
+
+
 def set_file_priorities(core, torrent_id, changes=None, only=None):
     torrent = _torrent(core, torrent_id)
     files = torrent.get_files()

@@ -12,6 +12,8 @@ const session = {
   free_space: 8 * 1024 ** 3,
   version: "2.2.0",
   download_location: "/downloads",
+  max_download_speed: -1,
+  max_upload_speed: -1,
   queue: {},
 };
 
@@ -60,6 +62,8 @@ const detail = {
   active_time: 0,
   seeding_time: 0,
   finished_time: 0,
+  max_download_speed: -1,
+  max_upload_speed: -1,
 };
 
 const files = {
@@ -100,6 +104,10 @@ async function mockApi(
     switch (url.pathname) {
       case "/api/session":
         return route.fulfill({ json: session });
+      case "/api/session/limits":
+        return route.fulfill({
+          json: { max_download_speed: -1, max_upload_speed: -1 },
+        });
       case "/api/labels":
         return route.fulfill({ json: labels });
       case "/api/torrents":
@@ -112,6 +120,14 @@ async function mockApi(
         return route.fulfill({ json: { ok: 1, failed: [] } });
       case "/api/torrents/demo-movie":
         return route.fulfill({ json: detail });
+      case "/api/torrents/demo-movie/limits":
+        return route.fulfill({
+          json: {
+            id: "demo-movie",
+            max_download_speed: -1,
+            max_upload_speed: -1,
+          },
+        });
       case "/api/torrents/demo-movie/files":
         if (route.request().method() === "PATCH") {
           return route.fulfill({

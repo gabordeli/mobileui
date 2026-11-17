@@ -70,6 +70,8 @@ Jelenlegi release: **v0.2.0** (GitLab + GitHub), az éles példányon telepítve
   label/remove N torrentre, „Összes” a szűrőre illeszkedő id-kkel (max 1000).
 - **Fájlprioritás:** a detailben fájlonkénti letöltés-checkbox és „Csak ez”,
   kliensoldali fájllista-kereső; `PATCH /api/torrents/{id}/files`.
+- **Sebességkorlát:** globális és torrentenkénti limit (KiB/s, -1 = korlátlan),
+  éjszakai mód és korlátlan preset a session sheetben.
 
 ## 🧱 Felépítés
 

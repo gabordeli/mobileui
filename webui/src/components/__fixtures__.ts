@@ -43,6 +43,8 @@ export const detail: TorrentDetail = {
   active_time: 60,
   seeding_time: 0,
   finished_time: 0,
+  max_download_speed: -1,
+  max_upload_speed: -1,
 };
 
 export const files: TorrentFile[] = [

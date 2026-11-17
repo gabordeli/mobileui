@@ -210,3 +210,13 @@ változásokat alkalmazza, így a lapozott lista miatt a kliensnek nem kell az
 kiválasztottat 4-re állítja. A kereső kliensoldali, csak a betöltött fájlokra
 szűr (a lapozás miatt), és jelzi a betöltött/total arányt. Az 1/7
 (alacsony/magas) prioritás az API-ban elérhető, a UI egyelőre 0/4-et használ.
+
+## D16 – Sebességkorlát: globális vs. torrentenkénti (2026-11-17)
+
+A globális limitek a Deluge `core.conf` `max_download_speed` / `max_upload_speed`
+kulcsai (KiB/s, `-1` = korlátlan); a `Core.set_config` a PreferencesManager
+callbackjein keresztül azonnal alkalmazza. A torrentenkénti érték a
+`Torrent.set_max_download_speed` / `set_max_upload_speed` (KiB/s; `-1` = a
+globális érték, `0` = korlátlan). A session sheet globális mezőket és
+éjszakai (512/128) / korlátlan preseteket ad, a detail torrentenkénti
+mezőket. A handler csak a megadott mezőket írja; a validáció `-1` vagy `>= 0`.

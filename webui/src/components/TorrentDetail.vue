@@ -42,6 +42,8 @@ const error = ref("");
 const actionError = ref("");
 const actionLoading = ref(false);
 const selectedLabel = ref("");
+const downLimit = ref(-1);
+const upLimit = ref(-1);
 const removeData = ref(false);
 const backButton = ref<HTMLButtonElement | null>(null);
 
@@ -71,6 +73,8 @@ async function loadDetail(): Promise<void> {
   try {
     detail.value = await api.getTorrent(props.torrentId);
     selectedLabel.value = detail.value.label;
+    downLimit.value = detail.value.max_download_speed;
+    upLimit.value = detail.value.max_upload_speed;
     await loadFiles(true);
   } catch (err) {
     error.value = messageOf(err);
@@ -174,6 +178,26 @@ async function saveLabel(): Promise<void> {
     if (detail.value) detail.value.label = result.label;
     emit("updated", { id: props.torrentId, fields: { label: result.label } });
     emit("toast", t("toast.label"));
+  } catch (err) {
+    actionError.value = messageOf(err);
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function saveLimits(): Promise<void> {
+  actionLoading.value = true;
+  actionError.value = "";
+  try {
+    const result = await api.setTorrentLimits(props.torrentId, {
+      max_download_speed: Number(downLimit.value),
+      max_upload_speed: Number(upLimit.value),
+    });
+    if (detail.value) {
+      detail.value.max_download_speed = result.max_download_speed;
+      detail.value.max_upload_speed = result.max_upload_speed;
+    }
+    emit("toast", t("toast.limits"));
   } catch (err) {
     actionError.value = messageOf(err);
   } finally {
@@ -331,6 +355,38 @@ onMounted(() => {
                   {{ t("sheet.save") }}
                 </button>
               </div>
+            </label>
+
+            <label class="field">
+              <span>{{ t("limits.title") }}</span>
+              <div class="inline-field limits-inline">
+                <span class="limit-label">
+                  ↓
+                  <input
+                    v-model.number="downLimit"
+                    class="limit-input"
+                    type="number"
+                    min="-1"
+                    step="1"
+                    :aria-label="t('limits.download')"
+                  />
+                </span>
+                <span class="limit-label">
+                  ↑
+                  <input
+                    v-model.number="upLimit"
+                    class="limit-input"
+                    type="number"
+                    min="-1"
+                    step="1"
+                    :aria-label="t('limits.upload')"
+                  />
+                </span>
+                <button class="action" :disabled="actionLoading" @click="saveLimits">
+                  {{ t("sheet.save") }}
+                </button>
+              </div>
+              <small class="limits-hint">{{ t("limits.torrentHint") }}</small>
             </label>
           </template>
           <p v-else class="readonly-note">{{ t("auth.readonly") }}</p>

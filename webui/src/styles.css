@@ -726,6 +726,76 @@ button {
   min-width: 0;
 }
 
+.limits {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.limits h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.limits-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.limits-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.limits-row input,
+.limit-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.limits-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.limits-actions .action {
+  flex: 1;
+}
+
+.limits-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.limits-inline {
+  flex-wrap: wrap;
+}
+
+.limit-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.limit-input {
+  width: 72px;
+}
+
 .toast {
   position: fixed;
   z-index: 30;

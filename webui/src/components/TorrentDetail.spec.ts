@@ -12,6 +12,7 @@ vi.mock("../api", () => ({
   getTorrent: vi.fn(),
   getTorrentFiles: vi.fn(),
   setFilePriorities: vi.fn(),
+  setTorrentLimits: vi.fn(),
   pauseTorrent: vi.fn(),
   resumeTorrent: vi.fn(),
   queueTorrent: vi.fn(),
@@ -37,6 +38,11 @@ beforeEach(() => {
   vi.mocked(api.setFilePriorities).mockResolvedValue({
     id: detail.id,
     priorities: [4, 4],
+  });
+  vi.mocked(api.setTorrentLimits).mockResolvedValue({
+    id: detail.id,
+    max_download_speed: -1,
+    max_upload_speed: -1,
   });
 });
 
@@ -223,6 +229,31 @@ describe("TorrentDetail", () => {
     expect(wrapper.findAll(".file-row")).toHaveLength(1);
     expect(wrapper.text()).toContain("demo-movie.srt");
     expect(wrapper.text()).not.toContain("demo-movie.mkv");
+  });
+
+  it("saves the per-torrent speed limits", async () => {
+    vi.mocked(api.setTorrentLimits).mockResolvedValue({
+      id: detail.id,
+      max_download_speed: 256,
+      max_upload_speed: 64,
+    });
+    const wrapper = factory();
+    await flushPromises();
+
+    await wrapper
+      .get(`input[aria-label="${t("limits.download")}"]`)
+      .setValue(256);
+    await wrapper
+      .get(`input[aria-label="${t("limits.upload")}"]`)
+      .setValue(64);
+    await wrapper.get(".limits-inline .action").trigger("click");
+    await flushPromises();
+
+    expect(api.setTorrentLimits).toHaveBeenCalledWith(detail.id, {
+      max_download_speed: 256,
+      max_upload_speed: 64,
+    });
+    expect(wrapper.emitted("toast")?.[0]).toEqual([t("toast.limits")]);
   });
 
   it("applies live fields to the detail", async () => {
