@@ -34,7 +34,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     test: {
-      environment: "jsdom",
+      environment: "happy-dom",
       include: ["src/**/*.spec.ts"],
       coverage: {
         provider: "v8",
