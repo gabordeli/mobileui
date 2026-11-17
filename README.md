@@ -22,7 +22,9 @@ HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n
   skeleton/offline/error állapotok, safe-area + a11y alapok.
 - **M3 / #10 kész:** GitLab CI (lint/test/build + manuális release/deploy),
   `v0.1.1` release, deploy job a .27-re; a #9 public HTTPS később.
-- Következik: M3 / #11 runner toolchain.
+- **M3 / #11 kész:** runner toolchain (python/venv, node/npm, git, jq, curl,
+  rsync, docker/trivy), `--check --diff` changed=0, runner restart.
+- Következik: M3 / #9 public HTTPS, ha kell.
 
 ## Felépítés
 

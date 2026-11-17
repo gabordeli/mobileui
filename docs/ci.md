@@ -37,6 +37,18 @@ A release job pusholásához a projektben be van kapcsolva a
 **CI job token push** (`ci_push_repository_for_job_token_allowed=true`), így a
 `CI_JOB_TOKEN` a `main`-re tudja tenni a release commitot/taget.
 
+## Runner toolchain
+
+A `gitlab_runner_toolchain` playbook a shell runnerre telepíti: python3-pip/venv,
+nodejs/npm, git, jq, curl, **rsync**, docker/trivy, mariadb-client. A CI saját
+venvben teszi fel a `pytest`, `ruff`, `build`, `twisted`, `setuptools`, `wheel`
+csomagokat; a tesztek a `tests/stubs` Deluge shimekkel futnak. A deployhoz a
+`gitlab-runner` user SSH-kulcsa a .27 root `authorized_keys`ében van.
+
+Ellenőrzés: `deploy_gitlab_runner_toolchain.yml --limit gitlab-runner
+--check --diff` → **changed=0**; a runner restart megtörtént, a CI továbbra is
+zöld.
+
 ## Igazolt futás
 
 - Pipeline: lint/test/build success; a `v0.1.1` release commit/tag elkészült.
