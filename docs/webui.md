@@ -18,6 +18,22 @@ npm run build        # typecheck + build a deluge_mobileui/data/-ba
 A `scripts/install.sh` akkor épít SPA-t a hoston, ha a `data/index.html`
 hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 
+## Sentry DSN
+
+A frontend Sentry DSN build-time env változó: `VITE_SENTRY_DSN`. A repóban a
+`webui/.env.production` adja az alapértelmezett (Bugsink) DSN-t; a `main.ts`
+csak `import.meta.env.VITE_SENTRY_DSN`-t olvas, nincs hardcode. Más DSN-nel:
+
+```bash
+cd webui
+VITE_SENTRY_DSN=https://<key>@<host>/<project> npm run build
+```
+
+A Vite a folyamat környezetében lévő `VITE_SENTRY_DSN`-t előbbre veszi a
+`.env.production`-nál. A DSN publikus kliens kulcs (nem titok); a backend
+küldését a `mobileui.conf` `sentry_dsn` mezője vezérli, élőben állítható.
+Üres DSN esetén a frontend nem inicializálja a Sentry-t.
+
 ## Tesztek
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, komponensek, theme,
