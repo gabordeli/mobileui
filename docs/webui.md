@@ -21,10 +21,10 @@ hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 ## Tesztek
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, komponensek, theme,
-  api, format, i18n, main); 95 teszt, a coverage threshold a `vite.config.ts`-ben.
+  api, format, i18n, main); 99 teszt, a coverage threshold a `vite.config.ts`-ben.
 - `npm run test:e2e` — Playwright smoke: token-kapu, fiók login, read-only UI,
-  lista+detail, session sheet, bulk selection, add sheet. Az API-t `page.route`
-  mockolja, ezért Deluge nélkül fut; az első futás előtt
+  lista+detail, fájlprioritás, session sheet, bulk selection, add sheet. Az API-t
+  `page.route` mockolja, ezért Deluge nélkül fut; az első futás előtt
   `npx playwright install chromium` kell.
 - A CI `webui-e2e` job ugyanezt futtatja; a böngészőt a `webui/.playwright/`
   cache alá tölti.
@@ -78,6 +78,10 @@ események szűrő nélkül a totalt is korrigálják; reconnectet a böngésző
 - A fájllista külön, lapozott API-ból jön (`/api/torrents/{id}/files`,
   100-as lapok, max 500); a detail csak a `num_files`-t hozza. 522 fájlos
   torrentnél a „További fájlok” 100→200-at tölt.
+- A fájllistában fájlonkénti **letöltés-checkbox** és **„Csak ez”** van
+  (`PATCH /api/torrents/{id}/files`); a kihagyott fájl `Kihagyva` jelzést kap.
+  A kereső a **betöltött** fájlok path-jaira szűr (kliensoldali), és jelzi, ha
+  még vannak be nem töltött fájlok.
 - Az add sheet (`AddDialog.vue`) magnetet vagy `.torrent` fájlt fogad, labelt,
   abszolút mentési útvonalat és „szünetelve induljon” opciót. A default útvonal
   a session `download_location` mezőjéből jön. Hibás magnet/fájl/mező esetén a

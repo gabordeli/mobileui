@@ -10,6 +10,19 @@ from deluge_mobileui import write
 class FakeTorrent:
     def __init__(self, state="Paused"):
         self.state = state
+        self.files = [{"index": 0, "path": "a"}, {"index": 1, "path": "b"}]
+        self.priorities = [4, 4]
+        self.set_priorities_calls = []
+
+    def get_files(self):
+        return self.files
+
+    def get_file_priorities(self):
+        return list(self.priorities)
+
+    def set_file_priorities(self, priorities):
+        self.priorities = list(priorities)
+        self.set_priorities_calls.append(list(priorities))
 
 
 class FakeCore:
@@ -288,3 +301,47 @@ def test_bulk_rejects_bad_input():
         write.bulk(core, None, ["abc"], "label", label="movies")
     with pytest.raises(write.BadRequest):
         write.bulk(core, labels, ["abc"] * (write.MAX_BULK_IDS + 1), "pause")
+
+
+def test_file_priorities_apply_a_change():
+    core = FakeCore()
+    torrent = core.torrentmanager["abc"]
+
+    result = write.set_file_priorities(
+        core, "abc", changes=[{"index": 1, "priority": 0}]
+    )
+
+    assert result == {"id": "abc", "priorities": [4, 0]}
+    assert torrent.set_priorities_calls[-1] == [4, 0]
+
+
+def test_file_priorities_only_selects_one():
+    core = FakeCore()
+    torrent = core.torrentmanager["abc"]
+
+    result = write.set_file_priorities(core, "abc", only=0)
+
+    assert result["priorities"] == [4, 0]
+    assert torrent.set_priorities_calls[-1] == [4, 0]
+
+
+def test_file_priorities_validate_input():
+    core = FakeCore()
+    torrent = core.torrentmanager["abc"]
+
+    with pytest.raises(write.BadRequest):
+        write.set_file_priorities(core, "abc", changes=[])
+    with pytest.raises(write.BadRequest):
+        write.set_file_priorities(core, "abc", changes=[{"index": 5, "priority": 4}])
+    with pytest.raises(write.BadRequest):
+        write.set_file_priorities(
+            core, "abc", changes=[{"index": 0, "priority": 3}]
+        )
+    with pytest.raises(write.BadRequest):
+        write.set_file_priorities(core, "abc", only=5)
+    with pytest.raises(KeyError):
+        write.set_file_priorities(core, "missing", only=0)
+
+    torrent.files = []
+    with pytest.raises(write.Conflict):
+        write.set_file_priorities(core, "abc", only=0)

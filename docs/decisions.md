@@ -200,3 +200,13 @@ látszik). A `POST /api/torrents/bulk` id-nként dolgozik, a hibákat
 A ContextSheet megszűnt (a detail már tudta ugyanazokat a műveleteket); a
 single-torrent queue/label/remove a detailben maradt. A v1 nem tud undo-t,
 kereszt-szűrős kivételt vagy bulk queue-t.
+
+## D15 – Fájlprioritás: 0/1/4/7, „Csak ez”, kliensoldali kereső (2026-11-17)
+
+A detail fájllistája a Deluge `set_file_priorities`-át használja, amely a
+**teljes** listát várja; a handler a jelenlegi prioritásokat olvassa, és csak a
+változásokat alkalmazza, így a lapozott lista miatt a kliensnek nem kell az
+összes fájlt ismernie. A checkbox 0/4-et vált, a „Csak ez” az összeset 0-ra, a
+kiválasztottat 4-re állítja. A kereső kliensoldali, csak a betöltött fájlokra
+szűr (a lapozás miatt), és jelzi a betöltött/total arányt. Az 1/7
+(alacsony/magas) prioritás az API-ban elérhető, a UI egyelőre 0/4-et használ.

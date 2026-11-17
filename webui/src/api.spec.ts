@@ -20,6 +20,7 @@ import {
   queueTorrent,
   removeTorrent,
   resumeTorrent,
+  setFilePriorities,
   setLabel,
   setToken,
 } from "./api";
@@ -225,6 +226,17 @@ describe("torrent actions", () => {
     expect(fetchMock.mock.calls[1][0]).toBe(
       "/api/torrents/a%2Fb/files?offset=10&limit=50",
     );
+  });
+
+  it("patches file priorities", async () => {
+    const fetchMock = mockFetch({ id: "abc", priorities: [0, 4] });
+
+    await setFilePriorities("abc", { only: 1 });
+
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/torrents/abc/files");
+    expect(init.method).toBe("PATCH");
+    expect(init.body).toBe(JSON.stringify({ only: 1 }));
   });
 
   it("loads the labels", async () => {

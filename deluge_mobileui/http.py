@@ -414,6 +414,24 @@ class TorrentFilesResource(ApiJsonResource):
             return self.internal_error(request)
         return self.write_json(request, 200, payload)
 
+    def render_PATCH(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
+        try:
+            body = read_json_body(request)
+            payload = self.plugin.set_torrent_files(
+                self.torrent_id, files=body.get("files"), only=body.get("only")
+            )
+        except (KeyError, Conflict, BadRequest, TypeError, ValueError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
 
 class TorrentResource(ApiJsonResource):
     def __init__(self, plugin, torrent_id):

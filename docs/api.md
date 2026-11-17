@@ -230,12 +230,33 @@ Lapozott fájllista (csak detailhez; a listában nincs):
   "offset": 100,
   "limit": 100,
   "files": [
-    {"index": 100, "path": "dir/file.mkv", "size": 12345, "offset": 0, "progress": 1.0}
+    {"index": 100, "path": "dir/file.mkv", "size": 12345, "offset": 0, "progress": 1.0, "priority": 4}
   ]
 }
 ```
 
 A `progress` 0–1. Ismeretlen torrent → 404, hibás limit/offset → 400.
+A `priority` a Deluge fájlprioritás (0 = kihagyva, 1 = alacsony, 4 = normal,
+7 = magas).
+
+## PATCH /api/torrents/{id}/files
+
+Fájlprioritás állítása (write szint, read-only → 403). Két mód:
+
+```json
+{"files": [{"index": 0, "priority": 4}, {"index": 1, "priority": 0}]}
+```
+
+```json
+{"only": 2}
+```
+
+- `files`: 1+ elem; `priority` csak 0, 1, 4 vagy 7; index a fájllista tartományában.
+- `only`: az összes fájl 0 lesz, a megadott index 4.
+- `200 {"id": "...", "priorities": [4, 0, …]}` — a teljes, frissített lista.
+- Ismeretlen index / priority → 400; nincs fájl-metaadat (magnet) → 409.
+- A `set_file_priorities` a Deluge-ban a teljes listát várja; a handler a
+  jelenlegi prioritásokat olvassa és csak a változásokat alkalmazza.
 
 ## POST /api/torrents/{id}/pause
 

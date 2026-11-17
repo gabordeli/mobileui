@@ -82,6 +82,17 @@ export interface TorrentFile {
   size: number;
   offset: number;
   progress: number;
+  priority: number;
+}
+
+export interface FilePriorityPayload {
+  files?: { index: number; priority: number }[];
+  only?: number;
+}
+
+export interface FilePriorityResult {
+  id: string;
+  priorities: number[];
 }
 
 export interface TorrentFiles {

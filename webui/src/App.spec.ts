@@ -52,6 +52,7 @@ vi.mock("./api", () => {
     removeTorrent: vi.fn(),
     getTorrent: vi.fn(),
     getTorrentFiles: vi.fn(),
+    setFilePriorities: vi.fn(),
     addTorrentMagnet: vi.fn(),
     addTorrentFile: vi.fn(),
   };

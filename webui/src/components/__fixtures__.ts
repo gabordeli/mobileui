@@ -46,6 +46,6 @@ export const detail: TorrentDetail = {
 };
 
 export const files: TorrentFile[] = [
-  { index: 0, path: "demo-movie.mkv", size: 733000000, offset: 0, progress: 0.42 },
-  { index: 1, path: "demo-movie.srt", size: 1003200, offset: 0, progress: 1 },
+  { index: 0, path: "demo-movie.mkv", size: 733000000, offset: 0, progress: 0.42, priority: 4 },
+  { index: 1, path: "demo-movie.srt", size: 1003200, offset: 0, progress: 1, priority: 4 },
 ];

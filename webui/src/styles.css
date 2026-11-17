@@ -999,6 +999,29 @@ button {
   font-size: 10px;
 }
 
+.files-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.files-search {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.files-hint {
+  color: var(--muted);
+  font-size: 10px;
+}
+
 .files-empty {
   margin: 10px 0;
   color: var(--muted);
@@ -1025,8 +1048,47 @@ button {
 .file-main {
   display: flex;
   gap: 8px;
-  align-items: baseline;
+  align-items: center;
   min-width: 0;
+}
+
+.file-check {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.file-only {
+  flex: none;
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.file-only:disabled {
+  opacity: 0.5;
+}
+
+.file-skip {
+  flex: none;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.file-row.skipped .file-path {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.file-row.skipped .file-progress {
+  opacity: 0.5;
 }
 
 .file-path {

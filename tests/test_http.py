@@ -138,8 +138,20 @@ class StubPlugin:
             "total": 3,
             "offset": offset,
             "limit": limit,
-            "files": [{"index": 0, "path": "file.mkv", "size": 10, "progress": 1.0}],
+            "files": [
+                {
+                    "index": 0,
+                    "path": "file.mkv",
+                    "size": 10,
+                    "progress": 1.0,
+                    "priority": 4,
+                }
+            ],
         }
+
+    def set_torrent_files(self, torrent_id, files=None, only=None):
+        self.write_calls.append(("files", torrent_id, files, only))
+        return {"id": torrent_id, "priorities": [0, 4]}
 
     def get_session(self):
         return {"version": "2.2.0", "num_torrents": 0, "free_space": 4096}
@@ -365,6 +377,13 @@ def mutation_cases(plugin):
             [b"api", b"torrents", b"bulk"],
             {"action": "pause", "torrent_ids": ["abc"]},
         ),
+        case(
+            "torrent files",
+            child(torrent, b"files", [b"api", b"torrents", b"abc", b"files"]),
+            "render_PATCH",
+            [b"api", b"torrents", b"abc", b"files"],
+            {"files": [{"index": 0, "priority": 0}]},
+        ),
     ]
 
 
@@ -427,6 +446,36 @@ def test_bulk_endpoint_validates_the_body():
 
     assert request.responseCode == 400
     assert json.loads(body)["error"] == "bad_request"
+
+
+def test_torrent_files_patch_updates_priorities():
+    plugin = StubPlugin(authorized=True)
+    torrent = torrent_resource(plugin)
+    request = post_request([b"api", b"torrents", b"abc", b"files"])
+    request.method = b"PATCH"
+    request.content = io.BytesIO(b'{"files":[{"index":0,"priority":0}]}')
+
+    body = torrent.getChildWithDefault(b"files", request).render_PATCH(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body)["priorities"] == [0, 4]
+    assert plugin.write_calls == [
+        ("files", "abc", [{"index": 0, "priority": 0}], None)
+    ]
+
+
+def test_torrent_files_patch_forwards_the_body():
+    plugin = StubPlugin(authorized=True)
+    torrent = torrent_resource(plugin)
+    request = post_request([b"api", b"torrents", b"abc", b"files"])
+    request.method = b"PATCH"
+    request.content = io.BytesIO(b'{"only":1}')
+
+    body = torrent.getChildWithDefault(b"files", request).render_PATCH(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body)["id"] == "abc"
+    assert plugin.write_calls == [("files", "abc", None, 1)]
 
 
 def test_torrents_forwards_filters_and_pagination():

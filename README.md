@@ -68,6 +68,8 @@ Jelenlegi release: **v0.2.0** (GitLab + GitHub), az éles példányon telepítve
   gomb nélkül).
 - **Bulk selection:** long-press → kijelölés, alsó action barral; pause/resume/
   label/remove N torrentre, „Összes” a szűrőre illeszkedő id-kkel (max 1000).
+- **Fájlprioritás:** a detailben fájlonkénti letöltés-checkbox és „Csak ez”,
+  kliensoldali fájllista-kereső; `PATCH /api/torrents/{id}/files`.
 
 ## 🧱 Felépítés
 

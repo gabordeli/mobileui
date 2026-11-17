@@ -2,6 +2,8 @@ import type {
   AuthInfo,
   BulkActionPayload,
   BulkResult,
+  FilePriorityPayload,
+  FilePriorityResult,
   Health,
   Labels,
   LoginResult,
@@ -164,6 +166,16 @@ export function getTorrentFiles(
   });
   return request<TorrentFiles>(
     `/api/torrents/${encodeURIComponent(id)}/files?${params.toString()}`,
+  );
+}
+
+export function setFilePriorities(
+  id: string,
+  payload: FilePriorityPayload,
+): Promise<FilePriorityResult> {
+  return request<FilePriorityResult>(
+    `/api/torrents/${encodeURIComponent(id)}/files`,
+    { method: "PATCH", body: JSON.stringify(payload) },
   );
 }
 

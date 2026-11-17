@@ -10,7 +10,12 @@ import {
   stateClass,
 } from "../format";
 import { locale, stateLabel, t } from "../i18n";
-import type { LabelInfo, TorrentDetail, TorrentFile } from "../types";
+import type {
+  FilePriorityPayload,
+  LabelInfo,
+  TorrentDetail,
+  TorrentFile,
+} from "../types";
 
 const props = defineProps<{
   torrentId: string;
@@ -30,6 +35,8 @@ const detail = ref<TorrentDetail | null>(null);
 const files = ref<TorrentFile[]>([]);
 const filesTotal = ref(0);
 const filesLoading = ref(false);
+const filesBusy = ref(false);
+const fileQuery = ref("");
 const loading = ref(true);
 const error = ref("");
 const actionError = ref("");
@@ -88,6 +95,43 @@ async function loadFiles(reset = false): Promise<void> {
   } finally {
     filesLoading.value = false;
   }
+}
+
+const filteredFiles = computed(() => {
+  const needle = fileQuery.value.trim().toLowerCase();
+  if (!needle) return files.value;
+  return files.value.filter((file) => file.path.toLowerCase().includes(needle));
+});
+
+function applyPriorities(priorities: number[]): void {
+  for (const file of files.value) {
+    if (file.index < priorities.length) file.priority = priorities[file.index];
+  }
+}
+
+async function saveFilePriorities(payload: FilePriorityPayload): Promise<void> {
+  if (filesBusy.value) return;
+  filesBusy.value = true;
+  actionError.value = "";
+  try {
+    const result = await api.setFilePriorities(props.torrentId, payload);
+    applyPriorities(result.priorities);
+    emit("toast", t("toast.files"));
+  } catch (err) {
+    actionError.value = messageOf(err);
+  } finally {
+    filesBusy.value = false;
+  }
+}
+
+function toggleFile(file: TorrentFile): void {
+  void saveFilePriorities({
+    files: [{ index: file.index, priority: file.priority > 0 ? 0 : 4 }],
+  });
+}
+
+function onlyFile(file: TorrentFile): void {
+  void saveFilePriorities({ only: file.index });
 }
 
 async function act(kind: "pause" | "resume"): Promise<void> {
@@ -296,6 +340,18 @@ onMounted(() => {
               <h3>{{ t("detail.files") }} <small v-if="filesTotal">({{ filesTotal }})</small></h3>
               <span v-if="filesTotal">{{ t("detail.filesLoaded", { count: files.length }) }}</span>
             </header>
+            <div v-if="files.length" class="files-tools">
+              <input
+                v-model="fileQuery"
+                class="files-search"
+                type="search"
+                :placeholder="t('files.search')"
+                :aria-label="t('files.search')"
+              />
+              <span v-if="fileQuery && files.length < filesTotal" class="files-hint">
+                {{ t("files.searchLoaded", { loaded: files.length, total: filesTotal }) }}
+              </span>
+            </div>
             <div v-if="filesLoading && !files.length" class="detail-state small">
               {{ t("detail.loadingFiles") }}
             </div>
@@ -303,10 +359,33 @@ onMounted(() => {
               {{ t("detail.filesEmpty") }}
             </p>
             <ul v-else class="file-list">
-              <li v-for="file in files" :key="file.index" class="file-row">
+              <li
+                v-for="file in filteredFiles"
+                :key="file.index"
+                class="file-row"
+                :class="{ skipped: file.priority === 0 }"
+              >
                 <div class="file-main">
+                  <input
+                    v-if="canWrite"
+                    class="file-check"
+                    type="checkbox"
+                    :checked="file.priority > 0"
+                    :disabled="filesBusy"
+                    :aria-label="t('files.downloadFile', { path: file.path })"
+                    @change="toggleFile(file)"
+                  />
                   <span class="file-path" :title="file.path">{{ file.path }}</span>
+                  <span v-if="file.priority === 0" class="file-skip">{{ t("files.skipped") }}</span>
                   <span class="file-size">{{ formatBytes(file.size) }}</span>
+                  <button
+                    v-if="canWrite"
+                    class="file-only"
+                    :disabled="filesBusy"
+                    @click="onlyFile(file)"
+                  >
+                    {{ t("files.only") }}
+                  </button>
                 </div>
                 <div class="file-progress">
                   <div class="progress-track">
@@ -316,6 +395,9 @@ onMounted(() => {
                 </div>
               </li>
             </ul>
+            <p v-if="files.length && fileQuery && !filteredFiles.length" class="files-empty">
+              {{ t("files.noMatch") }}
+            </p>
             <button
               v-if="files.length < filesTotal"
               class="action files-more"

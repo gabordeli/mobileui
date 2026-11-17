@@ -67,7 +67,7 @@ const files = {
   offset: 0,
   limit: 50,
   files: [
-    { index: 0, path: "demo-movie.mkv", size: 734003200, offset: 0, progress: 0 },
+    { index: 0, path: "demo-movie.mkv", size: 734003200, offset: 0, progress: 0, priority: 4 },
   ],
 };
 
@@ -113,6 +113,11 @@ async function mockApi(
       case "/api/torrents/demo-movie":
         return route.fulfill({ json: detail });
       case "/api/torrents/demo-movie/files":
+        if (route.request().method() === "PATCH") {
+          return route.fulfill({
+            json: { id: "demo-movie", priorities: [0] },
+          });
+        }
         return route.fulfill({ json: files });
       default:
         return route.fulfill({ status: 404, json: { message: "not found" } });
@@ -197,6 +202,15 @@ test.describe("authenticated UI", () => {
       dialog.getByRole("heading", { name: "Demo Movie 2024" }),
     ).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Folytatás" })).toBeVisible();
+  });
+
+  test("skips a file from the detail", async ({ page }) => {
+    await page.getByRole("button", { name: "Demo Movie 2024" }).click();
+    const dialog = page.getByRole("dialog", { name: "Torrent részletek" });
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByRole("checkbox", { name: /^Letöltés:/ }).uncheck();
+    await expect(dialog.getByText("Kihagyva")).toBeVisible();
   });
 
   test("opens the session sheet", async ({ page }) => {

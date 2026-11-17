@@ -90,6 +90,39 @@ def set_label(core, label_plugin, torrent_id, label):
     return {"id": torrent_id, "label": label_id or NO_LABEL}
 
 
+def set_file_priorities(core, torrent_id, changes=None, only=None):
+    torrent = _torrent(core, torrent_id)
+    files = torrent.get_files()
+    if not files:
+        raise Conflict("Torrent has no file metadata yet")
+    priorities = list(torrent.get_file_priorities())
+    if len(priorities) != len(files):
+        priorities = [4] * len(files)
+
+    if only is not None:
+        index = int(only)
+        if not 0 <= index < len(files):
+            raise BadRequest(f"file index out of range: {only}")
+        priorities = [0] * len(files)
+        priorities[index] = 4
+    else:
+        if not isinstance(changes, list) or not changes:
+            raise BadRequest("files must be a non-empty list")
+        for change in changes:
+            if not isinstance(change, dict):
+                raise BadRequest("file changes must be objects")
+            index = int(change.get("index"))
+            priority = int(change.get("priority"))
+            if not 0 <= index < len(files):
+                raise BadRequest(f"file index out of range: {index}")
+            if priority not in (0, 1, 4, 7):
+                raise BadRequest("priority must be 0, 1, 4 or 7")
+            priorities[index] = priority
+
+    torrent.set_file_priorities(priorities)
+    return {"id": torrent_id, "priorities": list(torrent.get_file_priorities())}
+
+
 def bulk(core, label_plugin, torrent_ids, action, label=None, remove_data=False):
     if action not in BULK_ACTIONS:
         raise BadRequest("action must be one of: " + ", ".join(sorted(BULK_ACTIONS)))

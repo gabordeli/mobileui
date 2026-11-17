@@ -196,10 +196,12 @@ def get_files(core, torrent_id, offset=0, limit=100):
     torrent = core.torrentmanager.torrents[torrent_id]
     files = torrent.get_files()
     progress = torrent.get_file_progress()
+    priorities = torrent.get_file_priorities()
     rows = []
     for index, entry in enumerate(files):
         row = dict(entry)
         row["progress"] = progress[index] if index < len(progress) else 0.0
+        row["priority"] = priorities[index] if index < len(priorities) else 4
         rows.append(row)
     total = len(rows)
     return {

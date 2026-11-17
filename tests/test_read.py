@@ -25,6 +25,9 @@ class FakeTorrent:
     def get_file_progress(self):
         return [0.1, 0.2, 0.3]
 
+    def get_file_priorities(self):
+        return [4, 1, 0]
+
 
 class FakeCore:
     def __init__(self, torrents, config=None):
@@ -158,7 +161,14 @@ def test_files_are_paginated():
     assert result["offset"] == 1
     assert result["limit"] == 1
     assert result["files"] == [
-        {"index": 1, "path": "file1.mkv", "size": 20, "offset": 10, "progress": 0.2}
+        {
+            "index": 1,
+            "path": "file1.mkv",
+            "size": 20,
+            "offset": 10,
+            "progress": 0.2,
+            "priority": 1,
+        }
     ]
 
 

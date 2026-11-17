@@ -113,6 +113,13 @@ class Core(CorePluginBase):
 
         return read.get_files(component.get("Core"), torrent_id, offset, limit)
 
+    def set_torrent_files(self, torrent_id, files=None, only=None):
+        from . import write
+
+        return write.set_file_priorities(
+            component.get("Core"), torrent_id, files, only
+        )
+
     def get_session(self):
         from . import read
 

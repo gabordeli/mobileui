@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- File priorities in the torrent detail: a per-file download toggle and
+  "Only this" (`PATCH /api/torrents/{id}/files`), plus a search box over the
+  loaded file list.
+
 ## [0.2.0] - 2026-11-17
 
 - Optional Deluge username/password login next to the static API token

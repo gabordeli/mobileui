@@ -11,6 +11,7 @@ import TorrentDetail from "./TorrentDetail.vue";
 vi.mock("../api", () => ({
   getTorrent: vi.fn(),
   getTorrentFiles: vi.fn(),
+  setFilePriorities: vi.fn(),
   pauseTorrent: vi.fn(),
   resumeTorrent: vi.fn(),
   queueTorrent: vi.fn(),
@@ -33,6 +34,10 @@ beforeEach(() => {
   vi.mocked(api.queueTorrent).mockResolvedValue({ action: "top" });
   vi.mocked(api.setLabel).mockResolvedValue({ label: "No Label" });
   vi.mocked(api.removeTorrent).mockResolvedValue({ removed: true });
+  vi.mocked(api.setFilePriorities).mockResolvedValue({
+    id: detail.id,
+    priorities: [4, 4],
+  });
 });
 
 afterEach(() => {
@@ -122,7 +127,7 @@ describe("TorrentDetail", () => {
     const wrapper = factory();
     await flushPromises();
 
-    await wrapper.get('input[type="checkbox"]').setValue(true);
+    await wrapper.get('.detail-remove input[type="checkbox"]').setValue(true);
     await button(wrapper, t("detail.remove")).trigger("click");
     await flushPromises();
 
@@ -138,6 +143,7 @@ describe("TorrentDetail", () => {
       size: 1024,
       offset: 0,
       progress: 0,
+      priority: 4,
     })) satisfies TorrentFile[];
     const secondPage = Array.from({ length: 50 }, (_, index) => ({
       index: 100 + index,
@@ -145,6 +151,7 @@ describe("TorrentDetail", () => {
       size: 1024,
       offset: 0,
       progress: 0,
+      priority: 4,
     })) satisfies TorrentFile[];
     vi.mocked(api.getTorrentFiles)
       .mockResolvedValueOnce({ total: 250, offset: 0, limit: 100, files: firstPage })
@@ -173,6 +180,51 @@ describe("TorrentDetail", () => {
     expect(wrapper.text()).toContain(detail.name);
   });
 
+  it("toggles a file priority and marks it skipped", async () => {
+    vi.mocked(api.setFilePriorities).mockResolvedValue({
+      id: detail.id,
+      priorities: [0, 4],
+    });
+    const wrapper = factory();
+    await flushPromises();
+
+    await wrapper.findAll(".file-check")[0].setValue(false);
+    await flushPromises();
+
+    expect(api.setFilePriorities).toHaveBeenCalledWith(detail.id, {
+      files: [{ index: 0, priority: 0 }],
+    });
+    expect(wrapper.findAll(".file-row")[0].classes()).toContain("skipped");
+    expect(wrapper.emitted("toast")?.[0]).toEqual([t("toast.files")]);
+  });
+
+  it("keeps only one file with the only action", async () => {
+    vi.mocked(api.setFilePriorities).mockResolvedValue({
+      id: detail.id,
+      priorities: [0, 4],
+    });
+    const wrapper = factory();
+    await flushPromises();
+
+    await button(wrapper, t("files.only")).trigger("click");
+    await flushPromises();
+
+    expect(api.setFilePriorities).toHaveBeenCalledWith(detail.id, { only: 0 });
+    expect(wrapper.findAll(".file-row")[0].classes()).toContain("skipped");
+    expect(wrapper.findAll(".file-row")[1].classes()).not.toContain("skipped");
+  });
+
+  it("filters the loaded files by path", async () => {
+    const wrapper = factory();
+    await flushPromises();
+
+    await wrapper.get(".files-search").setValue("srt");
+
+    expect(wrapper.findAll(".file-row")).toHaveLength(1);
+    expect(wrapper.text()).toContain("demo-movie.srt");
+    expect(wrapper.text()).not.toContain("demo-movie.mkv");
+  });
+
   it("applies live fields to the detail", async () => {
     const wrapper = factory();
     await flushPromises();
@@ -190,6 +242,7 @@ describe("TorrentDetail", () => {
     expect(wrapper.find(".detail-actions").exists()).toBe(false);
     expect(wrapper.find(".detail-remove").exists()).toBe(false);
     expect(wrapper.find("select").exists()).toBe(false);
+    expect(wrapper.find(".file-check").exists()).toBe(false);
     expect(wrapper.get(".readonly-note").text()).toBe(t("auth.readonly"));
     expect(wrapper.text()).toContain(files[0].path);
   });
