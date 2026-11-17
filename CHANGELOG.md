@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-17
+
 - Web Push notifications: a toggle in the session sheet subscribes the browser
   (`GET /api/push/config`, `POST|DELETE /api/push/subscribe`), and the plugin
   sends a notification on `TorrentFinishedEvent` and on `TorrentStateChangedEvent`
