@@ -38,7 +38,9 @@ HTTP API/SPA a **8113**-as porton hallgat; a gyári `deluge-web` marad az 8112-n
   Docker scannerrel, report-only.
 - **Bugsink:** backend `sentry-sdk` + frontend `@sentry/vue`, közös DSN;
   a backend `sentry_dsn` élőben állítható.
-- Következik: M3 / #12 GitHub tükör, ha kell.
+- **M3 / #12 kész:** privát GitHub tükör (`gabordeli/mobileui`) GitLab push
+  mirrorral; `v0.1.3` óta a GitHub Actions release wheel/sdist/egg/sha256
+  assetekkel fut, CHANGELOG-alapú note-tal; a GitLab privát marad.
 
 ## Felépítés
 

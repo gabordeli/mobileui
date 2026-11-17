@@ -149,6 +149,9 @@ zöld.
 - Deploy job: success; a .27-en `/health` **0.1.1**, 833 torrent, SPA/8112 200.
 - A régi egg-verziók takarítása (`find ... -type d -name 'MobileUi-*.egg'`)
   szükséges, különben a régi plugin marad betöltve.
+- GitHub mirror: a `main` és a `v0.1.3` átment; a GitHub Actions `Release` run
+  16 lépése success, a `v0.1.3` release 4 assetten (wheel, sdist, egg, sha256).
+  A `v0.1.1`/`v0.1.2` tagek fent vannak, de release nélkül (backfill nélkül).
 
 ## Ismert korlát
 
