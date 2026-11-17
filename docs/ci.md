@@ -80,9 +80,13 @@ Beállítás a GitLabon (*Settings → Repository → Mirroring repositories*):
 - URL: `https://github.com/gabordeli/mobileui.git`
 - Direction: **Push**
 - Authentication: username `gabordeli`, password = fine-grained PAT
-  (`Contents: Read and write`, `Metadata: Read`, csak erre a repóra)
-- „Only mirror protected branches” **kikapcsolva**, különben a `vX.Y.Z` tagek
-  nem mennek át.
+  (`Contents: Read and write`, `Metadata: Read`, **`Workflows: Read and write`**,
+  csak erre a repóra). Workflows nélkül a GitHub a `.github/workflows/` fájl
+  létrehozását `without workflow scope` hibával utasítja el, és a mirror teljes
+  `main` pushja elhasal.
+- „Only mirror protected branches” **kikapcsolva**: bekapcsolva csak a védett
+  brancheket tükrözi (a védetlen `main` kimaradt), a tagek viszont ilyenkor is
+  átmennek. Vagy kapcsold ki, vagy vedd fel a `main`-t védett branchnek.
 
 Kezdeti feltöltés (a mirror bekapcsolása előtt vagy kézi fallbackként):
 
