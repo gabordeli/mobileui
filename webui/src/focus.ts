@@ -24,7 +24,7 @@ export function trapFocus(container: HTMLElement): () => void {
       return;
     }
     const first = items[0];
-    const last = items[items.length - 1];
+    const last = items.at(-1)!;
     if (event.shiftKey && document.activeElement === first) {
       event.preventDefault();
       last.focus();

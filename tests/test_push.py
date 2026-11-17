@@ -72,6 +72,49 @@ def test_subscription_list_and_remove_by_id(tmp_path):
         "unsubscribed": True
     }
     assert push.list_subscriptions(config_file) == []
+    assert push.remove_subscription_by_id(config_file, "missing") == {
+        "unsubscribed": False
+    }
+    with pytest.raises(ValueError):
+        push.remove_subscription_by_id(config_file, "")
+
+
+@pytest.mark.parametrize(
+    "endpoint,expected",
+    [
+        ("https://8.8.8.8/1", True),
+        ("https://127.0.0.1/1", False),
+        ("https://localhost/1", False),
+        ("http://8.8.8.8/1", False),
+        ("not-a-url", False),
+    ],
+)
+def test_endpoint_allowed_literals(endpoint, expected):
+    assert push.endpoint_allowed(endpoint) is expected
+
+
+def test_endpoint_allowed_resolves_dns(monkeypatch):
+    monkeypatch.setattr(
+        "deluge_mobileui.push.socket.getaddrinfo",
+        lambda *args, **kwargs: [
+            (2, 1, 6, "", ("8.8.8.8", 443)),
+        ],
+    )
+    assert push.endpoint_allowed("https://push.example/1", resolve=True) is True
+
+    monkeypatch.setattr(
+        "deluge_mobileui.push.socket.getaddrinfo",
+        lambda *args, **kwargs: [
+            (2, 1, 6, "", ("192.168.1.10", 443)),
+        ],
+    )
+    assert push.endpoint_allowed("https://push.example/1", resolve=True) is False
+
+    def broken(*args, **kwargs):
+        raise OSError("dns down")
+
+    monkeypatch.setattr("deluge_mobileui.push.socket.getaddrinfo", broken)
+    assert push.endpoint_allowed("https://push.example/1", resolve=True) is False
 
 
 def test_store_is_private_and_holds_json(tmp_path):

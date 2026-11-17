@@ -14,6 +14,7 @@ import {
   getToken,
   getTorrent,
   getTorrentFiles,
+  getPushSubscriptions,
   listTorrents,
   login,
   logout,
@@ -22,6 +23,7 @@ import {
   queueTorrent,
   reannounceTorrent,
   removeLabel,
+  removePushSubscription,
   removeTorrent,
   resumeTorrent,
   setFilePriorities,
@@ -354,6 +356,23 @@ describe("auth", () => {
     expect(path).toBe("/api/login");
     expect(init.method).toBe("POST");
     expect(init.body).toBe(JSON.stringify({ username: "admin", password: "pw" }));
+  });
+
+  it("lists and revokes push subscriptions", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(() => Promise.resolve(jsonResponse({ subscriptions: [] })));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getPushSubscriptions();
+    await removePushSubscription("abc");
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/push/subscriptions");
+    expect(fetchMock.mock.calls[1][0]).toBe("/api/push/subscriptions");
+    expect(fetchMock.mock.calls[1][1].method).toBe("DELETE");
+    expect(fetchMock.mock.calls[1][1].body).toBe(
+      JSON.stringify({ id: "abc" }),
+    );
   });
 
   it("signals a stale cached API response", async () => {

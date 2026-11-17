@@ -195,6 +195,17 @@ def _load_webpush():
     return webpush, WebPushException
 
 
+def _public_targets(targets):
+    allowed = []
+    for item in targets:
+        endpoint = str(item.get("endpoint", ""))
+        if endpoint_allowed(endpoint, resolve=True):
+            allowed.append(item)
+        else:
+            log.warning("MobileUi push: endpoint is not public: %s", endpoint)
+    return allowed
+
+
 def send_push(
     config_file,
     payload,
@@ -223,11 +234,7 @@ def send_push(
     data = json.dumps(payload)
     sent = 0
     dead = []
-    for item in targets:
-        endpoint = str(item.get("endpoint", ""))
-        if not endpoint_allowed(endpoint, resolve=True):
-            log.warning("MobileUi push: endpoint is not public: %s", endpoint)
-            continue
+    for item in _public_targets(targets):
         try:
             webpush(
                 subscription_info=item,

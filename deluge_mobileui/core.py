@@ -42,13 +42,15 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 CONFIG_FILE = "mobileui.conf"
+DEFAULT_VAPID_SUBJECT = "mailto:admin@example.invalid"
+
 CONFIG_DEFAULTS = {
     "enabled": True,
     "port": 8113,
     "token": "",
     "auth_mode": "token",
     "sentry_dsn": "",
-    "vapid_subject": "mailto:admin@example.invalid",
+    "vapid_subject": DEFAULT_VAPID_SUBJECT,
 }
 
 
@@ -285,7 +287,7 @@ class Core(CorePluginBase):
             config_file,
             payload,
             subscriptions,
-            str(self.config.get("vapid_subject", "mailto:admin@example.invalid")),
+            str(self.config.get("vapid_subject", DEFAULT_VAPID_SUBJECT)),
         )
         deferred.addErrback(
             lambda failure: log.warning("MobileUi push dispatch failed: %s", failure)
@@ -317,7 +319,7 @@ class Core(CorePluginBase):
             self.config.config_file,
             payload,
             subscriptions,
-            str(self.config.get("vapid_subject", "mailto:admin@example.invalid")),
+            str(self.config.get("vapid_subject", DEFAULT_VAPID_SUBJECT)),
         )
         deferred.addErrback(
             lambda failure: log.warning("MobileUi test push failed: %s", failure)

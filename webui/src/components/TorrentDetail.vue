@@ -110,18 +110,10 @@ async function loadFiles(reset = false): Promise<void> {
   filesLoading.value = true;
   try {
     const query = fileQuery.value.trim();
+    const offset = reset ? 0 : files.value.length;
     const page = query
-      ? await api.getTorrentFiles(
-          props.torrentId,
-          reset ? 0 : files.value.length,
-          100,
-          query,
-        )
-      : await api.getTorrentFiles(
-          props.torrentId,
-          reset ? 0 : files.value.length,
-          100,
-        );
+      ? await api.getTorrentFiles(props.torrentId, offset, 100, query)
+      : await api.getTorrentFiles(props.torrentId, offset, 100);
     if (requestId !== filesRequest.value) return;
     files.value = reset ? page.files : [...files.value, ...page.files];
     filesTotal.value = page.total;
