@@ -152,6 +152,15 @@ class StubPlugin:
         self.write_calls.append(("resume_session",))
         return {"paused": False}
 
+    def list_torrent_ids(self, state=None, label=None, q=None):
+        self.list_calls.append((state, label, q))
+        return {"ids": ["abc"], "total": 1, "limit": 1000}
+
+    def bulk_action(self, action, torrent_ids=None, label=None, remove_data=False):
+        ids = list(torrent_ids or [])
+        self.write_calls.append(("bulk", action, ids))
+        return {"ok": len(ids), "failed": []}
+
     def get_labels(self):
         return {"labels": [], "no_label": 0}
 
@@ -347,6 +356,15 @@ def mutation_cases(plugin):
             [b"api", b"torrents"],
             {"magnet": "magnet:?x"},
         ),
+        case(
+            "bulk pause",
+            torrents.getChildWithDefault(
+                b"bulk", DummyRequest([b"api", b"torrents", b"bulk"])
+            ),
+            "render_POST",
+            [b"api", b"torrents", b"bulk"],
+            {"action": "pause", "torrent_ids": ["abc"]},
+        ),
     ]
 
 
@@ -371,6 +389,44 @@ def test_every_mutation_allows_normal_level():
         assert "error" not in json.loads(body), name
 
     assert len(plugin.write_calls) == len(cases)
+
+
+def test_torrent_ids_returns_matching_ids():
+    plugin = StubPlugin(authorized=True)
+    torrents = api_child(plugin, b"torrents")
+    request = DummyRequest([b"api", b"torrents", b"ids"])
+    request.args = {b"state": [b"Paused"], b"label": [b"movies"]}
+
+    body = torrents.getChildWithDefault(b"ids", request).render_GET(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body)["ids"] == ["abc"]
+    assert plugin.list_calls == [("Paused", "movies", None)]
+
+
+def test_bulk_endpoint_returns_the_summary():
+    plugin = StubPlugin(authorized=True)
+    torrents = api_child(plugin, b"torrents")
+    request = post_request([b"api", b"torrents", b"bulk"])
+    request.content = io.BytesIO(b'{"action":"pause","torrent_ids":["a","b"]}')
+
+    body = torrents.getChildWithDefault(b"bulk", request).render_POST(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body) == {"ok": 2, "failed": []}
+    assert plugin.write_calls == [("bulk", "pause", ["a", "b"])]
+
+
+def test_bulk_endpoint_validates_the_body():
+    plugin = StubPlugin(authorized=True)
+    torrents = api_child(plugin, b"torrents")
+    request = post_request([b"api", b"torrents", b"bulk"])
+    request.content = io.BytesIO(b'{"action":"pause","torrent_ids":"abc"}')
+
+    body = torrents.getChildWithDefault(b"bulk", request).render_POST(request)
+
+    assert request.responseCode == 400
+    assert json.loads(body)["error"] == "bad_request"
 
 
 def test_torrents_forwards_filters_and_pagination():

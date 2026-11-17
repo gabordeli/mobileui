@@ -7,9 +7,9 @@ import { formatRate } from "./format";
 import { locale, t, toggleLocale } from "./i18n";
 import { theme, toggleTheme } from "./theme";
 import type {
-  ActionPayload,
   AuthInfo,
   AuthMode,
+  BulkActionPayload,
   GatePayload,
   LabelInfo,
   Session,
@@ -20,6 +20,7 @@ import type {
 import AddDialog from "./components/AddDialog.vue";
 import ContextSheet from "./components/ContextSheet.vue";
 import FilterBar from "./components/FilterBar.vue";
+import SelectionBar from "./components/SelectionBar.vue";
 import SessionSheet from "./components/SessionSheet.vue";
 import TokenGate from "./components/TokenGate.vue";
 import TorrentDetail from "./components/TorrentDetail.vue";
@@ -40,7 +41,9 @@ const loading = ref(false);
 const loadingMore = ref(false);
 const listError = ref("");
 const authError = ref("");
-const selected = ref<Torrent | null>(null);
+const selectionMode = ref(false);
+const selectedIds = ref<Set<string>>(new Set());
+const bulkBusy = ref(false);
 const detail = ref<Torrent | null>(null);
 const detailLive = ref<Record<string, unknown>>({});
 const addOpen = ref(false);
@@ -211,8 +214,78 @@ function updateFilters(partial: Partial<TorrentFilters>): void {
   Object.assign(filters, partial);
 }
 
-function onLongPress(torrent: Torrent): void {
-  selected.value = torrent;
+function startSelection(torrent: Torrent): void {
+  selectionMode.value = true;
+  selectedIds.value = new Set([torrent.id]);
+}
+
+function toggleSelection(torrent: Torrent): void {
+  const next = new Set(selectedIds.value);
+  if (next.has(torrent.id)) {
+    next.delete(torrent.id);
+  } else {
+    next.add(torrent.id);
+  }
+  selectedIds.value = next;
+  if (next.size === 0) selectionMode.value = false;
+}
+
+function onRowSelect(torrent: Torrent): void {
+  if (selectionMode.value) {
+    toggleSelection(torrent);
+    return;
+  }
+  openDetail(torrent);
+}
+
+function clearSelection(): void {
+  selectionMode.value = false;
+  selectedIds.value = new Set();
+}
+
+async function selectAllMatching(): Promise<void> {
+  try {
+    const result = await api.listTorrentIds(filters);
+    selectedIds.value = new Set(result.ids);
+    selectionMode.value = result.ids.length > 0;
+    if (result.total > result.ids.length) {
+      showToast(t("bulk.capped", { limit: result.limit }));
+    }
+  } catch (error) {
+    reportError(error);
+  }
+}
+
+async function runBulk(
+  payload:
+    | { kind: "pause" | "resume" | "remove" }
+    | { kind: "label"; label: string },
+): Promise<void> {
+  if (bulkBusy.value || selectedIds.value.size === 0) return;
+  bulkBusy.value = true;
+  try {
+    const torrentIds = [...selectedIds.value];
+    const body: BulkActionPayload =
+      payload.kind === "label"
+        ? { action: "label", torrent_ids: torrentIds, label: payload.label }
+        : {
+            action: payload.kind,
+            torrent_ids: torrentIds,
+            ...(payload.kind === "remove" ? { remove_data: false } : {}),
+          };
+    const result = await api.bulkAction(body);
+    showToast(
+      result.failed.length
+        ? t("bulk.partial", { ok: result.ok, failed: result.failed.length })
+        : t("bulk.done", { ok: result.ok }),
+    );
+    clearSelection();
+    resetList();
+  } catch (error) {
+    reportError(error);
+  } finally {
+    bulkBusy.value = false;
+  }
 }
 
 function openDetail(torrent: Torrent): void {
@@ -310,39 +383,6 @@ function connectEvents(): void {
       // Ignore malformed deltas.
     }
   });
-}
-
-async function applyAction(payload: ActionPayload): Promise<void> {
-  const torrent = selected.value;
-  if (!torrent) return;
-  selected.value = null;
-  try {
-    if (payload.kind === "pause") {
-      const result = await api.pauseTorrent(torrent.id);
-      api.updateTorrent(torrent, { state: result.state });
-      showToast(t("toast.paused"));
-    } else if (payload.kind === "resume") {
-      const result = await api.resumeTorrent(torrent.id);
-      api.updateTorrent(torrent, { state: result.state });
-      showToast(t("toast.resumed"));
-    } else if (payload.kind === "queue") {
-      await api.queueTorrent(torrent.id, payload.action ?? "");
-      showToast(t("toast.queue"));
-    } else if (payload.kind === "label") {
-      const result = await api.setLabel(torrent.id, payload.label ?? "");
-      api.updateTorrent(torrent, { label: result.label });
-      showToast(t("toast.label"));
-    } else if (payload.kind === "remove") {
-      const result = await api.removeTorrent(torrent.id, payload.remove_data ?? false);
-      if (result.removed) {
-        torrents.value = torrents.value.filter((row) => row.id !== torrent.id);
-        total.value = Math.max(0, total.value - 1);
-        showToast(t("toast.removed"));
-      }
-    }
-  } catch (error) {
-    reportError(error);
-  }
 }
 
 async function toggleSession(): Promise<void> {
@@ -517,7 +557,7 @@ onBeforeUnmount(() => {
       @update="updateFilters"
     />
 
-    <main class="list-pane">
+    <main class="list-pane" :class="{ selecting: selectionMode }">
       <div v-if="listError" class="error-banner">
         <span>{{ listError }}</span>
         <button class="action" @click="resetList">{{ t("list.retry") }}</button>
@@ -534,8 +574,10 @@ onBeforeUnmount(() => {
         <template #default="{ item }">
           <TorrentRow
             :torrent="item"
-            @long-press="onLongPress"
-            @select="openDetail"
+            :selected="selectedIds.has(item.id)"
+            :selection-mode="selectionMode"
+            @long-press="startSelection"
+            @select="onRowSelect"
           />
         </template>
       </RecycleScroller>
@@ -565,14 +607,15 @@ onBeforeUnmount(() => {
       @toggle="toggleSession"
     />
 
-    <ContextSheet
-      v-if="selected"
-      :torrent="selected"
-      :labels="labels"
-      :no-label-count="noLabelCount"
+    <SelectionBar
+      v-if="selectionMode"
+      :count="selectedIds.size"
+      :busy="bulkBusy"
       :can-write="canWrite"
-      @close="selected = null"
-      @action="applyAction"
+      :labels="labels"
+      @close="clearSelection"
+      @select-all="selectAllMatching"
+      @action="runBulk"
     />
 
     <TorrentDetail

@@ -104,6 +104,12 @@ async function mockApi(
         return route.fulfill({ json: labels });
       case "/api/torrents":
         return route.fulfill({ json: torrentList });
+      case "/api/torrents/ids":
+        return route.fulfill({
+          json: { ids: ["demo-movie"], total: 1, limit: 1000 },
+        });
+      case "/api/torrents/bulk":
+        return route.fulfill({ json: { ok: 1, failed: [] } });
       case "/api/torrents/demo-movie":
         return route.fulfill({ json: detail });
       case "/api/torrents/demo-movie/files":
@@ -202,6 +208,24 @@ test.describe("authenticated UI", () => {
     await expect(
       dialog.getByRole("button", { name: "Összes szüneteltetése" }),
     ).toBeVisible();
+  });
+
+  test("selects torrents with a long press and runs a bulk action", async ({
+    page,
+  }) => {
+    const row = page.getByRole("button", { name: "Demo Movie 2024" });
+    await row.hover();
+    await page.mouse.down();
+    await page.waitForTimeout(600);
+    await page.mouse.up();
+
+    const bar = page.getByRole("region", { name: "Kijelölés" });
+    await expect(bar).toBeVisible();
+    await expect(bar.getByText("1 kijelölve")).toBeVisible();
+
+    await bar.getByRole("button", { name: "Szünet" }).click();
+    await expect(page.getByRole("status")).toContainText("1 kész");
+    await expect(bar).toHaveCount(0);
   });
 
   test("opens the add sheet", async ({ page }) => {

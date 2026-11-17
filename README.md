@@ -35,7 +35,7 @@ Jelenlegi release: **v0.1.3** (GitLab + GitHub), az éles példányon telepítve
 - **M1 / #5 kész:** `/api/events` SSE, EventManager + 1/s diff, 15 s heartbeat,
   reconnect; a token query paraméterben is adható.
 - **M2 / #6 kész:** Vue 3 + Vite + TS SPA a `data/`-ban, 50-es lapok +
-  virtualizált végtelen scroll, kereső/szűrők, long-press sheet, SSE élő lista.
+  virtualizált végtelen scroll, kereső/szűrők, long-press selection, SSE élő lista.
 - **M2 / #7 kész:** torrent detail (peers/ETA/ratio/útvonal), lapozott
   fájllista, add sheet magnet/.torrent + label + útvonal.
 - **M2 / #8 kész:** PWA manifest/ikonok/SW, light/dark téma, HU/EN i18n,
@@ -66,6 +66,8 @@ Jelenlegi release: **v0.1.3** (GitLab + GitHub), az éles példányon telepítve
 - **Session sheet:** a fejléc stats sávjáról nyílik; szabad hely, torrentszám,
   rate-ek és egy gombbal az összes torrent pause/resume (read-only nézetben
   gomb nélkül).
+- **Bulk selection:** long-press → kijelölés, alsó action barral; pause/resume/
+  label/remove N torrentre, „Összes” a szűrőre illeszkedő id-kkel (max 1000).
 
 ## 🧱 Felépítés
 

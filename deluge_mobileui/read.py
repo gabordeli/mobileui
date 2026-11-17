@@ -89,6 +89,7 @@ MAX_LIMIT = 200
 DEFAULT_LIMIT = 50
 MAX_FILES_LIMIT = 500
 DEFAULT_FILES_LIMIT = 100
+MAX_BULK_IDS = 1000
 
 
 def _label_plugin_labels(label_plugin):
@@ -104,6 +105,28 @@ def _sort_value(row, field):
     if field == "eta" and (value is None or value < 0):
         return float("inf")
     return value
+
+
+def _matching_rows(core, label_plugin, state=None, label=None, q=None):
+    label_map = _label_plugin_labels(label_plugin)
+    needle = q.casefold() if q else None
+
+    rows = []
+    for torrent_id, torrent in core.torrentmanager.torrents.items():
+        try:
+            row = torrent.get_status(LIST_KEYS, update=False)
+        except KeyError:
+            continue
+        row["id"] = torrent_id
+        row["label"] = label_map.get(torrent_id, NO_LABEL)
+        if state and state != "All" and row["state"] != state:
+            continue
+        if label and row["label"] != label:
+            continue
+        if needle and needle not in row["name"].casefold():
+            continue
+        rows.append(row)
+    return rows
 
 
 def list_torrents(
@@ -128,25 +151,7 @@ def list_torrents(
         raise ValueError(f"unknown sort field: {sort}")
     descending = sort.startswith("-")
 
-    label_map = _label_plugin_labels(label_plugin)
-    needle = q.casefold() if q else None
-
-    rows = []
-    for torrent_id, torrent in core.torrentmanager.torrents.items():
-        try:
-            row = torrent.get_status(LIST_KEYS, update=False)
-        except KeyError:
-            continue
-        row["id"] = torrent_id
-        row["label"] = label_map.get(torrent_id, NO_LABEL)
-        if state and state != "All" and row["state"] != state:
-            continue
-        if label and row["label"] != label:
-            continue
-        if needle and needle not in row["name"].casefold():
-            continue
-        rows.append(row)
-
+    rows = _matching_rows(core, label_plugin, state, label, q)
     rows.sort(
         key=lambda row: (_sort_value(row, sort_field), row["name"].casefold()),
         reverse=descending,
@@ -158,6 +163,17 @@ def list_torrents(
         "offset": offset,
         "limit": limit,
         "torrents": page,
+    }
+
+
+def matching_ids(
+    core, label_plugin, state=None, label=None, q=None, limit=MAX_BULK_IDS
+):
+    rows = _matching_rows(core, label_plugin, state, label, q)
+    return {
+        "ids": [row["id"] for row in rows[:limit]],
+        "total": len(rows),
+        "limit": limit,
     }
 
 

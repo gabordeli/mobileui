@@ -21,10 +21,11 @@ hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 ## Tesztek
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, komponensek, theme,
-  api, format, i18n, main); 92 teszt, a coverage threshold a `vite.config.ts`-ben.
+  api, format, i18n, main); 95 teszt, a coverage threshold a `vite.config.ts`-ben.
 - `npm run test:e2e` — Playwright smoke: token-kapu, fiók login, read-only UI,
-  lista+detail, session sheet, add sheet. Az API-t `page.route` mockolja, ezért
-  Deluge nélkül fut; az első futás előtt `npx playwright install chromium` kell.
+  lista+detail, session sheet, bulk selection, add sheet. Az API-t `page.route`
+  mockolja, ezért Deluge nélkül fut; az első futás előtt
+  `npx playwright install chromium` kell.
 - A CI `webui-e2e` job ugyanezt futtatja; a böngészőt a `webui/.playwright/`
   cache alá tölti.
 
@@ -55,7 +56,13 @@ elég az új plugin/daemon; a UI a backend válaszából frissül. Ha a health n
 - A keresés 300 ms debounce; a state/label/sort szerveroldali szűrés, a
   `listKey` változásakor a scroller újraindul.
 - A sor hosszú nyomása (500 ms, 10 px mozgástolerancia, vibráció ha van)
-  context sheetet nyit: pause/resume, queue, label, remove (opcionális adat).
+  **selection módot** indít (az adott sor kijelölve); ilyenkor a tap váltogat,
+  normál módban a tap a detailt nyitja.
+- A kijelölés alatt fix **alsó action bar** jelenik meg: darabszám, „Összes”
+  (a szűrőre illeszkedő id-k a `/api/torrents/ids`-ből, max 1000), valamint
+  pause/resume/label/remove a `/api/torrents/bulk`-kal. A hibás id-k nem
+  állítják meg a többit; a toast `ok`/`failed` összegzést mutat. A korábbi
+  context sheet megszűnt, a single-torrent műveletek a detailben maradtak.
 
 ## SSE
 
@@ -67,7 +74,7 @@ események szűrő nélkül a totalt is korrigálják; reconnectet a böngésző
 
 - A sorra koppintva teljes képernyős detail nyílik (`TorrentDetail.vue`):
   progress, sebességek, peers/seeds, ETA, ratio, méret, mentési útvonal,
-  label, műveletek. A hosszú nyomás továbbra is a gyors context sheetet nyitja.
+  label, műveletek.
 - A fájllista külön, lapozott API-ból jön (`/api/torrents/{id}/files`,
   100-as lapok, max 500); a detail csak a `num_files`-t hozza. 522 fájlos
   torrentnél a „További fájlok” 100→200-at tölt.

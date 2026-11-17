@@ -11,7 +11,11 @@ import {
 import { stateLabel, t } from "../i18n";
 import type { Torrent } from "../types";
 
-const props = defineProps<{ torrent: Torrent }>();
+const props = defineProps<{
+  torrent: Torrent;
+  selected: boolean;
+  selectionMode: boolean;
+}>();
 const emit = defineEmits<{
   longPress: [torrent: Torrent];
   select: [torrent: Torrent];
@@ -72,10 +76,12 @@ onBeforeUnmount(clearTimer);
 <template>
   <article
     class="torrent-row"
+    :class="{ selected }"
     role="button"
     tabindex="0"
     :aria-label="torrent.name"
-    aria-haspopup="dialog"
+    :aria-pressed="selectionMode ? selected : undefined"
+    :aria-haspopup="selectionMode ? undefined : 'dialog'"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="clearTimer"
@@ -87,6 +93,12 @@ onBeforeUnmount(clearTimer);
     @contextmenu.prevent
   >
     <div class="row-top">
+      <span
+        v-if="selectionMode"
+        class="row-check"
+        :class="{ on: selected }"
+        aria-hidden="true"
+      >{{ selected ? "✓" : "" }}</span>
       <div class="row-title" :title="torrent.name">{{ torrent.name }}</div>
       <div class="row-progress">{{ progress.toFixed(1) }}%</div>
     </div>

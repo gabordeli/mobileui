@@ -104,9 +104,20 @@ export interface TorrentFilters {
   sort: string;
 }
 
-export interface ActionPayload {
-  kind: "pause" | "resume" | "queue" | "label" | "remove";
-  action?: string;
+export interface TorrentIds {
+  ids: string[];
+  total: number;
+  limit: number;
+}
+
+export interface BulkResult {
+  ok: number;
+  failed: { id: string; error: string }[];
+}
+
+export interface BulkActionPayload {
+  action: "pause" | "resume" | "remove" | "label";
+  torrent_ids: string[];
   label?: string;
   remove_data?: boolean;
 }

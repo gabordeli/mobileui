@@ -41,6 +41,8 @@ vi.mock("./api", () => {
     resumeSession: vi.fn(),
     getLabels: vi.fn(),
     listTorrents: vi.fn(),
+    listTorrentIds: vi.fn(),
+    bulkAction: vi.fn(),
     eventsUrl: vi.fn(),
     updateTorrent: vi.fn(),
     pauseTorrent: vi.fn(),
@@ -132,6 +134,12 @@ beforeEach(() => {
     limit: 50,
     torrents: [torrent],
   });
+  vi.mocked(api.listTorrentIds).mockResolvedValue({
+    ids: [torrent.id],
+    total: 1,
+    limit: 1000,
+  });
+  vi.mocked(api.bulkAction).mockResolvedValue({ ok: 1, failed: [] });
   vi.mocked(api.eventsUrl).mockReturnValue("/api/events?token=dev-token");
   vi.mocked(api.getTorrent).mockResolvedValue(detail);
   vi.mocked(api.getTorrentFiles).mockResolvedValue({
@@ -337,6 +345,80 @@ describe("App", () => {
         .get(`[role="dialog"][aria-label="${t("session.title")}"]`)
         .text(),
     ).toContain(t("session.resume"));
+  });
+
+  async function selectFirstRow(
+    wrapper: ReturnType<typeof mountApp>,
+  ): Promise<void> {
+    vi.useFakeTimers();
+    const row = wrapper.get(`[role="button"][aria-label="${torrent.name}"]`);
+    await row.trigger("pointerdown", { button: 0, clientX: 10, clientY: 10 });
+    vi.advanceTimersByTime(500);
+    await nextTick();
+    vi.useRealTimers();
+  }
+
+  it("starts selection with a long press and runs a bulk pause", async () => {
+    const wrapper = mountApp();
+    await flushPromises();
+
+    await selectFirstRow(wrapper);
+
+    const bar = wrapper.get(`[role="region"][aria-label="${t("bulk.title")}"]`);
+    expect(bar.text()).toContain(t("bulk.selected", { count: 1 }));
+
+    const pauseButton = bar.findAll("button")[2];
+    pauseButton.element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flushPromises();
+
+    expect(api.bulkAction).toHaveBeenCalledWith({
+      action: "pause",
+      torrent_ids: [torrent.id],
+    });
+    expect(wrapper.text()).toContain(t("bulk.done", { ok: 1 }));
+    expect(wrapper.find(`[role="region"][aria-label="${t("bulk.title")}"]`).exists()).toBe(false);
+  });
+
+  it("selects every matching torrent", async () => {
+    const wrapper = mountApp();
+    await flushPromises();
+
+    await selectFirstRow(wrapper);
+    const bar = wrapper.get(`[role="region"][aria-label="${t("bulk.title")}"]`);
+    bar.findAll("button")[1].element.dispatchEvent(
+      new MouseEvent("click", { bubbles: true }),
+    );
+    await flushPromises();
+
+    expect(api.listTorrentIds).toHaveBeenCalledWith({
+      q: "",
+      state: "",
+      label: "",
+      sort: "name",
+    });
+    expect(wrapper.text()).toContain(t("bulk.selected", { count: 1 }));
+  });
+
+  it("shows a read-only selection bar without actions", async () => {
+    vi.mocked(api.getAuthInfo).mockResolvedValue({
+      mode: "password",
+      modes: ["password"],
+      token_set: false,
+      authenticated: true,
+      username: "guest",
+      level: 1,
+      write: false,
+    });
+    const wrapper = mountApp();
+    await flushPromises();
+
+    await selectFirstRow(wrapper);
+
+    const bar = wrapper.get(`[role="region"][aria-label="${t("bulk.title")}"]`);
+    expect(bar.get(".readonly-note").text()).toBe(t("auth.readonly"));
+    expect(
+      bar.findAll("button").some((item) => item.text() === t("bulk.pause")),
+    ).toBe(false);
   });
 
   it("opens the add dialog and the detail", async () => {

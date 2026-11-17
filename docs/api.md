@@ -92,7 +92,8 @@ Tokenes index:
   "endpoints": [
     "/api/auth", "/api/login", "/api/logout", "/api/session",
     "/api/session/pause", "/api/session/resume", "/api/labels",
-    "/api/torrents", "/api/torrents/{id}", "/api/events"
+    "/api/torrents", "/api/torrents/ids", "/api/torrents/bulk",
+    "/api/torrents/{id}", "/api/events"
   ]
 }
 ```
@@ -189,6 +190,18 @@ Válasz:
 A `progress` 0–100, a rate-ek byte/s-ban, az `eta` másodperc (`-1` = végtelen),
 a `ratio` `-1` = végtelen.
 
+## GET /api/torrents/ids
+
+A szűrőkre illeszkedő torrent id-k (a kliens „Összes” kijelöléséhez).
+Ugyanazok a `state`, `label`, `q` paraméterek, mint a listánál; `sort`/`offset`
+nincs. Maximum 1000 id:
+
+```json
+{"ids": ["b1d2…", "a3f4…"], "total": 847, "limit": 1000}
+```
+
+A `total` a teljes találatszám; 1000 felett az `ids` az első 1000-et adja.
+
 ## GET /api/torrents/{id}
 
 Egy torrent részletes státusza. A `get_status` mezői mellett:
@@ -265,6 +278,31 @@ ismeretlen action → 400, ismeretlen torrent → 404.
 
 A label a Label plugin `set_torrent`-jén megy át, így a label opciói
 (`move_completed`, sebességlimitek, queue) a meglévő logika szerint érvényesülnek.
+
+## POST /api/torrents/bulk
+
+Több torrent egy művelete. Write szint kell (read-only → 403).
+
+```json
+{
+  "action": "pause|resume|remove|label",
+  "torrent_ids": ["b1d2…", "a3f4…"],
+  "label": "filmek",
+  "remove_data": false
+}
+```
+
+- `torrent_ids`: 1–1000 id; üres lista → 400.
+- `label` csak `action=label`-nél; `No Label`/`null` → label törlése;
+  ismeretlen label → 400; Label plugin nélkül → 409.
+- `remove_data` csak `remove`-nél (default false).
+- A hibás id-k nem állítják meg a többit:
+
+```json
+{"ok": 2, "failed": [{"id": "missing", "error": "unknown torrent"}]}
+```
+
+- `200` akkor is, ha néhány id hibás; a `failed` tartalmazza az okot.
 
 ## POST /api/torrents
 

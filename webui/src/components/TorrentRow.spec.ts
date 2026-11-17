@@ -8,9 +8,15 @@ import TorrentRow from "./TorrentRow.vue";
 beforeEach(() => setLocale("en"));
 afterEach(() => vi.useRealTimers());
 
+function factory(overrides: Record<string, unknown> = {}) {
+  return mount(TorrentRow, {
+    props: { torrent, selected: false, selectionMode: false, ...overrides },
+  });
+}
+
 describe("TorrentRow", () => {
   it("renders the torrent and emits select on click", async () => {
-    const wrapper = mount(TorrentRow, { props: { torrent } });
+    const wrapper = factory();
 
     expect(wrapper.text()).toContain("Demo Movie 2024");
     expect(wrapper.text()).toContain("42.5%");
@@ -23,7 +29,7 @@ describe("TorrentRow", () => {
 
   it("emits longPress after 500ms and suppresses the click", async () => {
     vi.useFakeTimers();
-    const wrapper = mount(TorrentRow, { props: { torrent } });
+    const wrapper = factory();
     const row = wrapper.get("article");
 
     await row.trigger("pointerdown", { button: 0, clientX: 10, clientY: 10 });
@@ -38,7 +44,7 @@ describe("TorrentRow", () => {
 
   it("cancels the long press when the pointer moves", async () => {
     vi.useFakeTimers();
-    const wrapper = mount(TorrentRow, { props: { torrent } });
+    const wrapper = factory();
     const row = wrapper.get("article");
 
     await row.trigger("pointerdown", { button: 0, clientX: 10, clientY: 10 });
@@ -56,11 +62,26 @@ describe("TorrentRow", () => {
   });
 
   it("hides ETA when paused and clamps the progress", () => {
-    const wrapper = mount(TorrentRow, {
-      props: { torrent: { ...torrent, state: "Paused", progress: 150 } },
+    const wrapper = factory({
+      torrent: { ...torrent, state: "Paused", progress: 150 },
     });
 
     expect(wrapper.text()).toContain("100.0%");
     expect(wrapper.text()).not.toContain("ETA");
+  });
+
+  it("shows the selection check and pressed state", () => {
+    const wrapper = factory({ selectionMode: true, selected: true });
+
+    expect(wrapper.get("article").attributes("aria-pressed")).toBe("true");
+    expect(wrapper.get(".row-check").classes()).toContain("on");
+    expect(wrapper.get("article").classes()).toContain("selected");
+  });
+
+  it("does not show the check outside selection mode", () => {
+    const wrapper = factory({ selected: true });
+
+    expect(wrapper.find(".row-check").exists()).toBe(false);
+    expect(wrapper.get("article").attributes("aria-pressed")).toBeUndefined();
   });
 });

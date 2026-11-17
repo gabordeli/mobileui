@@ -6,7 +6,7 @@ import os
 
 from deluge.error import AddTorrentError, InvalidTorrentError
 
-from .read import NO_LABEL
+from .read import MAX_BULK_IDS, NO_LABEL
 
 log = logging.getLogger(__name__)
 
@@ -16,6 +16,8 @@ QUEUE_ACTIONS = {
     "top": "queue_top",
     "bottom": "queue_bottom",
 }
+
+BULK_ACTIONS = {"pause", "resume", "remove", "label"}
 
 
 class BadRequest(ValueError):
@@ -86,6 +88,40 @@ def set_label(core, label_plugin, torrent_id, label):
         label_id = label
     label_plugin.set_torrent(torrent_id, label_id)
     return {"id": torrent_id, "label": label_id or NO_LABEL}
+
+
+def bulk(core, label_plugin, torrent_ids, action, label=None, remove_data=False):
+    if action not in BULK_ACTIONS:
+        raise BadRequest("action must be one of: " + ", ".join(sorted(BULK_ACTIONS)))
+    ids = [str(torrent_id) for torrent_id in torrent_ids or []]
+    if not ids:
+        raise BadRequest("torrent_ids must not be empty")
+    if len(ids) > MAX_BULK_IDS:
+        raise BadRequest(f"at most {MAX_BULK_IDS} torrent ids are allowed")
+    if action == "label":
+        if label_plugin is None:
+            raise Conflict("Label plugin is not enabled")
+        if label not in (None, "", NO_LABEL) and label not in label_plugin.labels:
+            raise BadRequest(f"unknown label: {label}")
+
+    ok = 0
+    failed = []
+    for torrent_id in ids:
+        try:
+            if action == "pause":
+                pause(core, torrent_id)
+            elif action == "resume":
+                resume(core, torrent_id)
+            elif action == "remove":
+                remove(core, torrent_id, remove_data)
+            else:
+                set_label(core, label_plugin, torrent_id, label)
+        except (KeyError, Conflict) as ex:
+            error = "unknown torrent" if isinstance(ex, KeyError) else str(ex)
+            failed.append({"id": torrent_id, "error": error})
+        else:
+            ok += 1
+    return {"ok": ok, "failed": failed}
 
 
 def add(

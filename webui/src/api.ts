@@ -1,5 +1,7 @@
 import type {
   AuthInfo,
+  BulkActionPayload,
+  BulkResult,
   Health,
   Labels,
   LoginResult,
@@ -8,6 +10,7 @@ import type {
   TorrentDetail,
   TorrentFiles,
   TorrentFilters,
+  TorrentIds,
   TorrentList,
 } from "./types";
 
@@ -128,6 +131,22 @@ export function listTorrents(
   if (filters.state) params.set("state", filters.state);
   if (filters.label) params.set("label", filters.label);
   return request<TorrentList>(`/api/torrents?${params.toString()}`);
+}
+
+export function listTorrentIds(filters: TorrentFilters): Promise<TorrentIds> {
+  const params = new URLSearchParams();
+  if (filters.q) params.set("q", filters.q);
+  if (filters.state) params.set("state", filters.state);
+  if (filters.label) params.set("label", filters.label);
+  const query = params.toString();
+  return request<TorrentIds>(`/api/torrents/ids${query ? `?${query}` : ""}`);
+}
+
+export function bulkAction(payload: BulkActionPayload): Promise<BulkResult> {
+  return request<BulkResult>("/api/torrents/bulk", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function getTorrent(id: string): Promise<TorrentDetail> {

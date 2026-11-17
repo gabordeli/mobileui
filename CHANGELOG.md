@@ -18,6 +18,11 @@
   `?token=` never reaches access logs.
 - `deluge-compat` CI job running the backend suite against real Deluge 2.0.3,
   2.1.1 and 2.2.0.
+- Bulk selection: long-press starts selection, the bottom action bar batch
+  pauses/resumes/labels/removes torrents (`POST /api/torrents/bulk`), and
+  "All" loads every matching id (`GET /api/torrents/ids`, up to 1000). The
+  long-press context sheet is replaced by selection mode; single-torrent
+  actions stay in the detail.
 
 ## [0.1.3] - 2026-11-17
 

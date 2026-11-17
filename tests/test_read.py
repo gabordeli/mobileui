@@ -210,6 +210,30 @@ def test_session_negative_free_space_is_null():
     assert result["free_space"] is None
 
 
+def test_matching_ids_applies_filters():
+    core = make_core(
+        make_torrent("a", "Dune", state="Downloading"),
+        make_torrent("b", "Dune Messiah", state="Paused"),
+        make_torrent("c", "Other", state="Downloading"),
+    )
+    labels = FakeLabel({"a": "movies", "b": "movies", "c": "books"})
+
+    result = read.matching_ids(core, labels, state="Downloading", label="movies")
+
+    assert result["ids"] == ["a"]
+    assert result["total"] == 1
+
+
+def test_matching_ids_caps_the_list_but_reports_total():
+    core = make_core(*[make_torrent(str(i), f"T{i}") for i in range(3)])
+
+    result = read.matching_ids(core, FakeLabel({}), limit=2)
+
+    assert len(result["ids"]) == 2
+    assert result["total"] == 3
+    assert result["limit"] == 2
+
+
 def test_labels_counts_only_existing_torrents():
     core = make_core(make_torrent("a", "One"), make_torrent("b", "Two"))
     labels = FakeLabel({"a": "movies", "gone": "movies"})

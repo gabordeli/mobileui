@@ -469,10 +469,65 @@ class TorrentResource(ApiJsonResource):
         return self.write_json(request, 200, payload)
 
 
+class TorrentIdsResource(ApiJsonResource):
+    isLeaf = True
+
+    def render_GET(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        try:
+            payload = self.plugin.list_torrent_ids(
+                state=query_arg(request, "state"),
+                label=query_arg(request, "label"),
+                q=query_arg(request, "q"),
+            )
+        except (TypeError, ValueError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
+class TorrentBulkResource(ApiJsonResource):
+    isLeaf = True
+
+    def render_POST(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
+        try:
+            body = read_json_body(request)
+            torrent_ids = body.get("torrent_ids")
+            if not isinstance(torrent_ids, list):
+                raise BadRequest("torrent_ids must be a list")
+            remove_data = body.get("remove_data", False)
+            if not isinstance(remove_data, bool):
+                raise BadRequest("remove_data must be a bool")
+            payload = self.plugin.bulk_action(
+                body.get("action"),
+                torrent_ids,
+                label=body.get("label"),
+                remove_data=remove_data,
+            )
+        except (BadRequest, Conflict, TypeError, ValueError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
 class TorrentsResource(ApiJsonResource):
     def getChild(self, path, request):
         if not self.plugin.is_authorized(request):
             return UnauthorizedResource()
+        if path == b"bulk":
+            return TorrentBulkResource(self.plugin)
+        if path == b"ids":
+            return TorrentIdsResource(self.plugin)
         return TorrentResource(self.plugin, path.decode("utf-8"))
 
     def render_GET(self, request):
@@ -594,6 +649,8 @@ class ApiRootResource(JsonResource):
                     "/api/session/resume",
                     "/api/labels",
                     "/api/torrents",
+                    "/api/torrents/bulk",
+                    "/api/torrents/ids",
                     "/api/torrents/{id}",
                     "/api/events",
                 ],

@@ -186,3 +186,17 @@ Az authz mátrix (minden módosító endpoint read-only → 403, normal → 200/
 a `?token=` query naplózási szabálya (`$uri`, nem `$request`) ugyanezt a
 biztonsági vonalat erősíti; a részletek a `docs/ci.md` és `docs/api.md`
 dokumentumban.
+
+## D14 – Bulk selection: long-press + alsó action bar (2026-11-17)
+
+A long-press a D9/D11-ben leírt context sheet helyett **selection módot** indít
+(az adott sorral); ilyenkor a tap váltogat, normál módban a tap továbbra is a
+detailt nyitja. Az alsó, fix action bar darabszámot, „Összes” kijelölést és
+pause/resume/label/remove műveleteket ad; a „Összes” a szűrőre illeszkedő
+id-ket tölti be a `GET /api/torrents/ids`-ből (max 1000, a `total` külön
+látszik). A `POST /api/torrents/bulk` id-nként dolgozik, a hibákat
+összegyűjti (`ok`/`failed`), így egy rossz id nem állítja meg a többit.
+
+A ContextSheet megszűnt (a detail már tudta ugyanazokat a műveleteket); a
+single-torrent queue/label/remove a detailben maradt. A v1 nem tud undo-t,
+kereszt-szűrős kivételt vagy bulk queue-t.

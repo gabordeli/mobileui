@@ -195,6 +195,10 @@ button {
   overflow: hidden;
 }
 
+.list-pane.selecting {
+  padding-bottom: 138px;
+}
+
 .app-footer {
   flex: 0 0 auto;
   padding: 4px 12px calc(4px + env(safe-area-inset-bottom));
@@ -227,6 +231,29 @@ button {
 
 .torrent-row:active {
   background: #10151d;
+}
+
+.torrent-row.selected {
+  background: rgba(61, 214, 196, 0.08);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.row-check {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: #06110f;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.row-check.on {
+  border-color: var(--accent);
+  background: var(--accent);
 }
 
 .row-top {
@@ -650,6 +677,53 @@ button {
   color: var(--muted);
   font-size: 12px;
   text-align: center;
+}
+
+.selection-bar {
+  position: fixed;
+  z-index: 15;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.32);
+}
+
+.selection-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selection-head strong {
+  flex: 1;
+  font-size: 13px;
+}
+
+.selection-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.selection-actions .action {
+  padding: 8px 4px;
+  font-size: 12px;
+}
+
+.selection-label {
+  display: flex;
+  gap: 6px;
+}
+
+.selection-label select {
+  flex: 1;
+  min-width: 0;
 }
 
 .toast {

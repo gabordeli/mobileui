@@ -256,3 +256,35 @@ def test_set_session_paused_falls_back_without_session_state():
 
     assert write.set_session_paused(core, True) == {"paused": True}
     assert write.set_session_paused(core, False) == {"paused": False}
+
+
+def test_bulk_actions_collect_failures():
+    core = FakeCore(["a", "b"])
+    labels = FakeLabel()
+
+    result = write.bulk(core, labels, ["a", "missing"], "pause")
+    assert result == {
+        "ok": 1,
+        "failed": [{"id": "missing", "error": "unknown torrent"}],
+    }
+    assert core.calls == [("pause", "a")]
+
+    result = write.bulk(core, labels, ["a", "b"], "label", label="movies")
+    assert result["ok"] == 2
+    assert labels.calls == [("a", "movies"), ("b", "movies")]
+
+
+def test_bulk_rejects_bad_input():
+    core = FakeCore()
+    labels = FakeLabel()
+
+    with pytest.raises(write.BadRequest):
+        write.bulk(core, labels, [], "pause")
+    with pytest.raises(write.BadRequest):
+        write.bulk(core, labels, ["abc"], "queue")
+    with pytest.raises(write.BadRequest):
+        write.bulk(core, labels, ["abc"], "label", label="nope")
+    with pytest.raises(write.Conflict):
+        write.bulk(core, None, ["abc"], "label", label="movies")
+    with pytest.raises(write.BadRequest):
+        write.bulk(core, labels, ["abc"] * (write.MAX_BULK_IDS + 1), "pause")

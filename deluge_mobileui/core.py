@@ -84,6 +84,25 @@ class Core(CorePluginBase):
 
         return read.list_torrents(component.get("Core"), self._label_plugin(), **kwargs)
 
+    def list_torrent_ids(self, state=None, label=None, q=None):
+        from . import read
+
+        return read.matching_ids(
+            component.get("Core"), self._label_plugin(), state, label, q
+        )
+
+    def bulk_action(self, action, torrent_ids=None, label=None, remove_data=False):
+        from . import write
+
+        return write.bulk(
+            component.get("Core"),
+            self._label_plugin(),
+            torrent_ids,
+            action,
+            label=label,
+            remove_data=remove_data,
+        )
+
     def get_torrent(self, torrent_id):
         from . import read
 
