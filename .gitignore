@@ -15,6 +15,9 @@ webui/dist/
 .coverage
 coverage.xml
 webui/coverage/
+webui/test-results/
+webui/playwright-report/
+webui/.playwright/
 .scannerwork/
 .sonar/
 logs/

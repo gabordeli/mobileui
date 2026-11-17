@@ -127,9 +127,12 @@ npm ci
 npm run build          # deluge_mobileui/data/
 npm run test           # Vitest
 npm run test:coverage  # webui/coverage/lcov.info
+npm run test:e2e       # Playwright smoke (mockolt API)
 npm run dev            # proxy: 127.0.0.1:8113
 VITE_API_PROXY=http://192.168.2.27:8113 npm run dev
 ```
+
+A `test:e2e` első futása előtt `npx playwright install chromium` kell.
 
 A részletek: [docs/webui.md](docs/webui.md).
 

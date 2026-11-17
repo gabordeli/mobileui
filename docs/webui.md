@@ -17,6 +17,16 @@ npm run build        # typecheck + build a deluge_mobileui/data/-ba
 A `scripts/install.sh` akkor épít SPA-t a hoston, ha a `data/index.html`
 hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 
+## Tesztek
+
+- `npm run test` / `npm run test:coverage` — Vitest (theme, api, format, i18n,
+  main); a coverage threshold a `vite.config.ts`-ben.
+- `npm run test:e2e` — Playwright smoke: token-kapu, lista+detail, add sheet.
+  Az API-t `page.route` mockolja, ezért Deluge nélkül fut; az első futás előtt
+  `npx playwright install chromium` kell.
+- A CI `webui-e2e` job ugyanezt futtatja; a böngészőt a `webui/.playwright/`
+  cache alá tölti.
+
 ## Auth
 
 A token a `localStorage["mobileui.token"]`-ben van; a token-kapu bekéri, majd
