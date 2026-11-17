@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- Optional Deluge username/password login next to the static API token
+  (`auth_mode`: `token` / `password` / `both`). Sessions are revocable, expire
+  after 30 days and map Deluge auth levels, so a read-only (1) account can view
+  but not modify torrents. The static token stays as the admin break-glass.
+- `/api/auth`, `/api/login` and `/api/logout` endpoints; `403` for read-only
+  writes and a per-IP login rate limit (`429`).
+- Login gate with account/token tabs, sign-out in the account panel and a
+  read-only UI that hides the write actions.
+
 ## [0.1.3] - 2026-11-17
 
 - Release 0.1.3.

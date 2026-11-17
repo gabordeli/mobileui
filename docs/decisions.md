@@ -32,8 +32,8 @@ A célhost venvje **Twisted 22.4.0**-t használ, ezért a requirement
 ## D3 – Config: `mobileui.conf`
 
 `ConfigManager("mobileui.conf", {...})` a Deluge config könyvtárában. Kulcsok:
-`enabled`, `port`, `token`. A `/api/*` a Bearer tokent kényszeríti; a `/health`
-publikus marad.
+`enabled`, `port`, `token`, `auth_mode`, `sentry_dsn`. A `/api/*` hitelesítést
+kér; a `/health` és a login végpontok (`/api/auth`, `/api/login`) publikusak.
 
 ## D4 – SPA helye
 
@@ -150,3 +150,23 @@ Skeleton, offline banner, error+retry, safe-area padding, `:focus-visible` és
 Esc-close került be. A tesztpéldányon 360/390 px-en nincs vízszintes scroll (a keskeny
 fejléc brandje rövidül), a HU↔EN és light↔dark váltás ellenőrizve, 0 console
 error.
+
+## D12 – Auth: Deluge user/jelszó + visszahívható session (2026-11-17)
+
+A statikus API-token mellé opcionális **Deluge user/jelszó** belépés került
+(`auth_mode`: `token` / `password` / `both`). A credential forrása a daemon
+`auth` fájlja (`AuthManager.authorize`), nem külön mobileui user-lista: egy
+jelszó mindenhol, és a Deluge szintek (1/5/10) ingyen adják a read-only /
+normal / admin megkülönböztetést.
+
+A belépés `secrets.token_urlsafe(32)` session tokent ad (30 nap TTL,
+memóriában); a kliens ugyanúgy `Authorization: Bearer`-ként használja, ezért a
+többi endpoint és az SSE változatlan. A statikus token mindig admin
+(break-glass) és nem visszahívható; a session logouttal invalidálható. Írás
+csak `level >= 5`, különben 403. A login generikus 401-et ad (nem árulja el,
+létezik-e a user), IP-nként 5 hiba/perc után 429; az `X-Forwarded-For` csak a
+limit kulcsa.
+
+Korlát: a Deluge `auth` fájl plaintext jelszót tárol; a session a daemon
+restartjakor elveszik; a `deluge-web` saját `web.conf` jelszava külön rendszer,
+azt nem használjuk.

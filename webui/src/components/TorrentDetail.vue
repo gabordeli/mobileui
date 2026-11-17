@@ -17,6 +17,7 @@ const props = defineProps<{
   liveFields: Record<string, unknown>;
   labels: LabelInfo[];
   noLabelCount: number;
+  canWrite: boolean;
 }>();
 const emit = defineEmits<{
   close: [];
@@ -257,35 +258,38 @@ onMounted(() => {
 
           <p v-if="actionError" class="detail-error" role="alert">{{ actionError }}</p>
 
-          <div class="detail-actions">
-            <button
-              class="action primary"
-              :disabled="actionLoading"
-              @click="act(isPaused ? 'resume' : 'pause')"
-            >
-              {{ isPaused ? t("sheet.resume") : t("sheet.pause") }}
-            </button>
-            <div class="queue-grid">
-              <button class="action" :disabled="actionLoading" @click="queue('top')">{{ t("sheet.top") }}</button>
-              <button class="action" :disabled="actionLoading" @click="queue('up')">{{ t("sheet.up") }}</button>
-              <button class="action" :disabled="actionLoading" @click="queue('down')">{{ t("sheet.down") }}</button>
-              <button class="action" :disabled="actionLoading" @click="queue('bottom')">{{ t("sheet.bottom") }}</button>
-            </div>
-          </div>
-
-          <label class="field">
-            <span>{{ t("sheet.label") }}</span>
-            <div class="inline-field">
-              <select v-model="selectedLabel">
-                <option v-for="option in labelOptions" :key="option" :value="option">
-                  {{ option }}
-                </option>
-              </select>
-              <button class="action" :disabled="actionLoading" @click="saveLabel">
-                {{ t("sheet.save") }}
+          <template v-if="canWrite">
+            <div class="detail-actions">
+              <button
+                class="action primary"
+                :disabled="actionLoading"
+                @click="act(isPaused ? 'resume' : 'pause')"
+              >
+                {{ isPaused ? t("sheet.resume") : t("sheet.pause") }}
               </button>
+              <div class="queue-grid">
+                <button class="action" :disabled="actionLoading" @click="queue('top')">{{ t("sheet.top") }}</button>
+                <button class="action" :disabled="actionLoading" @click="queue('up')">{{ t("sheet.up") }}</button>
+                <button class="action" :disabled="actionLoading" @click="queue('down')">{{ t("sheet.down") }}</button>
+                <button class="action" :disabled="actionLoading" @click="queue('bottom')">{{ t("sheet.bottom") }}</button>
+              </div>
             </div>
-          </label>
+
+            <label class="field">
+              <span>{{ t("sheet.label") }}</span>
+              <div class="inline-field">
+                <select v-model="selectedLabel">
+                  <option v-for="option in labelOptions" :key="option" :value="option">
+                    {{ option }}
+                  </option>
+                </select>
+                <button class="action" :disabled="actionLoading" @click="saveLabel">
+                  {{ t("sheet.save") }}
+                </button>
+              </div>
+            </label>
+          </template>
+          <p v-else class="readonly-note">{{ t("auth.readonly") }}</p>
 
           <section class="files">
             <header class="files-head">
@@ -322,7 +326,7 @@ onMounted(() => {
             </button>
           </section>
 
-          <div class="detail-remove">
+          <div v-if="canWrite" class="detail-remove">
             <label class="checkbox">
               <input v-model="removeData" type="checkbox" />
               <span>{{ t("detail.removeData") }}</span>

@@ -46,6 +46,7 @@ function factory(overrides: Record<string, unknown> = {}) {
       liveFields: {},
       labels,
       noLabelCount: 1,
+      canWrite: true,
       ...overrides,
     },
     global: { stubs: { teleport: true } },
@@ -180,5 +181,16 @@ describe("TorrentDetail", () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain(formatRate(123456));
+  });
+
+  it("hides the write actions for a read-only account", async () => {
+    const wrapper = factory({ canWrite: false });
+    await flushPromises();
+
+    expect(wrapper.find(".detail-actions").exists()).toBe(false);
+    expect(wrapper.find(".detail-remove").exists()).toBe(false);
+    expect(wrapper.find("select").exists()).toBe(false);
+    expect(wrapper.get(".readonly-note").text()).toBe(t("auth.readonly"));
+    expect(wrapper.text()).toContain(files[0].path);
   });
 });

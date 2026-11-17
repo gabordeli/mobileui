@@ -588,6 +588,59 @@ button {
   flex: 1;
 }
 
+.gate-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.gate-tabs button {
+  flex: 1;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gate-tabs button.active {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.gate-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.gate-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.gate-identity p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.readonly-note {
+  margin: 0;
+  padding: 10px 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
 .toast {
   position: fixed;
   z-index: 30;

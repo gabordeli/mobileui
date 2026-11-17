@@ -5,15 +5,24 @@ import json
 import logging
 from pathlib import Path
 
+from deluge.common import AUTH_LEVEL_NORMAL
 from twisted.web.resource import Resource
 from twisted.web.static import File
 
+from .auth import (
+    AuthDisabled,
+    AuthUnavailable,
+    InvalidCredentials,
+    TooManyAttempts,
+    bearer_token,
+)
 from .version import __version__
 from .write import BadRequest, Conflict
 
 log = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
+PUBLIC_API_PATHS = {b"auth", b"login"}
 
 
 def json_bytes(payload):
@@ -33,6 +42,17 @@ def is_json_request(request):
     if isinstance(header, str):
         header = header.encode("utf-8")
     return header.split(b";")[0].strip().lower() == b"application/json"
+
+
+def client_key(request):
+    forwarded = request.getHeader(b"x-forwarded-for") or b""
+    if isinstance(forwarded, str):
+        forwarded = forwarded.encode("utf-8")
+    first = forwarded.split(b",")[0].strip()
+    if first:
+        return first.decode("latin-1")
+    address = request.getClientAddress()
+    return str(getattr(address, "host", "unknown"))
 
 
 def read_json_body(request):
@@ -88,7 +108,7 @@ class UnauthorizedResource(JsonResource):
             401,
             {
                 "error": "unauthorized",
-                "message": "Missing or invalid bearer token",
+                "message": "Missing or invalid credentials",
             },
             {b"www-authenticate": b'Bearer realm="mobileui"'},
         )
@@ -118,6 +138,16 @@ class ApiJsonResource(JsonResource):
         if self.plugin.is_authorized(request):
             return None
         return UnauthorizedResource().render(request)
+
+    def forbidden(self, request):
+        level = self.plugin.access_level(request)
+        if level is not None and level >= AUTH_LEVEL_NORMAL:
+            return None
+        return self.write_json(
+            request,
+            403,
+            {"error": "forbidden", "message": "Read-only account"},
+        )
 
     def api_error(self, request, ex):
         if isinstance(ex, KeyError):
@@ -177,6 +207,82 @@ class LabelsResource(ApiJsonResource):
         return self.write_json(request, 200, payload)
 
 
+class AuthInfoResource(ApiJsonResource):
+    isLeaf = True
+
+    def render_GET(self, request):
+        identity = self.plugin.auth_identity(request)
+        if identity is None:
+            return self.write_json(request, 200, self.plugin.auth_info())
+        level, username = identity
+        return self.write_json(
+            request, 200, self.plugin.auth_info(level, username)
+        )
+
+
+class LoginResource(ApiJsonResource):
+    isLeaf = True
+
+    def render_POST(self, request):
+        try:
+            body = read_json_body(request)
+            payload = self.plugin.login(
+                body.get("username"),
+                body.get("password"),
+                remote=client_key(request),
+            )
+        except TooManyAttempts:
+            return self.write_json(
+                request,
+                429,
+                {
+                    "error": "too_many_attempts",
+                    "message": "Too many failed login attempts",
+                },
+                {b"retry-after": b"60"},
+            )
+        except InvalidCredentials:
+            return UnauthorizedResource().render(request)
+        except AuthUnavailable:
+            return self.write_json(
+                request,
+                503,
+                {
+                    "error": "auth_unavailable",
+                    "message": "Deluge AuthManager is not available",
+                },
+            )
+        except AuthDisabled as ex:
+            return self.write_json(
+                request,
+                400,
+                {"error": "bad_request", "message": str(ex)},
+            )
+        except (ValueError, TypeError) as ex:
+            return self.write_json(
+                request,
+                400,
+                {"error": "bad_request", "message": str(ex)},
+            )
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
+class LogoutResource(ApiJsonResource):
+    isLeaf = True
+
+    def render_POST(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        try:
+            payload = self.plugin.logout(bearer_token(request))
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
 class TorrentActionResource(ApiJsonResource):
     isLeaf = True
 
@@ -189,6 +295,9 @@ class TorrentActionResource(ApiJsonResource):
         unauthorized = self.unauthorized(request)
         if unauthorized is not None:
             return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
         try:
             if self.action == "pause":
                 payload = self.plugin.pause_torrent(self.torrent_id)
@@ -212,6 +321,9 @@ class RemoveActionResource(ApiJsonResource):
         unauthorized = self.unauthorized(request)
         if unauthorized is not None:
             return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
         try:
             body = read_json_body(request)
             remove_data = body.get("remove_data", False)
@@ -236,6 +348,9 @@ class QueueActionResource(ApiJsonResource):
         unauthorized = self.unauthorized(request)
         if unauthorized is not None:
             return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
         try:
             body = read_json_body(request)
             action = body.get("action")
@@ -310,6 +425,9 @@ class TorrentResource(ApiJsonResource):
         unauthorized = self.unauthorized(request)
         if unauthorized is not None:
             return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
         try:
             body = read_json_body(request)
             if "label" not in body:
@@ -353,6 +471,9 @@ class TorrentsResource(ApiJsonResource):
         unauthorized = self.unauthorized(request)
         if unauthorized is not None:
             return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
         try:
             if is_json_request(request):
                 body = read_json_body(request)
@@ -396,7 +517,8 @@ class EventsResource(ApiJsonResource):
     def render_GET(self, request):
         token = query_arg(request, "token")
         if not (
-            self.plugin.is_authorized(request) or self.plugin.is_token_valid(token)
+            self.plugin.is_authorized(request)
+            or self.plugin.access_level_for_token(token) is not None
         ):
             return UnauthorizedResource().render(request)
         request.setHeader(b"content-type", b"text/event-stream; charset=utf-8")
@@ -413,13 +535,16 @@ class ApiRootResource(JsonResource):
     def __init__(self, plugin):
         super().__init__()
         self.plugin = plugin
+        self.putChild(b"auth", AuthInfoResource(plugin))
+        self.putChild(b"login", LoginResource(plugin))
+        self.putChild(b"logout", LogoutResource(plugin))
         self.putChild(b"session", SessionResource(plugin))
         self.putChild(b"labels", LabelsResource(plugin))
         self.putChild(b"torrents", TorrentsResource(plugin))
         self.putChild(b"events", EventsResource(plugin))
 
     def getChild(self, path, request):
-        if not self.plugin.is_authorized(request):
+        if path not in PUBLIC_API_PATHS and not self.plugin.is_authorized(request):
             return UnauthorizedResource()
         return NotFoundResource()
 
@@ -432,6 +557,9 @@ class ApiRootResource(JsonResource):
             {
                 "version": __version__,
                 "endpoints": [
+                    "/api/auth",
+                    "/api/login",
+                    "/api/logout",
                     "/api/session",
                     "/api/labels",
                     "/api/torrents",

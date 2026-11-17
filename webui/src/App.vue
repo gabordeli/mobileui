@@ -8,6 +8,9 @@ import { locale, t, toggleLocale } from "./i18n";
 import { theme, toggleTheme } from "./theme";
 import type {
   ActionPayload,
+  AuthInfo,
+  AuthMode,
+  GatePayload,
   LabelInfo,
   Session,
   Torrent,
@@ -26,6 +29,8 @@ const SEARCH_DEBOUNCE = 300;
 
 const authed = ref(false);
 const session = ref<Session | null>(null);
+const authInfo = ref<AuthInfo | null>(null);
+const authModes = ref<AuthMode[]>(["token"]);
 const labels = ref<LabelInfo[]>([]);
 const noLabelCount = ref(0);
 const torrents = ref<Torrent[]>([]);
@@ -59,6 +64,7 @@ let pendingReset = false;
 const downRate = computed(() => session.value?.payload_download_rate ?? 0);
 const upRate = computed(() => session.value?.payload_upload_rate ?? 0);
 const torrentCount = computed(() => session.value?.num_torrents ?? total.value);
+const canWrite = computed(() => authInfo.value?.write !== false);
 const listKey = computed(
   () => `${filters.q}|${filters.state}|${filters.label}|${filters.sort}`,
 );
@@ -86,16 +92,31 @@ function closeEvents(): void {
 function reportError(error: unknown, inList = false): void {
   if (error instanceof api.UnauthorizedError) {
     closeEvents();
-    authError.value = t("token.invalid");
+    authError.value = t("auth.expired");
     tokenInitial.value = api.getToken();
     authed.value = false;
     return;
   }
-  const message = error instanceof Error ? error.message : t("toast.error");
+  const message =
+    error instanceof api.ForbiddenError
+      ? t("auth.readonly")
+      : error instanceof Error
+        ? error.message
+        : t("toast.error");
   if (inList) {
     listError.value = message;
   } else {
     showToast(message);
+  }
+}
+
+async function loadAuthInfo(): Promise<void> {
+  try {
+    const info = await api.getAuthInfo();
+    authInfo.value = info;
+    authModes.value = info.modes;
+  } catch {
+    authInfo.value = null;
   }
 }
 
@@ -115,13 +136,18 @@ async function bootstrap(): Promise<void> {
     return;
   }
   try {
-    const [sessionData, labelData] = await Promise.all([
+    const [sessionData, labelData, info] = await Promise.all([
       api.getSession(),
       api.getLabels(),
+      api.getAuthInfo().catch(() => null),
     ]);
     session.value = sessionData;
     labels.value = labelData.labels;
     noLabelCount.value = labelData.no_label;
+    if (info) {
+      authInfo.value = info;
+      authModes.value = info.modes;
+    }
     authError.value = "";
     authed.value = true;
     connectEvents();
@@ -323,11 +349,42 @@ function showGate(): void {
   authed.value = false;
 }
 
-function submitToken(token: string): void {
-  if (!token) return;
-  api.setToken(token);
+async function submitGate(payload: GatePayload): Promise<void> {
   authError.value = "";
+  if (payload.mode === "password") {
+    try {
+      const result = await api.login(payload.username ?? "", payload.password ?? "");
+      api.setToken(result.token);
+      await bootstrap();
+    } catch (error) {
+      if (error instanceof api.UnauthorizedError) {
+        authError.value = t("auth.invalid");
+      } else if (error instanceof api.ApiError && error.status === 429) {
+        authError.value = t("auth.tooMany");
+      } else {
+        authError.value =
+          error instanceof Error ? error.message : t("toast.error");
+      }
+    }
+    return;
+  }
+  if (!payload.token) return;
+  api.setToken(payload.token);
   void bootstrap();
+}
+
+async function doLogout(): Promise<void> {
+  try {
+    await api.logout();
+  } catch {
+    // The static config token cannot be revoked; clearing it locally is enough.
+  }
+  api.setToken("");
+  closeEvents();
+  session.value = null;
+  authInfo.value = null;
+  authError.value = "";
+  authed.value = false;
 }
 
 function cancelGate(): void {
@@ -345,6 +402,7 @@ onMounted(() => {
   window.addEventListener("online", updateOnline);
   window.addEventListener("offline", updateOnline);
   void loadPluginVersion();
+  void loadAuthInfo();
   void bootstrap();
 });
 
@@ -360,12 +418,17 @@ onBeforeUnmount(() => {
 <template>
   <TokenGate
     v-if="!authed"
+    :modes="authModes"
     :initial-token="tokenInitial"
     :error="authError"
     :cancelable="Boolean(session)"
     :plugin-version="pluginVersion"
-    @submit="submitToken"
+    :token-set="authInfo?.token_set ?? true"
+    :username="authInfo?.username"
+    :level="authInfo?.level"
+    @submit="submitGate"
     @cancel="cancelGate"
+    @logout="doLogout"
   />
 
   <div v-else class="app-shell">
@@ -400,6 +463,7 @@ onBeforeUnmount(() => {
         {{ locale === "hu" ? "EN" : "HU" }}
       </button>
       <button
+        v-if="canWrite"
         class="icon-button"
         :aria-label="t('header.add')"
         :title="t('header.add')"
@@ -475,6 +539,7 @@ onBeforeUnmount(() => {
       :torrent="selected"
       :labels="labels"
       :no-label-count="noLabelCount"
+      :can-write="canWrite"
       @close="selected = null"
       @action="applyAction"
     />
@@ -485,6 +550,7 @@ onBeforeUnmount(() => {
       :live-fields="detailLive"
       :labels="labels"
       :no-label-count="noLabelCount"
+      :can-write="canWrite"
       @close="detail = null"
       @updated="onDetailUpdated"
       @removed="onDetailRemoved"

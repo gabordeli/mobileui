@@ -3,14 +3,29 @@
 import hmac
 import logging
 import os
+import secrets
+import time
 
 import deluge.component as component
+from deluge.common import AUTH_LEVEL_ADMIN, AUTH_LEVEL_NORMAL
 from deluge.configmanager import ConfigManager
 from deluge.core.rpcserver import export
+from deluge.error import AuthenticationRequired, BadLoginError
 from deluge.plugins.pluginbase import CorePluginBase
 from twisted.internet import defer, reactor
 from twisted.web.server import Site
 
+from .auth import (
+    AUTH_MODES,
+    LOGIN_MAX_FAILURES,
+    LOGIN_WINDOW,
+    SESSION_TTL,
+    AuthDisabled,
+    AuthUnavailable,
+    InvalidCredentials,
+    TooManyAttempts,
+    bearer_token,
+)
 from .http import build_root
 from .version import __version__
 
@@ -31,6 +46,7 @@ CONFIG_DEFAULTS = {
     "enabled": True,
     "port": 8113,
     "token": "",
+    "auth_mode": "token",
     "sentry_dsn": "",
 }
 
@@ -42,6 +58,8 @@ class Core(CorePluginBase):
         self.site = None
         self.listener = None
         self.events = None
+        self.sessions = {}
+        self._login_failures = {}
 
     def enable(self):
         self.config = ConfigManager(CONFIG_FILE, defaults=CONFIG_DEFAULTS)
@@ -184,7 +202,7 @@ class Core(CorePluginBase):
 
     @export
     def set_config(self, config):
-        """Update token/port/enabled/sentry_dsn; apply without a restart."""
+        """Update auth/token/port/enabled/sentry_dsn; apply without a restart."""
         if not isinstance(config, dict):
             raise TypeError("config must be a dict")
         unknown = set(config) - set(CONFIG_DEFAULTS)
@@ -205,6 +223,12 @@ class Core(CorePluginBase):
             if not isinstance(config["token"], str):
                 raise TypeError("token must be a string")
             updates["token"] = config["token"]
+        if "auth_mode" in config:
+            if not isinstance(config["auth_mode"], str):
+                raise TypeError("auth_mode must be a string")
+            if config["auth_mode"] not in AUTH_MODES:
+                raise ValueError("auth_mode must be one of: " + ", ".join(AUTH_MODES))
+            updates["auth_mode"] = config["auth_mode"]
         if "sentry_dsn" in config:
             if not isinstance(config["sentry_dsn"], str):
                 raise TypeError("sentry_dsn must be a string")
@@ -224,38 +248,158 @@ class Core(CorePluginBase):
             log.error("MobileUi config change failed, reverted", exc_info=True)
             raise
 
+        if "auth_mode" in updates and "password" not in self.auth_modes():
+            self.sessions.clear()
+
         if "sentry_dsn" in updates:
             self._init_sentry()
 
         log.info(
             "MobileUi config updated "
-            "(port=%s, enabled=%s, token_set=%s, sentry_set=%s)",
+            "(port=%s, enabled=%s, auth_mode=%s, token_set=%s, sentry_set=%s)",
             self.config["port"],
             self.config["enabled"],
+            self.config.get("auth_mode", "token"),
             bool(self.config["token"]),
             bool(self.config.get("sentry_dsn", "")),
         )
         return {
             "port": int(self.config["port"]),
             "enabled": bool(self.config["enabled"]),
+            "auth_mode": str(self.config.get("auth_mode", "token")),
             "token_set": bool(self.config["token"]),
             "sentry_set": bool(self.config.get("sentry_dsn", "")),
         }
 
+    def auth_modes(self):
+        if not self.config:
+            return ("token",)
+        mode = str(self.config.get("auth_mode", "token"))
+        modes = []
+        if mode in ("token", "both"):
+            modes.append("token")
+        if mode in ("password", "both"):
+            modes.append("password")
+        return tuple(modes)
+
+    def auth_info(self, level=None, username=""):
+        token = str(self.config.get("token", "")).strip() if self.config else ""
+        info = {
+            "mode": str(self.config.get("auth_mode", "token"))
+            if self.config
+            else "token",
+            "modes": list(self.auth_modes()),
+            "token_set": bool(token),
+        }
+        if level is not None:
+            info.update(
+                {
+                    "authenticated": True,
+                    "username": username,
+                    "level": int(level),
+                    "write": int(level) >= AUTH_LEVEL_NORMAL,
+                }
+            )
+        return info
+
+    def identity_for_token(self, token):
+        if not self.config or not token:
+            return None
+        modes = self.auth_modes()
+        if "token" in modes and self.is_token_valid(token):
+            return AUTH_LEVEL_ADMIN, "token"
+        if "password" in modes:
+            session = self.sessions.get(str(token))
+            if session is None:
+                return None
+            if session["expires"] <= time.time():
+                self.sessions.pop(str(token), None)
+                return None
+            return int(session["level"]), str(session["username"])
+        return None
+
+    def access_level_for_token(self, token):
+        identity = self.identity_for_token(token)
+        return None if identity is None else identity[0]
+
+    def auth_identity(self, request):
+        return self.identity_for_token(bearer_token(request))
+
+    def access_level(self, request):
+        identity = self.auth_identity(request)
+        return None if identity is None else identity[0]
+
     def is_authorized(self, request):
-        header = request.getHeader(b"authorization") or b""
-        if isinstance(header, str):
-            header = header.encode("utf-8")
-        if not header:
-            return False
-        scheme, _, value = header.partition(b" ")
-        if scheme.lower() != b"bearer":
-            return False
+        return self.auth_identity(request) is not None
+
+    def login(self, username, password, remote="", now=None):
+        if "password" not in self.auth_modes():
+            raise AuthDisabled("password login is not enabled")
+        if not isinstance(username, str) or not isinstance(password, str):
+            raise TypeError("username and password must be strings")
+        now = time.time() if now is None else float(now)
+        failures = self._login_failures_for(remote, now)
+        if len(failures) >= LOGIN_MAX_FAILURES:
+            raise TooManyAttempts("too many failed login attempts")
+
+        name = username.strip()
+        if not name or not password:
+            failures.append(now)
+            raise InvalidCredentials("invalid username or password")
+
+        manager = self._auth_manager()
+        if manager is None:
+            raise AuthUnavailable("Deluge AuthManager is not available")
         try:
-            token = value.strip().decode("utf-8")
-        except UnicodeDecodeError:
-            return False
-        return self.is_token_valid(token)
+            level = manager.authorize(name, password)
+        except (AuthenticationRequired, BadLoginError):
+            failures.append(now)
+            raise InvalidCredentials("invalid username or password") from None
+
+        self._login_failures.pop(remote, None)
+        self._prune_sessions(now)
+        token = secrets.token_urlsafe(32)
+        expires = now + SESSION_TTL
+        self.sessions[token] = {
+            "username": name,
+            "level": int(level),
+            "expires": expires,
+        }
+        log.info("MobileUi login: user=%s level=%s", name, level)
+        return {
+            "token": token,
+            "username": name,
+            "level": int(level),
+            "expires": int(expires),
+        }
+
+    def logout(self, token):
+        removed = self.sessions.pop(str(token), None) if token else None
+        return {"ok": True, "session": removed is not None}
+
+    def _auth_manager(self):
+        try:
+            return component.get("AuthManager")
+        except KeyError:
+            return None
+
+    def _login_failures_for(self, remote, now):
+        entries = [
+            stamp
+            for stamp in self._login_failures.get(remote, ())
+            if stamp > now - LOGIN_WINDOW
+        ]
+        self._login_failures[remote] = entries
+        return entries
+
+    def _prune_sessions(self, now):
+        expired = [
+            token
+            for token, session in self.sessions.items()
+            if session["expires"] <= now
+        ]
+        for token in expired:
+            self.sessions.pop(token, None)
 
     def is_token_valid(self, token):
         if token is None:

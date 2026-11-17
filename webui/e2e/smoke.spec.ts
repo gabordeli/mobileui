@@ -70,15 +70,29 @@ const files = {
   ],
 };
 
-async function mockApi(page: Page): Promise<void> {
+const authTokenOnly = { mode: "token", modes: ["token"], token_set: true };
+
+async function mockApi(
+  page: Page,
+  options: { auth?: Record<string, unknown> } = {},
+): Promise<void> {
   await page.route("**/health", (route) => route.fulfill({ json: health }));
   await page.route("**/api/**", (route) => {
     const url = new URL(route.request().url());
-    const auth = route.request().headers()["authorization"] ?? "";
 
     if (url.pathname === "/api/events") {
       return route.abort();
     }
+    if (url.pathname === "/api/auth") {
+      return route.fulfill({ json: options.auth ?? authTokenOnly });
+    }
+    if (url.pathname === "/api/login") {
+      return route.fulfill({
+        json: { token: "sess", username: "admin", level: 10, expires: 1 },
+      });
+    }
+
+    const auth = route.request().headers()["authorization"] ?? "";
     if (auth === "Bearer ") {
       return route.fulfill({ status: 401, json: {} });
     }
@@ -110,6 +124,50 @@ test("token gate accepts a valid token", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Demo Movie 2024" }),
   ).toBeVisible();
+});
+
+test("account login accepts username and password", async ({ page }) => {
+  await mockApi(page, {
+    auth: { mode: "both", modes: ["token", "password"], token_set: true },
+  });
+  await page.goto("/");
+
+  await expect(page.getByRole("tab", { name: "Fiók" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await page.getByPlaceholder("Felhasználónév").fill("admin");
+  await page.getByPlaceholder("Jelszó").fill("pw");
+  await page.getByRole("button", { name: "Belépés" }).click();
+
+  await expect(
+    page.getByRole("button", { name: "Demo Movie 2024" }),
+  ).toBeVisible();
+});
+
+test("read-only account hides the write actions", async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem("mobileui.token", "dev-token"),
+  );
+  await mockApi(page, {
+    auth: {
+      mode: "password",
+      modes: ["password"],
+      token_set: false,
+      authenticated: true,
+      username: "guest",
+      level: 1,
+      write: false,
+    },
+  });
+  await page.goto("/");
+
+  await expect(
+    page.getByRole("button", { name: "Demo Movie 2024" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Torrent hozzáadása" }),
+  ).toHaveCount(0);
 });
 
 test.describe("authenticated UI", () => {

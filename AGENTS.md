@@ -6,8 +6,8 @@ reactorjában fut, saját HTTP szervert indít a **8113**-on. A gyári `deluge-w
 
 ## Layout
 
-- `deluge_mobileui/` – plugin csomag (`core.py`, `http.py`, `read.py`,
-  `write.py`, `events.py`, `data/`)
+- `deluge_mobileui/` – plugin csomag (`core.py`, `auth.py`, `http.py`,
+  `read.py`, `write.py`, `events.py`, `data/`)
 - `webui/` – Vue 3 + Vite SPA (M2), build a `deluge_mobileui/data/`-ba
 - `tests/` – pytest; Deluge nélkül is futó unit tesztek
 - `docs/` – `api.md`, `perf.md`, `webui.md`, `ci.md`, `install.md`, `decisions.md`

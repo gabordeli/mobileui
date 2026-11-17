@@ -1,26 +1,85 @@
 # API
 
-Alap URL: `http://127.0.0.1:8113` (LAN). A `/health` publikus, minden más
-`/api/*` végpont `Authorization: Bearer <token>`-t kér.
+Alap URL: `http://127.0.0.1:8113` (LAN). A `/health` és a `/api/auth`,
+`/api/login` publikus; minden más `/api/*` végpont hitelesítést kér.
 
 ## Auth
+
+Két belépési mód van, a `mobileui.conf` `auth_mode` kulcsa dönt
+(`token` | `password` | `both`, default `token`):
+
+- **token** – a pluginban beállított közös API-token (break-glass, admin szint).
+- **password** – Deluge felhasználónév/jelszó a daemon `auth` fájljából; a
+  belépés után a kliens egy lejáró **session tokent** kap, és ugyanúgy
+  `Authorization: Bearer`-ként használja, mint a statikus tokent.
 
 ```http
 Authorization: Bearer <token>
 ```
 
-- Hiányzó/rossz token → `401`, JSON törzs:
-  `{"error": "unauthorized", "message": "Missing or invalid bearer token"}`,
-  `WWW-Authenticate: Bearer realm="mobileui"`.
-- Üres `token` a configban → minden `/api/*` 401.
+Sikeres belépés:
+
+```http
+POST /api/login
+Content-Type: application/json
+
+{"username": "admin", "password": "..."}
+```
+
+```json
+{"token": "…", "username": "admin", "level": 10, "expires": 1797518452}
+```
+
+- A session token 30 napig él, a `deluged` újraindításakor elveszik.
+- `level` a Deluge auth szint: 1 = read-only, 5 = normal, 10 = admin.
+  A statikus token mindig admin.
+- Írás (`POST`/`PATCH`) csak `level >= 5`; read-only fióknál
+  `403 {"error": "forbidden", "message": "Read-only account"}`.
+- `POST /api/logout` invalidálja a session tokent (a statikus token nem
+  visszahívható; ott `{"ok": true, "session": false}`).
+
+Hibák:
+
+| Kód | Törzs | Mikor |
+| --- | --- | --- |
+| 401 | `{"error": "unauthorized", "message": "Missing or invalid credentials"}` | hiányzó/rossz token vagy jelszó; `WWW-Authenticate: Bearer realm="mobileui"` |
+| 403 | `{"error": "forbidden", "message": "Read-only account"}` | read-only szintű írás |
+| 429 | `{"error": "too_many_attempts", …}`, `Retry-After: 60` | 5 sikertelen login / perc / IP |
+
+- Üres `token` a configban és `auth_mode=token` → minden `/api/*` 401.
 - A token a `mobileui.conf`-ban él (600); élő csere: `mobileui.set_config`.
+- A login limit kulcsa az `X-Forwarded-For` első címe, ha van, különben a
+  peer cím. Az auth döntést ez nem befolyásolja.
+- Az SSE `?token=` paramétere a session tokent is elfogadja.
+
+## GET /api/auth
+
+Publikus. Token nélkül csak a módokat adja vissza; hitelesítve az identitást is:
+
+```json
+{"mode": "both", "modes": ["token", "password"], "token_set": true}
+```
+
+```json
+{
+  "mode": "both",
+  "modes": ["token", "password"],
+  "token_set": true,
+  "authenticated": true,
+  "username": "admin",
+  "level": 10,
+  "write": true
+}
+```
+
+A statikus tokennel belépve a `username` `"token"`.
 
 ## GET /health
 
 Publikus, auth nélkül is:
 
 ```json
-{"ok": true, "version": "0.1.0", "port": 8113}
+{"ok": true, "version": "0.1.3", "port": 8113}
 ```
 
 ## GET /api
@@ -29,8 +88,11 @@ Tokenes index:
 
 ```json
 {
-  "version": "0.1.0",
-  "endpoints": ["/api/session", "/api/labels", "/api/torrents", "/api/torrents/{id}"]
+  "version": "0.1.3",
+  "endpoints": [
+    "/api/auth", "/api/login", "/api/logout", "/api/session",
+    "/api/labels", "/api/torrents", "/api/torrents/{id}", "/api/events"
+  ]
 }
 ```
 
@@ -267,8 +329,9 @@ Utána torrent-delták (`event: torrent`) és session-delták (`event: session`)
 
 ## M1 végpontok
 
-Az M1 összes végpontja implementálva: `/health`, `/api/session`, `/api/labels`,
-`/api/torrents`, `/api/torrents/{id}` (GET/PATCH), `/api/torrents/{id}/files`, a torrent-műveletek
+Az M1 összes végpontja implementálva: `/health`, `/api/auth`, `/api/login`,
+`/api/logout`, `/api/session`, `/api/labels`, `/api/torrents`,
+`/api/torrents/{id}` (GET/PATCH), `/api/torrents/{id}/files`, a torrent-műveletek
 (`pause`, `resume`, `remove`, `queue`), `POST /api/torrents` és `/api/events`.
 
 ## Hibák
@@ -277,10 +340,13 @@ JSON, legalább `{"error": "...", "message": "..."}`:
 
 | Státusz | `error` | Mikor |
 | --- | --- | --- |
-| 400 | `bad_request` | hibás query/JSON/mező |
-| 401 | `unauthorized` | hiányzó/rossz token |
+| 400 | `bad_request` | hibás query/JSON/mező, kikapcsolt password mód |
+| 401 | `unauthorized` | hiányzó/rossz token vagy jelszó, lejárt session |
+| 403 | `forbidden` | read-only fiók írása |
 | 404 | `not_found` | ismeretlen útvonal vagy torrent id |
 | 409 | `conflict` | duplikált torrent, tiltott állapot, Label plugin nélkül |
+| 429 | `too_many_attempts` | 5 sikertelen login / perc / IP |
 | 500 | `internal_error` | váratlan hiba a daemonban |
+| 503 | `auth_unavailable` | a Deluge `AuthManager` nem érhető el |
 
 Teljesítmény: [perf.md](perf.md).

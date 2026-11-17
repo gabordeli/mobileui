@@ -1,4 +1,5 @@
 import pytest
+from deluge.common import AUTH_LEVEL_ADMIN, AUTH_LEVEL_READONLY
 from twisted.web.test.requesthelper import DummyRequest
 
 from deluge_mobileui import core
@@ -12,6 +13,8 @@ def make_plugin():
     plugin.site = None
     plugin.listener = None
     plugin.events = None
+    plugin.sessions = {}
+    plugin._login_failures = {}
     return plugin
 
 
@@ -204,6 +207,8 @@ def test_set_config_can_disable_server(tmp_path, monkeypatch):
         ({"token": 123}, TypeError),
         ({"enabled": "yes"}, TypeError),
         ({"sentry_dsn": 123}, TypeError),
+        ({"auth_mode": "nope"}, ValueError),
+        ({"auth_mode": 1}, TypeError),
     ],
 )
 def test_set_config_validates_input(config, exception, tmp_path):
@@ -280,3 +285,193 @@ def test_set_config_updates_sentry_dsn(tmp_path, monkeypatch):
     assert plugin.config["sentry_dsn"] == "https://key@bugsink/4"
     assert calls[0]["dsn"] == "https://key@bugsink/4"
     assert config_file.stat().st_mode & 0o777 == 0o600
+
+
+class FakeAuthManager:
+    def __init__(self):
+        self.calls = []
+
+    def authorize(self, username, password):
+        self.calls.append((username, password))
+        if username == "admin" and password == "pw":
+            return AUTH_LEVEL_ADMIN
+        if username == "guest" and password == "ro":
+            return AUTH_LEVEL_READONLY
+        raise core.BadLoginError("bad login", username)
+
+
+NOW = 4_000_000_000
+
+
+def auth_plugin(monkeypatch, mode="password", token="secret"):
+    plugin = make_plugin()
+    plugin.config = {
+        "enabled": True,
+        "port": 8113,
+        "token": token,
+        "auth_mode": mode,
+    }
+    manager = FakeAuthManager()
+    monkeypatch.setattr(core.Core, "_auth_manager", lambda self: manager)
+    return plugin, manager
+
+
+@pytest.mark.parametrize(
+    "mode,expected",
+    [
+        ("token", ("token",)),
+        ("password", ("password",)),
+        ("both", ("token", "password")),
+    ],
+)
+def test_auth_modes_follow_config(mode, expected):
+    plugin = make_plugin()
+    plugin.config = {"token": "secret", "auth_mode": mode}
+
+    assert plugin.auth_modes() == expected
+
+
+def test_login_creates_session_and_authorizes(monkeypatch):
+    plugin, manager = auth_plugin(monkeypatch, mode="both")
+
+    result = plugin.login("admin", "pw", now=NOW)
+
+    assert result["username"] == "admin"
+    assert result["level"] == AUTH_LEVEL_ADMIN
+    assert result["expires"] == NOW + core.SESSION_TTL
+    assert manager.calls == [("admin", "pw")]
+    request = authorization_request(f"Bearer {result['token']}".encode())
+    assert plugin.access_level(request) == AUTH_LEVEL_ADMIN
+    assert plugin.auth_identity(request) == (AUTH_LEVEL_ADMIN, "admin")
+
+
+def test_static_token_is_admin_in_token_mode(monkeypatch):
+    plugin, _ = auth_plugin(monkeypatch, mode="token")
+
+    assert plugin.identity_for_token("secret") == (AUTH_LEVEL_ADMIN, "token")
+
+
+def test_static_token_is_ignored_in_password_mode(monkeypatch):
+    plugin, _ = auth_plugin(monkeypatch, mode="password")
+
+    assert plugin.identity_for_token("secret") is None
+    assert plugin.is_authorized(authorization_request(b"Bearer secret")) is False
+
+
+def test_login_rejects_bad_password(monkeypatch):
+    plugin, _ = auth_plugin(monkeypatch)
+
+    with pytest.raises(core.InvalidCredentials):
+        plugin.login("admin", "nope", remote="ip", now=1000)
+
+    assert plugin.sessions == {}
+    assert plugin._login_failures["ip"] == [1000]
+
+
+def test_login_rejects_empty_credentials(monkeypatch):
+    plugin, manager = auth_plugin(monkeypatch)
+
+    with pytest.raises(core.InvalidCredentials):
+        plugin.login("", "pw", remote="ip", now=1000)
+    with pytest.raises(core.InvalidCredentials):
+        plugin.login("admin", "", remote="ip", now=1000)
+
+    assert manager.calls == []
+    assert plugin._login_failures["ip"] == [1000, 1000]
+
+
+def test_login_locks_out_after_five_failures(monkeypatch):
+    plugin, _ = auth_plugin(monkeypatch)
+
+    for _ in range(core.LOGIN_MAX_FAILURES):
+        with pytest.raises(core.InvalidCredentials):
+            plugin.login("admin", "nope", remote="ip", now=1000)
+
+    with pytest.raises(core.TooManyAttempts):
+        plugin.login("admin", "pw", remote="ip", now=1000)
+
+    later = 1000 + core.LOGIN_WINDOW + 1
+    result = plugin.login("admin", "pw", remote="ip", now=later)
+    assert result["username"] == "admin"
+    assert plugin._login_failures == {}
+
+
+def test_login_requires_password_mode(monkeypatch):
+    plugin, _ = auth_plugin(monkeypatch, mode="token")
+
+    with pytest.raises(core.AuthDisabled):
+        plugin.login("admin", "pw", now=1000)
+
+
+def test_login_requires_auth_manager(monkeypatch):
+    plugin, _ = auth_plugin(monkeypatch)
+    monkeypatch.setattr(core.Core, "_auth_manager", lambda self: None)
+
+    with pytest.raises(core.AuthUnavailable):
+        plugin.login("admin", "pw", now=1000)
+
+
+def test_session_expiry_prunes_the_token(monkeypatch):
+    plugin, _ = auth_plugin(monkeypatch)
+
+    result = plugin.login("admin", "pw", now=1000)
+    plugin.sessions[result["token"]]["expires"] = 0
+
+    assert plugin.access_level_for_token(result["token"]) is None
+    assert result["token"] not in plugin.sessions
+
+
+def test_logout_invalidates_the_session(monkeypatch):
+    plugin, _ = auth_plugin(monkeypatch)
+
+    result = plugin.login("admin", "pw", now=NOW)
+
+    assert plugin.access_level_for_token(result["token"]) == AUTH_LEVEL_ADMIN
+    assert plugin.logout(result["token"]) == {"ok": True, "session": True}
+    assert plugin.access_level_for_token(result["token"]) is None
+    assert plugin.logout(result["token"]) == {"ok": True, "session": False}
+    assert plugin.logout(None) == {"ok": True, "session": False}
+
+
+def test_readonly_session_is_not_writable(monkeypatch):
+    plugin, _ = auth_plugin(monkeypatch)
+
+    result = plugin.login("guest", "ro", now=NOW)
+    level, username = plugin.identity_for_token(result["token"])
+
+    assert level == AUTH_LEVEL_READONLY
+    info = plugin.auth_info(level, username)
+    assert info["write"] is False
+    assert info["username"] == "guest"
+
+
+def test_auth_info_is_public_without_identity(monkeypatch):
+    plugin, _ = auth_plugin(monkeypatch, mode="both", token="")
+
+    info = plugin.auth_info()
+
+    assert info["modes"] == ["token", "password"]
+    assert info["token_set"] is False
+    assert "authenticated" not in info
+
+
+def test_set_config_updates_auth_mode_and_clears_sessions(tmp_path, monkeypatch):
+    config_file = tmp_path / "mobileui.conf"
+    config_file.write_text("{}")
+    plugin = make_plugin()
+    plugin.config = FakeConfig(
+        {"enabled": True, "port": 8113, "token": "secret", "auth_mode": "both"},
+        str(config_file),
+    )
+    plugin.listener = FakePort()
+    monkeypatch.setattr(core, "reactor", FakeReactor())
+    monkeypatch.setattr(core.Core, "_auth_manager", lambda self: FakeAuthManager())
+
+    result = plugin.login("admin", "pw", now=1000)
+    assert result["token"] in plugin.sessions
+
+    updated = plugin.set_config({"auth_mode": "token"})
+
+    assert updated["auth_mode"] == "token"
+    assert plugin.auth_modes() == ("token",)
+    assert plugin.sessions == {}

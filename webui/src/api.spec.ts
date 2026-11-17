@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  ForbiddenError,
   UnauthorizedError,
   addTorrentFile,
   addTorrentMagnet,
   eventsUrl,
+  getAuthInfo,
   getHealth,
   getLabels,
   getSession,
@@ -12,6 +14,8 @@ import {
   getTorrent,
   getTorrentFiles,
   listTorrents,
+  login,
+  logout,
   pauseTorrent,
   queueTorrent,
   removeTorrent,
@@ -58,6 +62,12 @@ describe("request", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 401 })));
 
     await expect(getSession()).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it("maps 403 to ForbiddenError", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 403 })));
+
+    await expect(getSession()).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it("maps API errors with the server message", async () => {
@@ -223,5 +233,52 @@ describe("torrent actions", () => {
     await getLabels();
 
     expect(fetchMock.mock.calls[0][0]).toBe("/api/labels");
+  });
+});
+
+describe("auth", () => {
+  it("loads the auth modes", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse({ mode: "both", modes: ["token", "password"], token_set: true }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getAuthInfo()).resolves.toMatchObject({
+      mode: "both",
+      token_set: true,
+    });
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/auth");
+  });
+
+  it("posts the credentials and returns the session token", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ token: "sess", username: "admin", level: 10, expires: 1 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(login("admin", "pw")).resolves.toMatchObject({ token: "sess" });
+
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/login");
+    expect(init.method).toBe("POST");
+    expect(init.body).toBe(JSON.stringify({ username: "admin", password: "pw" }));
+  });
+
+  it("logs out with the bearer token", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ ok: true, session: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    setToken("sess");
+
+    await logout();
+
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/logout");
+    expect(init.method).toBe("POST");
+    const headers = init.headers as Headers;
+    expect(headers.get("authorization")).toBe("Bearer sess");
   });
 });

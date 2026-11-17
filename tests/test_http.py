@@ -36,17 +36,45 @@ class FakeConfig(dict):
 
 
 class StubPlugin:
-    def __init__(self, authorized):
-        self.config = {"port": 8113, "token": "secret"}
+    def __init__(self, authorized, level=10):
+        self.config = {"port": 8113, "token": "secret", "auth_mode": "both"}
         self.authorized = authorized
+        self.level = level
         self.list_calls = []
         self.write_calls = []
 
     def is_authorized(self, request):
         return self.authorized
 
+    def access_level(self, request):
+        return self.level if self.authorized else None
+
+    def access_level_for_token(self, token):
+        return 10 if token == "secret" else None
+
+    def auth_identity(self, request):
+        if not self.authorized:
+            return None
+        return self.level, "admin"
+
+    def auth_info(self, level=None, username=""):
+        info = {"mode": "both", "modes": ["token", "password"], "token_set": True}
+        if level is not None:
+            info.update(
+                {
+                    "authenticated": True,
+                    "username": username,
+                    "level": level,
+                    "write": level >= 5,
+                }
+            )
+        return info
+
     def is_token_valid(self, token):
         return token == "secret"
+
+    def logout(self, token):
+        return {"ok": True, "session": token == "secret"}
 
     def subscribe_events(self, request):
         self.write_calls.append(("sse",))
@@ -534,3 +562,170 @@ def test_torrent_files_errors():
     request = DummyRequest([b"api", b"torrents", b"missing", b"files"])
     missing.getChild(b"files", request).render_GET(request)
     assert request.responseCode == 404
+
+
+class LoginStub(StubPlugin):
+    def __init__(self):
+        super().__init__(authorized=False)
+
+    def login(self, username, password, remote=""):
+        self.write_calls.append(("login", username, remote))
+        if username == "limited":
+            raise http.TooManyAttempts("limited")
+        if username == "offline":
+            raise http.AuthUnavailable("offline")
+        if username == "admin" and password == "pw":
+            return {
+                "token": "sess",
+                "username": "admin",
+                "level": 10,
+                "expires": 1,
+            }
+        raise http.InvalidCredentials("bad login")
+
+
+class FakeAddress:
+    host = "198.51.100.7"
+
+
+def login_request(payload):
+    request = post_request([b"api", b"login"])
+    request.content = io.BytesIO(json.dumps(payload).encode("utf-8"))
+    request.getClientAddress = lambda: FakeAddress()
+    return request
+
+
+def test_auth_info_is_public_without_identity():
+    plugin = StubPlugin(authorized=False)
+    auth = api_child(plugin, b"auth")
+    request = DummyRequest([b"api", b"auth"])
+
+    body = auth.render_GET(request)
+
+    assert request.responseCode == 200
+    payload = json.loads(body)
+    assert payload["modes"] == ["token", "password"]
+    assert payload["token_set"] is True
+    assert "authenticated" not in payload
+
+
+def test_auth_info_reports_readonly_identity():
+    plugin = StubPlugin(authorized=True, level=1)
+    auth = api_child(plugin, b"auth")
+    request = DummyRequest([b"api", b"auth"])
+
+    payload = json.loads(auth.render_GET(request))
+
+    assert payload["authenticated"] is True
+    assert payload["username"] == "admin"
+    assert payload["level"] == 1
+    assert payload["write"] is False
+
+
+def test_login_returns_session_token():
+    plugin = LoginStub()
+    login = api_child(plugin, b"login")
+    request = login_request({"username": "admin", "password": "pw"})
+
+    body = login.render_POST(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body)["token"] == "sess"
+    assert plugin.write_calls == [("login", "admin", "198.51.100.7")]
+
+
+def test_login_rejects_bad_credentials_with_generic_401():
+    plugin = LoginStub()
+    login = api_child(plugin, b"login")
+    request = login_request({"username": "admin", "password": "nope"})
+
+    body = login.render_POST(request)
+
+    assert request.responseCode == 401
+    payload = json.loads(body)
+    assert payload["error"] == "unauthorized"
+    assert payload["message"] == "Missing or invalid credentials"
+
+
+def test_login_rate_limit_returns_429():
+    plugin = LoginStub()
+    login = api_child(plugin, b"login")
+    request = login_request({"username": "limited", "password": "x"})
+
+    body = login.render_POST(request)
+
+    assert request.responseCode == 429
+    assert json.loads(body)["error"] == "too_many_attempts"
+    assert request.responseHeaders.getRawHeaders(b"retry-after") == [b"60"]
+
+
+def test_login_without_auth_manager_returns_503():
+    plugin = LoginStub()
+    login = api_child(plugin, b"login")
+    request = login_request({"username": "offline", "password": "x"})
+
+    body = login.render_POST(request)
+
+    assert request.responseCode == 503
+    assert json.loads(body)["error"] == "auth_unavailable"
+
+
+def test_login_rejects_invalid_body():
+    plugin = LoginStub()
+    login = api_child(plugin, b"login")
+    request = post_request([b"api", b"login"])
+    request.content = io.BytesIO(b"{")
+
+    body = login.render_POST(request)
+
+    assert request.responseCode == 400
+    assert json.loads(body)["error"] == "bad_request"
+
+
+def test_logout_requires_auth_and_invalidates():
+    plugin = StubPlugin(authorized=False)
+    logout = api_child(plugin, b"logout")
+    request = post_request([b"api", b"logout"])
+
+    logout.render_POST(request)
+    assert request.responseCode == 401
+
+    plugin.authorized = True
+    request = post_request([b"api", b"logout"])
+    request.requestHeaders.addRawHeader(b"authorization", b"Bearer secret")
+    body = logout.render_POST(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body) == {"ok": True, "session": True}
+
+
+def test_readonly_account_can_read_but_not_write():
+    plugin = StubPlugin(authorized=True, level=1)
+    torrent = torrent_resource(plugin)
+
+    request = DummyRequest([b"api", b"torrents", b"abc"])
+    body = torrent.render_GET(request)
+    assert request.responseCode == 200
+    assert json.loads(body)["id"] == "abc"
+
+    request = post_request([b"api", b"torrents", b"abc", b"pause"])
+    body = torrent.getChild(b"pause", request).render_POST(request)
+    assert request.responseCode == 403
+    assert json.loads(body)["error"] == "forbidden"
+    assert plugin.write_calls == []
+
+
+def test_client_key_prefers_forwarded_header():
+    request = DummyRequest([b"api"])
+    request.requestHeaders.addRawHeader(
+        b"x-forwarded-for", b"203.0.113.9, 10.0.0.1"
+    )
+
+    assert http.client_key(request) == "203.0.113.9"
+
+
+def test_client_key_falls_back_to_peer_address():
+    request = DummyRequest([b"api"])
+    request.getClientAddress = lambda: FakeAddress()
+
+    assert http.client_key(request) == "198.51.100.7"

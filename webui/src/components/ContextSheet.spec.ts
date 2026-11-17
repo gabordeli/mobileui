@@ -17,6 +17,7 @@ function factory(overrides: Record<string, unknown> = {}) {
       torrent,
       labels,
       noLabelCount: 1,
+      canWrite: true,
       ...overrides,
     },
     global: { stubs: { teleport: true } },
@@ -95,5 +96,12 @@ describe("ContextSheet", () => {
     await button(wrapper, t("sheet.remove")).trigger("click");
 
     expect(wrapper.emitted("action")).toBeUndefined();
+  });
+
+  it("shows only a note for a read-only account", () => {
+    const wrapper = factory({ canWrite: false });
+
+    expect(wrapper.find(".sheet-actions").exists()).toBe(false);
+    expect(wrapper.get(".readonly-note").text()).toBe(t("auth.readonly"));
   });
 });

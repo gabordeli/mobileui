@@ -109,3 +109,29 @@ export interface ActionPayload {
   label?: string;
   remove_data?: boolean;
 }
+
+export type AuthMode = "token" | "password";
+
+export interface AuthInfo {
+  mode: string;
+  modes: AuthMode[];
+  token_set: boolean;
+  authenticated?: boolean;
+  username?: string;
+  level?: number;
+  write?: boolean;
+}
+
+export interface LoginResult {
+  token: string;
+  username: string;
+  level: number;
+  expires: number;
+}
+
+export interface GatePayload {
+  mode: AuthMode;
+  token?: string;
+  username?: string;
+  password?: string;
+}

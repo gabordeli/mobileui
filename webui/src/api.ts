@@ -1,6 +1,8 @@
 import type {
+  AuthInfo,
   Health,
   Labels,
+  LoginResult,
   Session,
   Torrent,
   TorrentDetail,
@@ -22,7 +24,13 @@ export class ApiError extends Error {
 
 export class UnauthorizedError extends ApiError {
   constructor() {
-    super("Érvénytelen vagy hiányzó token", 401);
+    super("Érvénytelen vagy lejárt token", 401);
+  }
+}
+
+export class ForbiddenError extends ApiError {
+  constructor(message = "Csak olvasható fiók") {
+    super(message, 403);
   }
 }
 
@@ -49,6 +57,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (response.status === 401) {
     throw new UnauthorizedError();
   }
+  if (response.status === 403) {
+    throw new ForbiddenError();
+  }
 
   const text = await response.text();
   let payload: unknown = null;
@@ -70,6 +81,21 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export function getHealth(): Promise<Health> {
   return request<Health>("/health");
+}
+
+export function getAuthInfo(): Promise<AuthInfo> {
+  return request<AuthInfo>("/api/auth");
+}
+
+export function login(username: string, password: string): Promise<LoginResult> {
+  return request<LoginResult>("/api/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export function logout(): Promise<{ ok: boolean; session: boolean }> {
+  return request("/api/logout", { method: "POST" });
 }
 
 export function getSession(): Promise<Session> {

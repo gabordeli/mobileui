@@ -61,14 +61,43 @@ kicsomagolni, majd `systemctl restart deluged` és
   "enabled": true,
   "port": 8113,
   "token": "",
+  "auth_mode": "token",
   "sentry_dsn": ""
 }
 ```
 
-A `/api/*` végpontok `Authorization: Bearer <token>`-t kérnek; üres token esetén
-minden `/api/*` 401-et ad. A `/health` mindig publikus. A token nem kerül logba.
-Az SSE (`/api/events`) az `EventSource` miatt `?token=<token>` query paramétert is
-elfogad (a header az elsődleges).
+A `/api/*` végpontok hitelesítést kérnek (`/health` és a login végpontok
+kivételével). Két mód van, az `auth_mode` dönt:
+
+- `token` – a fenti közös API-token; üres token esetén minden `/api/*` 401.
+- `password` – Deluge felhasználónév/jelszó; a kliens lejáró session tokent kap.
+- `both` – mindkettő (a statikus token break-glass, mindig admin).
+
+A token nem kerül logba. Az SSE (`/api/events`) az `EventSource` miatt
+`?token=<token>` query paramétert is elfogad (a header az elsődleges; a session
+token is működik query paraméterben).
+
+### User/jelszó belépés bekapcsolása
+
+A plugin a daemon saját `auth` fájlját használja — ugyanazt, amivel a
+`deluge-gtk` és a `deluge-web` belép. Új fiók a fájlba írt sorral vehető fel
+(`username:password:level`, ahol 1 = read-only, 5 = normal, 10 = admin):
+
+```bash
+sudo -u deluged sh -c 'printf "%s\n" "phoneuser:valami-jelszo:10" >> /var/lib/deluged/config/auth'
+sudo chmod 600 /var/lib/deluged/config/auth
+```
+
+Az `AuthManager` a fájl mtime-változását figyeli, így restart nélkül, ~10 s
+alatt betölti. Ezután állítsd át a módot (lásd lent), és a belépőképernyőn
+megjelenik a **Fiók** fül.
+
+Ismert korlátok: a Deluge `auth` fájl a jelszót **plaintext** tárolja; a
+session a `deluged` restartjakor elveszik (a kliens visszadobja a loginra);
+a login limit 5 hiba/perc/IP. Internet felé a TLS proxy mögött használd, mert a
+közvetlen `:8113` sima HTTP. A proxyban add át az
+`X-Forwarded-For: $proxy_add_x_forwarded_for` headert, különben minden kliens a
+proxy IP-jével esik a limit alá.
 
 A `sentry_dsn` üresen hagyva nem küld eseményt; kitöltve a plugin a Bugsinkbe
 küldi a Twisted kivételeket (`release` = plugin verzió, `environment=production`).
@@ -76,8 +105,8 @@ A DSN nem kerül a logba; a `set_config` élőben átállítja, a `sentry-sdk`-t
 `install.sh` telepíti a Deluge venvbe.
 
 Élő átállítás a `mobileui.set_config` RPC-vel (a `deluge.ui.client`-en vagy a
-WebUI-n át); a token, a port, az `enabled` és a `sentry_dsn` azonnal érvényesül,
-restart nem kell.
+WebUI-n át); a token, az `auth_mode`, a port, az `enabled` és a `sentry_dsn`
+azonnal érvényesül, restart nem kell.
 Ha az új port nem bindolható, a plugin visszaállítja a régi portot és hibát ad.
 
 ```python

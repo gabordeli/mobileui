@@ -8,6 +8,7 @@ const props = defineProps<{
   torrent: Torrent;
   labels: LabelInfo[];
   noLabelCount: number;
+  canWrite: boolean;
 }>();
 const emit = defineEmits<{
   close: [];
@@ -72,7 +73,7 @@ onMounted(() => closeButton.value?.focus());
           </button>
         </header>
 
-        <div class="sheet-actions">
+        <div v-if="canWrite" class="sheet-actions">
           <button
             class="action primary"
             @click="emit('action', { kind: isPaused ? 'resume' : 'pause' })"
@@ -102,6 +103,7 @@ onMounted(() => closeButton.value?.focus());
           </label>
           <button class="action danger" @click="remove">{{ t("sheet.remove") }}</button>
         </div>
+        <p v-else class="readonly-note">{{ t("auth.readonly") }}</p>
       </section>
     </div>
   </Teleport>

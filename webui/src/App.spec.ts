@@ -9,12 +9,33 @@ import { detail, files, labels, torrent } from "./components/__fixtures__";
 import App from "./App.vue";
 
 vi.mock("./api", () => {
-  class UnauthorizedError extends Error {}
+  class ApiError extends Error {
+    status: number;
+    constructor(message: string, status: number) {
+      super(message);
+      this.status = status;
+    }
+  }
+  class UnauthorizedError extends ApiError {
+    constructor() {
+      super("unauthorized", 401);
+    }
+  }
+  class ForbiddenError extends ApiError {
+    constructor(message = "forbidden") {
+      super(message, 403);
+    }
+  }
   return {
+    ApiError,
     UnauthorizedError,
+    ForbiddenError,
     getToken: vi.fn(),
     setToken: vi.fn(),
     getHealth: vi.fn(),
+    getAuthInfo: vi.fn(),
+    login: vi.fn(),
+    logout: vi.fn(),
     getSession: vi.fn(),
     getLabels: vi.fn(),
     listTorrents: vi.fn(),
@@ -89,6 +110,15 @@ beforeEach(() => {
 
   vi.mocked(api.getToken).mockReturnValue("dev-token");
   vi.mocked(api.getHealth).mockResolvedValue({ ok: true, version: "0.1.3", port: 8113 });
+  vi.mocked(api.getAuthInfo).mockResolvedValue({
+    mode: "token",
+    modes: ["token"],
+    token_set: true,
+    authenticated: true,
+    username: "admin",
+    level: 10,
+    write: true,
+  });
   vi.mocked(api.getSession).mockResolvedValue(session);
   vi.mocked(api.getLabels).mockResolvedValue({ labels, no_label: 1 });
   vi.mocked(api.listTorrents).mockResolvedValue({
@@ -153,8 +183,89 @@ describe("App", () => {
     const wrapper = mountApp();
     await flushPromises();
 
-    expect(wrapper.text()).toContain(t("token.invalid"));
+    expect(wrapper.text()).toContain(t("auth.expired"));
     expect(wrapper.find('input[type="password"]').exists()).toBe(true);
+  });
+
+  it("signs in with username and password", async () => {
+    vi.mocked(api.getToken).mockReturnValue("");
+    vi.mocked(api.getAuthInfo).mockResolvedValue({
+      mode: "both",
+      modes: ["token", "password"],
+      token_set: true,
+    });
+    vi.mocked(api.login).mockImplementation(async () => {
+      vi.mocked(api.getToken).mockReturnValue("sess");
+      return { token: "sess", username: "admin", level: 10, expires: 1 };
+    });
+    const wrapper = mountApp();
+    await flushPromises();
+
+    const inputs = wrapper.findAll(".gate-card input");
+    await inputs[0].setValue("admin");
+    await inputs[1].setValue("pw");
+    await wrapper.get("form.gate-card").trigger("submit");
+    await flushPromises();
+
+    expect(api.login).toHaveBeenCalledWith("admin", "pw");
+    expect(api.setToken).toHaveBeenCalledWith("sess");
+    expect(wrapper.text()).toContain(torrent.name);
+  });
+
+  it("shows a message for invalid credentials and rate limits", async () => {
+    vi.mocked(api.getToken).mockReturnValue("");
+    vi.mocked(api.getAuthInfo).mockResolvedValue({
+      mode: "password",
+      modes: ["password"],
+      token_set: false,
+    });
+    vi.mocked(api.login).mockRejectedValueOnce(new api.UnauthorizedError());
+    const wrapper = mountApp();
+    await flushPromises();
+
+    await wrapper.findAll(".gate-card input")[0].setValue("admin");
+    await wrapper.findAll(".gate-card input")[1].setValue("nope");
+    await wrapper.get("form.gate-card").trigger("submit");
+    await flushPromises();
+    expect(wrapper.text()).toContain(t("auth.invalid"));
+
+    vi.mocked(api.login).mockRejectedValueOnce(new api.ApiError("limited", 429));
+    await wrapper.get("form.gate-card").trigger("submit");
+    await flushPromises();
+    expect(wrapper.text()).toContain(t("auth.tooMany"));
+  });
+
+  it("signs out from the account panel", async () => {
+    const wrapper = mountApp();
+    await flushPromises();
+
+    await wrapper.get(`button[aria-label="${t("header.token")}"]`).trigger("click");
+    const logout = wrapper
+      .findAll("button")
+      .find((button) => button.text() === t("auth.logout"));
+    await logout!.trigger("click");
+    await flushPromises();
+
+    expect(api.logout).toHaveBeenCalled();
+    expect(api.setToken).toHaveBeenCalledWith("");
+  });
+
+  it("hides the add button for a read-only account", async () => {
+    vi.mocked(api.getAuthInfo).mockResolvedValue({
+      mode: "password",
+      modes: ["password"],
+      token_set: false,
+      authenticated: true,
+      username: "guest",
+      level: 1,
+      write: false,
+    });
+    const wrapper = mountApp();
+    await flushPromises();
+
+    expect(
+      wrapper.find(`button[aria-label="${t("header.add")}"]`).exists(),
+    ).toBe(false);
   });
 
   it("applies SSE session and torrent deltas", async () => {

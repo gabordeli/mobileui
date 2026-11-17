@@ -59,13 +59,17 @@ Jelenlegi release: **v0.1.3** (GitLab + GitHub), az éles példányon telepítve
 - **M3 / #12 kész:** privát GitHub tükör (`gabordeli/mobileui`) GitLab push
   mirrorral; `v0.1.3` óta a GitHub Actions release wheel/sdist/egg/sha256
   assetekkel fut, CHANGELOG-alapú note-tal; a GitLab privát marad.
+- **Auth:** opcionális Deluge user/jelszó belépés a statikus API-token mellett
+  (`auth_mode`), lejáró és visszahívható session tokennel, read-only (1) /
+  normal (5) / admin (10) szintekkel; a token break-glass marad.
 
 ## 🧱 Felépítés
 
 ```
 deluge_mobileui/     Deluge core plugin (Twisted Site a daemon reactorjában)
   core.py             enable()/disable(), config, auth, port bind
-  http.py             Twisted resource-ok (/health, /api végpontok, 401)
+  auth.py             session token, login limit, bearer parser
+  http.py             Twisted resource-ok (/health, /api végpontok, 401/403)
   read.py             torrent/session/label olvasás (cache-elt státusz)
   write.py            pause/resume/remove/label/queue/add
   events.py           SSE broadcaster (EventManager + 1/s diff)

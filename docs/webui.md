@@ -20,19 +20,24 @@ hiányzik és van npm; egyébként a előre buildelt `data/`-t csomagolja.
 
 ## Tesztek
 
-- `npm run test` / `npm run test:coverage` — Vitest (theme, api, format, i18n,
-  main); a coverage threshold a `vite.config.ts`-ben.
-- `npm run test:e2e` — Playwright smoke: token-kapu, lista+detail, add sheet.
-  Az API-t `page.route` mockolja, ezért Deluge nélkül fut; az első futás előtt
-  `npx playwright install chromium` kell.
+- `npm run test` / `npm run test:coverage` — Vitest (App, komponensek, theme,
+  api, format, i18n, main); 86 teszt, a coverage threshold a `vite.config.ts`-ben.
+- `npm run test:e2e` — Playwright smoke: token-kapu, fiók login, read-only UI,
+  lista+detail, add sheet. Az API-t `page.route` mockolja, ezért Deluge nélkül
+  fut; az első futás előtt `npx playwright install chromium` kell.
 - A CI `webui-e2e` job ugyanezt futtatja; a böngészőt a `webui/.playwright/`
   cache alá tölti.
 
 ## Auth
 
-A token a `localStorage["mobileui.token"]`-ben van; a token-kapu bekéri, majd
-minden kérés `Authorization: Bearer` headert kap. Az SSE `?token=` queryt használ
-(`EventSource` nem tud headert). 401 esetén a UI visszadobja a kaput.
+A `GET /api/auth` mondja meg, milyen belépési módok vannak (`token`,
+`password` vagy mindkettő); a kapu ennek megfelelően egy vagy két fület mutat.
+Sikeres belépés után a kapott token a `localStorage["mobileui.token"]`-ben van,
+és minden kérés `Authorization: Bearer` headert kap. Az SSE `?token=` queryt
+használ (`EventSource` nem tud headert). 401 esetén a UI visszadobja a kaput,
+429-nél a hibaszöveg jelzi a várakozást. Read-only szintnél (`level < 5`) a `+`
+gomb, a sheet/detail műveletei és az eltávolítás rejtve vannak; a fejléc ⚙
+panelén a belépett identity és a kijelentkezés látszik.
 
 ## Verzió
 
@@ -93,6 +98,7 @@ események szűrő nélkül a totalt is korrigálják; reconnectet a böngésző
 
 - A service worker/offline shell csak HTTPS-en (vagy localhoston) aktív; a #9
   deploy után teljes a PWA telepíthetőség.
-- A token localStorage-ban van (nem httpOnly cookie); a plugin LAN-only.
+- A token/session token a localStorage-ban van (nem httpOnly cookie); a plugin
+  LAN-only, TLS a proxy mögött.
 - A lista végtelen scrollos, nincs „ugrás N. elemre"; a szűrők ezt kezelik.
 - A detail fájllistája „További fájlok” gombbal lapoz, nem virtualizált.
