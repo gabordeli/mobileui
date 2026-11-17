@@ -1,5 +1,7 @@
 # Changelog
 
+## [Unreleased]
+
 ## [0.1.3] - 2026-11-17
 
 - Release 0.1.3.

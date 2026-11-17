@@ -35,17 +35,36 @@ def bump(current: str, kind: str) -> str:
     raise SystemExit("release type must be patch, minor or major")
 
 
+UNRELEASED_RE = re.compile(
+    r"^## \[Unreleased\]\s*\n(.*?)(?=^## \[|\Z)",
+    re.MULTILINE | re.DOTALL,
+)
+
+
 def update_changelog(version: str) -> None:
-    entry = f"## [{version}] - {date.today().isoformat()}\n\n- Release {version}.\n"
-    if not CHANGELOG.exists():
-        CHANGELOG.write_text(f"# Changelog\n\n{entry}", encoding="utf-8")
-        return
-    content = CHANGELOG.read_text(encoding="utf-8")
-    match = re.search(r"^## \[", content, re.MULTILINE)
-    if match:
-        content = content[: match.start()] + entry + "\n" + content[match.start() :]
+    today = date.today().isoformat()
+    fallback = f"- Release {version}."
+
+    if CHANGELOG.exists():
+        content = CHANGELOG.read_text(encoding="utf-8")
     else:
-        content = content.rstrip() + "\n\n" + entry
+        content = "# Changelog\n\n"
+
+    match = UNRELEASED_RE.search(content)
+    if match:
+        body = match.group(1).strip() or fallback
+        entry = f"## [{version}] - {today}\n\n{body}\n"
+        replacement = f"## [Unreleased]\n\n{entry}\n"
+        content = content[: match.start()] + replacement + content[match.end() :]
+    else:
+        entry = f"## [{version}] - {today}\n\n{fallback}\n"
+        first = re.search(r"^## \[", content, re.MULTILINE)
+        unreleased = f"## [Unreleased]\n\n{entry}\n"
+        if first:
+            content = content[: first.start()] + unreleased + content[first.start() :]
+        else:
+            content = content.rstrip() + "\n\n" + unreleased
+
     CHANGELOG.write_text(content, encoding="utf-8")
 
 

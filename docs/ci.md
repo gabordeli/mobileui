@@ -70,6 +70,11 @@ az egg-et (`SKIP_WEBUI=1`) építi, feltölti a Generic Package Registrybe, és 
 `vX.Y.Z` GitLab Release-hez asset linkként csatolja az egg-et és a `.sha256`-ot;
 a release leírásában a hash is szerepel.
 
+A release előtt a `CHANGELOG.md` `## [Unreleased]` szakaszába írd a
+változásokat; a `scripts/release.py` ezt emeli át a `## [x.y.z]` szakaszba, és
+üríti az Unreleased-t. Ha üres, `- Release x.y.z.` lesz. A GitHub release
+ugyanezt a szakaszt használja.
+
 ## Release artifact
 
 ```bash
