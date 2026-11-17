@@ -29,6 +29,19 @@
   scanner konténerben a project base `/usr/src` (a host abszolút path nem
   oldható fel).
 
+## Coverage
+
+- A `test` job `--cov-fail-under=80`-cal fut; a mostani backend fedettség 83%.
+  A threshold a mostani érték alatt van, hogy ne törjön el, de a visszaesést
+  kiszúrja.
+- A `webui-test` Vitest threshold-jei: statements 55, branches 50, functions 50,
+  lines 55; a mostani 60.15 / 55.1 / 56.75 / 60.68.
+- A GitLab a `coverage:` regexszel a joblogból olvassa a számot, és a pipeline /
+  MR nézetben jeleníti meg — privát, nincs külső badge.
+- A Sonar továbbra is report-only; a `sonar.qualitygate.wait=true` külön döntés
+  (a gate-et előbb tuningolni kell).
+- A `types.ts` type-only, 0% coverage-e normális; nem kell tesztelni.
+
 ## Release
 
 ```bash

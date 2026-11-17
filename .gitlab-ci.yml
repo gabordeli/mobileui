@@ -37,7 +37,8 @@ test:
   extends: .python_job
   before_script: *python_setup
   script:
-    - .ci-venv/bin/pytest -q --cov=deluge_mobileui --cov-report=xml:coverage.xml --cov-report=term
+    - .ci-venv/bin/pytest -q --cov=deluge_mobileui --cov-fail-under=80 --cov-report=xml:coverage.xml --cov-report=term
+  coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+)%/'
   artifacts:
     paths:
       - coverage.xml
@@ -53,6 +54,7 @@ webui-test:
     - cd webui
     - npm ci --silent
     - npm run test:coverage
+  coverage: '/All files\s*\|\s*([\d.]+)/'
   artifacts:
     paths:
       - webui/coverage/lcov.info

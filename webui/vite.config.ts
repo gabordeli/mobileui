@@ -42,6 +42,12 @@ export default defineConfig(({ mode }) => {
         reportsDirectory: "coverage",
         include: ["src/**/*.ts"],
         exclude: ["src/**/*.spec.ts", "src/env.d.ts"],
+        thresholds: {
+          statements: 55,
+          branches: 50,
+          functions: 50,
+          lines: 55,
+        },
       },
     },
   };
