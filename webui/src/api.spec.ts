@@ -226,11 +226,11 @@ describe("torrent actions", () => {
     const fetchMock = mockFetch({});
 
     await getTorrent("a/b");
-    await getTorrentFiles("a/b", 10, 50);
+    await getTorrentFiles("a/b", 10, 50, "movie");
 
     expect(fetchMock.mock.calls[0][0]).toBe("/api/torrents/a%2Fb");
     expect(fetchMock.mock.calls[1][0]).toBe(
-      "/api/torrents/a%2Fb/files?offset=10&limit=50",
+      "/api/torrents/a%2Fb/files?offset=10&limit=50&q=movie",
     );
   });
 

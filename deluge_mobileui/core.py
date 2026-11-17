@@ -161,10 +161,10 @@ class Core(CorePluginBase):
 
         return read.get_torrent(component.get("Core"), self._label_plugin(), torrent_id)
 
-    def get_torrent_files(self, torrent_id, offset=0, limit=100):
+    def get_torrent_files(self, torrent_id, offset=0, limit=100, q=None):
         from . import read
 
-        return read.get_files(component.get("Core"), torrent_id, offset, limit)
+        return read.get_files(component.get("Core"), torrent_id, offset, limit, q)
 
     def set_torrent_files(self, torrent_id, files=None, only=None):
         from . import write

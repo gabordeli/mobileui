@@ -169,11 +169,13 @@ export function getTorrentFiles(
   id: string,
   offset: number,
   limit: number,
+  q = "",
 ): Promise<TorrentFiles> {
   const params = new URLSearchParams({
     offset: String(offset),
     limit: String(limit),
   });
+  if (q) params.set("q", q);
   return request<TorrentFiles>(
     `/api/torrents/${encodeURIComponent(id)}/files?${params.toString()}`,
   );

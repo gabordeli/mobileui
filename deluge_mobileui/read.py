@@ -208,7 +208,7 @@ def get_torrent(core, label_plugin, torrent_id):
     return status
 
 
-def get_files(core, torrent_id, offset=0, limit=100):
+def get_files(core, torrent_id, offset=0, limit=100, q=None):
     offset = int(offset)
     limit = int(limit)
     if offset < 0:
@@ -226,6 +226,9 @@ def get_files(core, torrent_id, offset=0, limit=100):
         row["progress"] = progress[index] if index < len(progress) else 0.0
         row["priority"] = priorities[index] if index < len(priorities) else 4
         rows.append(row)
+    needle = str(q).strip().lower() if q else ""
+    if needle:
+        rows = [row for row in rows if needle in str(row.get("path", "")).lower()]
     total = len(rows)
     return {
         "total": total,

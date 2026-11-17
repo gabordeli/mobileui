@@ -263,6 +263,7 @@ Paginated file list (detail only; not present in the list):
 | --- | --- | --- |
 | `offset` | `0` | >= 0 |
 | `limit` | `100` | 1–500 |
+| `q` | – | optional case-insensitive path substring; filters before pagination |
 
 ```json
 {
@@ -276,8 +277,9 @@ Paginated file list (detail only; not present in the list):
 ```
 
 The `progress` is 0–1. Unknown torrent → 404, invalid limit/offset → 400.
-The `priority` is the Deluge file priority (0 = skipped, 1 = low, 4 = normal,
-7 = high).
+With `q`, `total` is the number of matches after filtering, not the whole file
+list. The `priority` is the Deluge file priority (0 = skipped, 1 = low,
+4 = normal, 7 = high).
 
 ## PATCH /api/torrents/{id}/files
 

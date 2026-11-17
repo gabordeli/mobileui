@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import * as api from "../api";
 import {
@@ -97,29 +97,46 @@ async function loadDetail(): Promise<void> {
   }
 }
 
+const filesRequest = ref(0);
+const fileSearchTimer = ref<ReturnType<typeof setTimeout>>();
+
 async function loadFiles(reset = false): Promise<void> {
-  if (filesLoading.value) return;
+  if (filesLoading.value && !reset) return;
+  const requestId = filesRequest.value + 1;
+  filesRequest.value = requestId;
   filesLoading.value = true;
   try {
-    const page = await api.getTorrentFiles(
-      props.torrentId,
-      reset ? 0 : files.value.length,
-      100,
-    );
+    const query = fileQuery.value.trim();
+    const page = query
+      ? await api.getTorrentFiles(
+          props.torrentId,
+          reset ? 0 : files.value.length,
+          100,
+          query,
+        )
+      : await api.getTorrentFiles(
+          props.torrentId,
+          reset ? 0 : files.value.length,
+          100,
+        );
+    if (requestId !== filesRequest.value) return;
     files.value = reset ? page.files : [...files.value, ...page.files];
     filesTotal.value = page.total;
   } catch (err) {
-    actionError.value = messageOf(err);
+    if (requestId === filesRequest.value) actionError.value = messageOf(err);
   } finally {
-    filesLoading.value = false;
+    if (requestId === filesRequest.value) filesLoading.value = false;
   }
 }
 
-const filteredFiles = computed(() => {
-  const needle = fileQuery.value.trim().toLowerCase();
-  if (!needle) return files.value;
-  return files.value.filter((file) => file.path.toLowerCase().includes(needle));
+const filteredFiles = computed(() => files.value);
+
+watch(fileQuery, () => {
+  clearTimeout(fileSearchTimer.value);
+  fileSearchTimer.value = setTimeout(() => void loadFiles(true), 300);
 });
+
+onBeforeUnmount(() => clearTimeout(fileSearchTimer.value));
 
 function applyPriorities(priorities: number[]): void {
   for (const file of files.value) {

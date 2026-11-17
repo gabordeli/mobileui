@@ -184,6 +184,15 @@ def test_files_are_paginated():
     ]
 
 
+def test_files_filter_before_pagination():
+    core = make_core(make_torrent("a", "Dune"))
+
+    result = read.get_files(core, "a", offset=0, limit=1, q="FILE1")
+
+    assert result["total"] == 1
+    assert result["files"][0]["path"] == "file1.mkv"
+
+
 @pytest.mark.parametrize(
     "kwargs,message",
     [

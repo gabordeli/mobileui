@@ -128,11 +128,12 @@ class StubPlugin:
             raise KeyError(torrent_id)
         return {"id": torrent_id, "name": "Example"}
 
-    def get_torrent_files(self, torrent_id, offset, limit):
+    def get_torrent_files(self, torrent_id, offset, limit, q=None):
         if torrent_id == "missing":
             raise KeyError(torrent_id)
         if limit < 1:
             raise ValueError("limit must be between 1 and 500")
+        self.last_files_query = q
         self.write_calls.append(("files", torrent_id, offset, limit))
         return {
             "total": 3,
@@ -1022,12 +1023,13 @@ def test_torrent_files_are_paginated():
     plugin = StubPlugin(authorized=True)
     torrent = torrent_resource(plugin)
     request = DummyRequest([b"api", b"torrents", b"abc", b"files"])
-    request.args = {b"offset": [b"1"], b"limit": [b"5"]}
+    request.args = {b"offset": [b"1"], b"limit": [b"5"], b"q": [b"file"]}
 
     body = torrent.getChild(b"files", request).render_GET(request)
 
     assert request.responseCode == 200
     assert json.loads(body)["total"] == 3
+    assert plugin.last_files_query == "file"
     assert plugin.write_calls[-1] == ("files", "abc", 1, 5)
 
 

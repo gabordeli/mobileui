@@ -553,7 +553,10 @@ class TorrentFilesResource(ApiJsonResource):
         try:
             offset = int(query_arg(request, "offset", "0"))
             limit = int(query_arg(request, "limit", "100"))
-            payload = self.plugin.get_torrent_files(self.torrent_id, offset, limit)
+            q = query_arg(request, "q", "")
+            payload = self.plugin.get_torrent_files(
+                self.torrent_id, offset, limit, q
+            )
         except (KeyError, ValueError, TypeError) as ex:
             return self.api_error(request, ex)
         except Exception:

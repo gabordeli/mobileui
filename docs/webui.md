@@ -102,8 +102,8 @@ the browser.
   `num_files`. For a torrent with 522 files, “More files” loads 100→200.
 - The file list has a per-file **download checkbox** and **“Only this”**
   (`PATCH /api/torrents/{id}/files`); a skipped file gets a `Skipped` marker.
-  The search filters on the paths of **loaded** files (client-side), and
-  indicates when there are still unloaded files.
+  The search is server-side (`?q=`), filters before pagination, and shows the
+  loaded/total match count.
 - The detail also allows a per-torrent **speed limit** (KiB/s; `-1` = the global
   value, `0` = unlimited) via `PATCH /api/torrents/{id}/limits`.
 - The add sheet (`AddDialog.vue`) accepts a magnet or a `.torrent` file, a label,

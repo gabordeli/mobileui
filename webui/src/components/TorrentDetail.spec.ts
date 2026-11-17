@@ -96,6 +96,24 @@ describe("TorrentDetail", () => {
     expect(wrapper.text()).toContain("42.5%");
   });
 
+  it("searches files on the server", async () => {
+    vi.useFakeTimers();
+    const wrapper = factory();
+    await flushPromises();
+
+    await wrapper.get(".files-search").setValue("needle");
+    vi.advanceTimersByTime(300);
+    vi.useRealTimers();
+    await flushPromises();
+
+    expect(api.getTorrentFiles).toHaveBeenLastCalledWith(
+      detail.id,
+      0,
+      100,
+      "needle",
+    );
+  });
+
   it("pauses the torrent and emits the update", async () => {
     const wrapper = factory();
     await flushPromises();
@@ -246,17 +264,6 @@ describe("TorrentDetail", () => {
     expect(api.setFilePriorities).toHaveBeenCalledWith(detail.id, { only: 0 });
     expect(wrapper.findAll(".file-row")[0].classes()).toContain("skipped");
     expect(wrapper.findAll(".file-row")[1].classes()).not.toContain("skipped");
-  });
-
-  it("filters the loaded files by path", async () => {
-    const wrapper = factory();
-    await flushPromises();
-
-    await wrapper.get(".files-search").setValue("srt");
-
-    expect(wrapper.findAll(".file-row")).toHaveLength(1);
-    expect(wrapper.text()).toContain("demo-movie.srt");
-    expect(wrapper.text()).not.toContain("demo-movie.mkv");
   });
 
   it("saves the per-torrent speed limits", async () => {
