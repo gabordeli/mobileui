@@ -37,7 +37,7 @@ set live. With an empty DSN the frontend does not initialize Sentry.
 ## Tests
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, components, theme,
-  api, format, i18n, main, push); 142 tests, the coverage threshold is in
+  api, format, i18n, main, push); 149 tests, the coverage threshold is in
   `vite.config.ts`.
 - `npm run test:e2e` — Playwright smoke: token gate, account login, read-only UI,
   list+detail, file priority, session sheet, bulk selection, shared magnet,

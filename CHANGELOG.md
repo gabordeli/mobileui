@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+- Web Push: language-neutral payloads rendered HU/EN by the service worker, a
+  per-device test notification (`POST /api/push/test`), a device list with
+  revocation (`GET/DELETE /api/push/subscriptions`), and loopback/private
+  endpoint rejection at registration and delivery.
+- File search in the torrent detail is server-side (`?q=`), filtering before
+  pagination so files outside the first page are found.
+- Offline read cache: the service worker keeps the last successful
+  `/api/torrents*`, `/api/session` and `/api/labels` responses and serves them
+  with a stale marker after an offline reload; logout clears the cache.
+- Bulk remove has an explicit “Delete downloaded data too” option, and the
+  detail disables pause/remove/move while a torrent is `Moving`.
+- Dialogs use a focus trap: `#app` is inert while open, Tab stays inside, and
+  focus returns to the trigger on close.
+- The release job pushes only the new version tag, so deleted tags stay deleted.
+- Post-1.0 impact study in `docs/impact-post-1.0.md`.
+
 ## [1.0.0] - 2026-11-17
 
 - Web Push notifications: a toggle in the session sheet subscribes the browser

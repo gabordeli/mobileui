@@ -45,13 +45,17 @@ instance.
   detail.
 - **PWA:** manifest/icons/service worker, Android share target, light/dark
   theme, HU/EN i18n, skeleton/offline/error states, safe-area and a11y basics.
+  The SW caches the last read-only API responses and labels them as stale after
+  an offline reload; logout clears that cache.
 - **Labels & trackers:** create/delete labels from the filter bar; tracker list
   and force reannounce in the detail.
 - **Errors:** red `Error` badge on the row based on state/message; `Error` state
   filter.
 - **Web Push:** opt-in in the session sheet for finished/failed torrents; the
-  notification opens the torrent detail (`/?torrent=<id>`). Requires HTTPS and
-  the optional `pywebpush`; the VAPID key is generated automatically.
+  notification opens the torrent detail (`/?torrent=<id>`). The text follows
+  the browser language, **Test** sends one notification to the current device,
+  and the Devices list can revoke a subscription. Requires HTTPS and the
+  optional `pywebpush`; the VAPID key is generated automatically.
 - **Torrent move:** actually moves the files via Deluge `move_storage`; the
   torrent enters `Moving` state and the UI follows it through SSE.
 - **CI / SonarQube:** main-branch static analysis with backend/frontend
