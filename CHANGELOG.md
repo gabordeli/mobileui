@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-18
+
+- Release 1.2.1.
+
 ## [1.2.0] - 2026-11-18
 
 - The torrent list can be sorted by the added date (`time_added`), newest
