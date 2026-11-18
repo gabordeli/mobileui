@@ -2,6 +2,7 @@ import type {
   AuthInfo,
   BulkActionPayload,
   BulkResult,
+  DirListing,
   FilePriorityPayload,
   FilePriorityResult,
   Health,
@@ -204,6 +205,11 @@ export function getTorrentFiles(
   return request<TorrentFiles>(
     `/api/torrents/${encodeURIComponent(id)}/files?${params.toString()}`,
   );
+}
+
+export function listDirs(path: string): Promise<DirListing> {
+  const params = new URLSearchParams({ path });
+  return request<DirListing>(`/api/fs?${params.toString()}`);
 }
 
 export function setFilePriorities(

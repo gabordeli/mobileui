@@ -18,6 +18,7 @@ import type {
   TorrentFile,
   TorrentOptions,
 } from "../types";
+import DirectoryPicker from "./DirectoryPicker.vue";
 
 const props = defineProps<{
   torrentId: string;
@@ -56,6 +57,7 @@ const optionsError = ref("");
 const moveOpen = ref(false);
 const movePath = ref("");
 const moveBusy = ref(false);
+const pickerOpen = ref(false);
 const backButton = ref<HTMLButtonElement | null>(null);
 const dialogEl = ref<HTMLElement | null>(null);
 let releaseFocus: (() => void) | null = null;
@@ -320,6 +322,11 @@ function openMove(): void {
   moveOpen.value = true;
 }
 
+function pickMovePath(path: string): void {
+  movePath.value = path;
+  pickerOpen.value = false;
+}
+
 async function moveStorage(): Promise<void> {
   if (!detail.value || moveBusy.value) return;
   const location = movePath.value.trim();
@@ -526,7 +533,21 @@ onBeforeUnmount(() => {
           <div v-if="moveOpen" class="move-panel">
             <label>
               <span>{{ t("detail.moveTo") }}</span>
-              <input v-model="movePath" type="text" autocapitalize="off" spellcheck="false" />
+              <div class="inline-field">
+                <input
+                  v-model="movePath"
+                  type="text"
+                  autocapitalize="off"
+                  spellcheck="false"
+                />
+                <button
+                  class="action"
+                  type="button"
+                  @click="pickerOpen = true"
+                >
+                  {{ t("fs.browse") }}
+                </button>
+              </div>
             </label>
             <p class="limits-hint">{{ t("detail.moveHint") }}</p>
             <div class="move-actions">
@@ -542,6 +563,13 @@ onBeforeUnmount(() => {
               </button>
             </div>
           </div>
+
+          <DirectoryPicker
+            v-if="pickerOpen"
+            :initial-path="movePath || '/'"
+            @select="pickMovePath"
+            @close="pickerOpen = false"
+          />
 
           <div class="detail-copy">
             <button class="action" @click="copyMagnet">

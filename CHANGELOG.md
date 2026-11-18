@@ -13,6 +13,8 @@
   ratio and the per-torrent connection/upload-slot limits.
 - Add torrent from an http(s) URL in the add sheet; Deluge downloads the
   `.torrent` file asynchronously (`POST /api/torrents {"url": ...}`).
+- Server-side directory picker for the add and move flows (`GET /api/fs`):
+  directory-only listing, `realpath`, 1000-entry cap, off-reactor thread.
 - Docs: D15 now describes the server-side file search, and the post-1.0 impact
   study carries a v1.1.0 status note.
 

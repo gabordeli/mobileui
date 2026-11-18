@@ -5,11 +5,13 @@ import * as api from "../api";
 import { setLocale, t } from "../i18n";
 import { labels } from "./__fixtures__";
 import AddDialog from "./AddDialog.vue";
+import DirectoryPicker from "./DirectoryPicker.vue";
 
 vi.mock("../api", () => ({
   addTorrentMagnet: vi.fn(),
   addTorrentUrl: vi.fn(),
   addTorrentFile: vi.fn(),
+  listDirs: vi.fn(),
 }));
 
 beforeEach(() => {
@@ -18,6 +20,13 @@ beforeEach(() => {
   vi.mocked(api.addTorrentMagnet).mockResolvedValue({ id: "abc" });
   vi.mocked(api.addTorrentUrl).mockResolvedValue({ id: "ghi" });
   vi.mocked(api.addTorrentFile).mockResolvedValue({ id: "def" });
+  vi.mocked(api.listDirs).mockResolvedValue({
+    path: "/data/downloads",
+    parent: "/data",
+    writable: true,
+    dirs: [],
+    truncated: false,
+  });
 });
 
 afterEach(() => localStorage.clear());
@@ -69,7 +78,7 @@ describe("AddDialog", () => {
       "film",
     );
 
-    await wrapper.get(".inline-field .action").trigger("click");
+    await button(wrapper, t("add.defaultPath")).trigger("click");
 
     expect(
       (wrapper.get('input[type="text"]').element as HTMLInputElement).value,
@@ -98,6 +107,22 @@ describe("AddDialog", () => {
 
     await wrapper.get(`button[aria-label="${t("sheet.close")}"]`).trigger("click");
     expect(wrapper.emitted("close")).toHaveLength(1);
+  });
+
+  it("picks the save path from the directory picker", async () => {
+    const wrapper = factory();
+
+    await button(wrapper, t("fs.browse")).trigger("click");
+    await flushPromises();
+
+    expect(api.listDirs).toHaveBeenCalledWith("/data/downloads");
+
+    wrapper.findComponent(DirectoryPicker).vm.$emit("select", "/picked/path");
+    await flushPromises();
+
+    expect(
+      (wrapper.get('input[type="text"]').element as HTMLInputElement).value,
+    ).toBe("/picked/path");
   });
 
   it("requires a magnet before submitting", async () => {

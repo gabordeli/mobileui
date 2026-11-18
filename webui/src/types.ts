@@ -56,6 +56,20 @@ export interface TorrentOptions {
   max_upload_slots: number;
 }
 
+export interface DirEntry {
+  name: string;
+  path: string;
+  writable: boolean;
+}
+
+export interface DirListing {
+  path: string;
+  parent: string | null;
+  writable: boolean;
+  dirs: DirEntry[];
+  truncated: boolean;
+}
+
 export interface Session {
   download_rate: number;
   upload_rate: number;

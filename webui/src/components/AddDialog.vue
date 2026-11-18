@@ -5,6 +5,7 @@ import * as api from "../api";
 import { trapFocus } from "../focus";
 import { t } from "../i18n";
 import type { LabelInfo } from "../types";
+import DirectoryPicker from "./DirectoryPicker.vue";
 
 const props = defineProps<{
   labels: LabelInfo[];
@@ -50,6 +51,7 @@ const downloadLocation = ref(stored(STORAGE_PATH) || props.defaultPath);
 const addPaused = ref(false);
 const loading = ref(false);
 const error = ref("");
+const pickerOpen = ref(false);
 const closeButton = ref<HTMLButtonElement | null>(null);
 const dialogEl = ref<HTMLElement | null>(null);
 let releaseFocus: (() => void) | null = null;
@@ -57,6 +59,11 @@ let releaseFocus: (() => void) | null = null;
 function resetPath(): void {
   store(STORAGE_PATH, "");
   downloadLocation.value = props.defaultPath;
+}
+
+function pickPath(path: string): void {
+  downloadLocation.value = path;
+  pickerOpen.value = false;
 }
 
 onMounted(() => {
@@ -227,6 +234,13 @@ async function submit(): Promise<void> {
                 autocapitalize="off"
                 spellcheck="false"
               />
+              <button
+                class="action"
+                type="button"
+                @click="pickerOpen = true"
+              >
+                {{ t("fs.browse") }}
+              </button>
               <button class="action" type="button" @click="resetPath">
                 {{ t("add.defaultPath") }}
               </button>
@@ -251,6 +265,13 @@ async function submit(): Promise<void> {
           </button>
         </div>
       </dialog>
+
+      <DirectoryPicker
+        v-if="pickerOpen"
+        :initial-path="downloadLocation || '/'"
+        @select="pickPath"
+        @close="pickerOpen = false"
+      />
     </div>
   </Teleport>
 </template>

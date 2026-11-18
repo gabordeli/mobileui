@@ -1826,6 +1826,81 @@ button:disabled {
   opacity: 0.55;
 }
 
+.fs-head {
+  min-width: 0;
+}
+
+.fs-path {
+  overflow: hidden;
+  max-width: 100%;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-tools {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.fs-tools .action {
+  padding: 6px 10px;
+  font-size: 11px;
+}
+
+.fs-body {
+  margin-top: 10px;
+}
+
+.fs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.fs-icon {
+  font-size: 14px;
+}
+
+.fs-name {
+  flex: 1;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-lock {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.fs-chevron {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 /* PWA / theme / a11y polish */
 [data-theme="light"] {
   color-scheme: light;

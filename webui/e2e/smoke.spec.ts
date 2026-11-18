@@ -129,6 +129,27 @@ async function mockApi(
         });
       case "/api/labels":
         return route.fulfill({ json: labels });
+      case "/api/fs": {
+        const path = url.searchParams.get("path") ?? "/";
+        return route.fulfill({
+          json: {
+            path,
+            parent: path === "/" ? null : "/",
+            writable: true,
+            dirs:
+              path === "/downloads"
+                ? [
+                    {
+                      name: "movies",
+                      path: "/downloads/movies",
+                      writable: true,
+                    },
+                  ]
+                : [],
+            truncated: false,
+          },
+        });
+      }
       case "/api/torrents":
         if (route.request().method() === "POST") {
           return route.fulfill({ status: 201, json: { id: "newid" } });
@@ -363,5 +384,26 @@ test.describe("authenticated UI", () => {
       url: "https://example.com/demo.torrent",
     });
     await expect(page.getByText("Torrent hozzáadva")).toBeVisible();
+  });
+
+  test("browses for the save path", async ({ page }) => {
+    await page.getByRole("button", { name: "Torrent hozzáadása" }).click();
+
+    const add = page.getByRole("dialog", { name: "Torrent hozzáadása" });
+    await add.getByRole("button", { name: "Tallózás" }).click();
+
+    const picker = page.getByRole("dialog", {
+      name: "Könyvtár kiválasztása",
+    });
+    await expect(picker).toBeVisible();
+    await expect(picker.getByText("/downloads")).toBeVisible();
+
+    await picker.getByRole("button", { name: /movies/ }).click();
+    await expect(picker.getByText("/downloads/movies")).toBeVisible();
+    await picker.getByRole("button", { name: "Kiválasztás" }).click();
+
+    await expect(add.locator('input[type="text"]')).toHaveValue(
+      "/downloads/movies",
+    );
   });
 });

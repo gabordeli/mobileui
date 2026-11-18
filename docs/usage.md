@@ -90,7 +90,8 @@ move actions are disabled so they cannot conflict with the storage move.
 
 ### Move a torrent
 
-Tap **Move** next to the save path, enter an absolute destination and confirm.
+Tap **Move** next to the save path, enter an absolute destination (or pick one
+with **Browse**) and confirm.
 
 - The files are actually moved on disk by Deluge (`move_storage`), not just the
   save path.
@@ -106,8 +107,9 @@ Tap **Move** next to the save path, enter an absolute destination and confirm.
 - **Magnet / URL / torrent file** – switch between the three tabs. With a URL,
   Deluge downloads the `.torrent` file first, so adding can take a few seconds.
 - **Label** – optional; "No label" leaves it unlabeled.
-- **Save path** – absolute path. The **Default** button restores the session
-  default. The last used path and label are remembered locally.
+- **Save path** – absolute path. **Browse** opens the server-side directory
+  picker, the **Default** button restores the session default. The last used
+  path and label are remembered locally.
 - **Start paused** – adds the torrent without starting it.
 
 The sheet validates the input and shows the backend error message for an

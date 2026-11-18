@@ -6,6 +6,7 @@ import { formatRate } from "../format";
 import { setLocale, t } from "../i18n";
 import type { TorrentFile, TorrentOptions } from "../types";
 import { detail, files, labels } from "./__fixtures__";
+import DirectoryPicker from "./DirectoryPicker.vue";
 import TorrentDetail from "./TorrentDetail.vue";
 
 const torrentOptions: TorrentOptions = {
@@ -25,6 +26,7 @@ vi.mock("../api", () => ({
   getTorrentFiles: vi.fn(),
   getTorrentOptions: vi.fn(),
   setTorrentOptions: vi.fn(),
+  listDirs: vi.fn(),
   setFilePriorities: vi.fn(),
   setTorrentLimits: vi.fn(),
   pauseTorrent: vi.fn(),
@@ -71,6 +73,13 @@ beforeEach(() => {
     id,
     options: { ...torrentOptions, ...payload },
   }));
+  vi.mocked(api.listDirs).mockResolvedValue({
+    path: "/data/downloads",
+    parent: "/data",
+    writable: true,
+    dirs: [],
+    truncated: false,
+  });
   vi.mocked(api.reannounceTorrent).mockResolvedValue({
     id: detail.id,
     reannounced: true,
@@ -369,6 +378,27 @@ describe("TorrentDetail", () => {
       stop_ratio: 2.5,
     });
     expect(wrapper.emitted("toast")?.[0]).toEqual([t("toast.options")]);
+  });
+
+  it("picks the move target from the directory picker", async () => {
+    const wrapper = factory();
+    await flushPromises();
+
+    await button(wrapper, t("detail.move")).trigger("click");
+    await button(wrapper, t("fs.browse")).trigger("click");
+    await flushPromises();
+
+    expect(api.listDirs).toHaveBeenCalledWith(
+      detail.download_location || detail.save_path,
+    );
+
+    wrapper.findComponent(DirectoryPicker).vm.$emit("select", "/picked/path");
+    await flushPromises();
+
+    expect(
+      (wrapper.get(".move-panel input[type='text']").element as HTMLInputElement)
+        .value,
+    ).toBe("/picked/path");
   });
 
   it("starts a storage move", async () => {

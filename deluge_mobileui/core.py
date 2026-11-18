@@ -434,6 +434,11 @@ class Core(CorePluginBase):
             result.addTimeout(60, reactor)
         return result
 
+    def list_dirs(self, path):
+        from . import fs
+
+        return fs.list_dirs(path)
+
     def subscribe_events(self, request):
         if self.events is None:
             self._start_events()

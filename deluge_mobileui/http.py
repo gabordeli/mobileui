@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 
 from deluge.common import AUTH_LEVEL_NORMAL
-from twisted.internet import defer
+from twisted.internet import defer, threads
 from twisted.web import server
 from twisted.web.resource import Resource
 from twisted.web.static import File
@@ -1001,6 +1001,29 @@ class TorrentsResource(ApiJsonResource):
         return self._finish_add(request, payload)
 
 
+class FsResource(ApiJsonResource):
+    isLeaf = True
+
+    def render_GET(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
+
+        deferred = threads.deferToThread(
+            self.plugin.list_dirs, query_arg(request, "path")
+        )
+        deferred.addCallback(
+            lambda result: self.finish_async(request, 200, result)
+        )
+        deferred.addErrback(
+            lambda failure: self.finish_async_error(request, failure)
+        )
+        return server.NOT_DONE_YET
+
+
 class EventsResource(ApiJsonResource):
     isLeaf = True
 
@@ -1031,6 +1054,7 @@ class ApiRootResource(JsonResource):
         self.putChild(b"session", SessionResource(plugin))
         self.putChild(b"labels", LabelsResource(plugin))
         self.putChild(b"torrents", TorrentsResource(plugin))
+        self.putChild(b"fs", FsResource(plugin))
         self.putChild(b"events", EventsResource(plugin))
         self.putChild(b"push", PushRootResource(plugin))
 
@@ -1057,6 +1081,7 @@ class ApiRootResource(JsonResource):
                     "/api/session/limits",
                     "/api/session/queue",
                     "/api/labels",
+                    "/api/fs",
                     "/api/torrents",
                     "/api/torrents/bulk",
                     "/api/torrents/ids",

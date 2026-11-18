@@ -94,6 +94,7 @@ Token-protected index:
     "/api/session/pause", "/api/session/resume", "/api/session/limits",
     "/api/session/queue",
     "/api/labels",
+    "/api/fs",
     "/api/torrents", "/api/torrents/ids", "/api/torrents/bulk",
     "/api/torrents/{id}", "/api/torrents/{id}/options",
     "/api/torrents/{id}/reannounce",
@@ -206,6 +207,30 @@ Delete a label (write level). Its torrents move under `No Label`:
 
 `200 {"id": "new-label", "removed": true}`; unknown label → 400; without the
 plugin → 409.
+
+## GET /api/fs
+
+Directory listing for the mobile path picker (normal level; read-only → 403).
+The `path` query parameter is required and must be absolute:
+
+`GET /api/fs?path=/data/downloads`
+
+```json
+{
+  "path": "/data/downloads",
+  "parent": "/data",
+  "writable": true,
+  "dirs": [
+    {"name": "movies", "path": "/data/downloads/movies", "writable": true}
+  ],
+  "truncated": false
+}
+```
+
+Only directories are returned, sorted case-insensitively; the path is resolved
+with `realpath`. At most 1000 entries (`truncated: true` above that). Relative
+or missing path, a file, or an unreadable directory → 400. The listing runs in
+a thread, so a slow network filesystem does not block the reactor.
 
 ## GET /api/torrents
 

@@ -17,6 +17,7 @@ import {
   getTorrentFiles,
   getTorrentOptions,
   getPushSubscriptions,
+  listDirs,
   listTorrents,
   login,
   logout,
@@ -291,6 +292,22 @@ describe("torrent actions", () => {
     expect(path).toBe("/api/torrents/abc/options");
     expect(init.method).toBe("PATCH");
     expect(init.body).toBe(JSON.stringify({ sequential_download: true }));
+  });
+
+  it("lists directories for the path picker", async () => {
+    const fetchMock = mockFetch({
+      path: "/data/downloads",
+      parent: "/data",
+      writable: true,
+      dirs: [],
+      truncated: false,
+    });
+
+    await listDirs("/data/downloads");
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "/api/fs?path=%2Fdata%2Fdownloads",
+    );
   });
 
   it("patches the session limits", async () => {

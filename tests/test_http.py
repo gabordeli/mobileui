@@ -43,6 +43,7 @@ class StubPlugin:
         self.level = level
         self.list_calls = []
         self.write_calls = []
+        self.fs_calls = []
         self.add_deferred = None
 
     def is_authorized(self, request):
@@ -115,6 +116,16 @@ class StubPlugin:
         if self.add_deferred is not None:
             return self.add_deferred
         return {"id": "newid", "label": "movies", "download_location": "/x"}
+
+    def list_dirs(self, path):
+        self.fs_calls.append(path)
+        return {
+            "path": path,
+            "parent": "/",
+            "writable": True,
+            "dirs": [{"name": "movies", "path": f"{path}/movies", "writable": True}],
+            "truncated": False,
+        }
 
     def list_torrents(self, **kwargs):
         if kwargs["limit"] < 1:
@@ -1087,6 +1098,38 @@ def test_add_url_deferred_conflict():
     assert request.responseCode == 409
     assert json.loads(b"".join(request.written))["error"] == "conflict"
     assert request.finished == 1
+
+
+def test_fs_endpoint(monkeypatch):
+    plugin = StubPlugin(authorized=True)
+    monkeypatch.setattr(
+        http.threads,
+        "deferToThread",
+        lambda func, *args: defer.succeed(func(*args)),
+    )
+    fs = api_child(plugin, b"fs")
+    request = DummyRequest([b"api", b"fs"])
+    request.args = {b"path": [b"/downloads"]}
+
+    result = fs.render_GET(request)
+
+    assert result is NOT_DONE_YET
+    assert request.responseCode == 200
+    assert json.loads(b"".join(request.written))["dirs"][0]["name"] == "movies"
+    assert plugin.fs_calls == ["/downloads"]
+
+
+def test_fs_endpoint_read_only():
+    plugin = StubPlugin(authorized=True, level=1)
+    fs = api_child(plugin, b"fs")
+    request = DummyRequest([b"api", b"fs"])
+    request.args = {b"path": [b"/downloads"]}
+
+    body = fs.render_GET(request)
+
+    assert request.responseCode == 403
+    assert json.loads(body)["error"] == "forbidden"
+    assert plugin.fs_calls == []
 
 
 def test_add_raw_torrent_file():
