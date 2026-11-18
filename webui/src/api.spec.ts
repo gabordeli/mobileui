@@ -14,6 +14,7 @@ import {
   getToken,
   getTorrent,
   getTorrentFiles,
+  getTorrentOptions,
   getPushSubscriptions,
   listTorrents,
   login,
@@ -33,6 +34,7 @@ import {
   setSessionQueue,
   setToken,
   setTorrentLimits,
+  setTorrentOptions,
 } from "./api";
 
 function jsonResponse(payload: unknown, status = 200): Response {
@@ -247,6 +249,22 @@ describe("torrent actions", () => {
     expect(path).toBe("/api/torrents/abc/files");
     expect(init.method).toBe("PATCH");
     expect(init.body).toBe(JSON.stringify({ only: 1 }));
+  });
+
+  it("loads and patches the torrent options", async () => {
+    const fetchMock = mockFetch({
+      id: "abc",
+      options: { sequential_download: true, stop_ratio: 2 },
+    });
+
+    await getTorrentOptions("abc");
+    await setTorrentOptions("abc", { sequential_download: true });
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/torrents/abc/options");
+    const [path, init] = fetchMock.mock.calls[1];
+    expect(path).toBe("/api/torrents/abc/options");
+    expect(init.method).toBe("PATCH");
+    expect(init.body).toBe(JSON.stringify({ sequential_download: true }));
   });
 
   it("patches the session limits", async () => {

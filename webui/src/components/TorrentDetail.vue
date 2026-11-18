@@ -16,6 +16,7 @@ import type {
   LabelInfo,
   TorrentDetail,
   TorrentFile,
+  TorrentOptions,
 } from "../types";
 
 const props = defineProps<{
@@ -47,6 +48,11 @@ const downLimit = ref(-1);
 const upLimit = ref(-1);
 const removeData = ref(false);
 const trackersOpen = ref(false);
+const optionsOpen = ref(false);
+const options = ref<TorrentOptions | null>(null);
+const optionsLoading = ref(false);
+const optionsSaving = ref(false);
+const optionsError = ref("");
 const moveOpen = ref(false);
 const movePath = ref("");
 const moveBusy = ref(false);
@@ -59,6 +65,15 @@ const progress = computed(() =>
 );
 const isPaused = computed(() => detail.value?.state.includes("Paused") ?? false);
 const isMoving = computed(() => detail.value?.state === "Moving");
+const optionsValid = computed(() => {
+  const item = options.value;
+  return (
+    item !== null &&
+    Number.isFinite(item.stop_ratio) &&
+    Number.isFinite(item.max_connections) &&
+    Number.isFinite(item.max_upload_slots)
+  );
+});
 const trackerSummary = computed(() => {
   const item = detail.value;
   if (!item) return "";
@@ -229,6 +244,43 @@ async function recheck(): Promise<void> {
     actionError.value = messageOf(err);
   } finally {
     actionLoading.value = false;
+  }
+}
+
+async function loadOptions(): Promise<void> {
+  optionsLoading.value = true;
+  optionsError.value = "";
+  try {
+    const result = await api.getTorrentOptions(props.torrentId);
+    options.value = result.options;
+  } catch (err) {
+    optionsError.value = messageOf(err);
+  } finally {
+    optionsLoading.value = false;
+  }
+}
+
+async function toggleOptions(): Promise<void> {
+  optionsOpen.value = !optionsOpen.value;
+  if (optionsOpen.value && !options.value && !optionsLoading.value) {
+    await loadOptions();
+  }
+}
+
+async function saveOptions(): Promise<void> {
+  if (!options.value) return;
+  optionsSaving.value = true;
+  optionsError.value = "";
+  try {
+    const result = await api.setTorrentOptions(props.torrentId, {
+      ...options.value,
+    });
+    options.value = result.options;
+    emit("toast", t("toast.options"));
+  } catch (err) {
+    optionsError.value = messageOf(err);
+  } finally {
+    optionsSaving.value = false;
   }
 }
 
@@ -619,6 +671,102 @@ onBeforeUnmount(() => {
               </div>
               <small class="limits-hint">{{ t("limits.torrentHint") }}</small>
             </label>
+
+            <section class="torrent-options">
+              <button
+                class="options-bar"
+                type="button"
+                :aria-expanded="optionsOpen"
+                @click="toggleOptions"
+              >
+                <span class="options-icon" aria-hidden="true">⚙️</span>
+                <span>{{ t("options.title") }}</span>
+                <span class="options-chevron" aria-hidden="true">
+                  {{ optionsOpen ? "▾" : "▸" }}
+                </span>
+              </button>
+              <div v-if="optionsOpen" class="options-panel">
+                <p v-if="optionsLoading" class="limits-hint">
+                  {{ t("detail.loading") }}
+                </p>
+                <p v-else-if="optionsError" class="detail-error" role="alert">
+                  {{ optionsError }}
+                </p>
+                <template v-else-if="options">
+                  <label class="option-row">
+                    <input v-model="options.sequential_download" type="checkbox" />
+                    <span>{{ t("options.sequential") }}</span>
+                  </label>
+                  <label class="option-row">
+                    <input
+                      v-model="options.prioritize_first_last_pieces"
+                      type="checkbox"
+                    />
+                    <span>{{ t("options.firstLast") }}</span>
+                  </label>
+                  <label class="option-row">
+                    <input v-model="options.auto_managed" type="checkbox" />
+                    <span>{{ t("options.autoManaged") }}</span>
+                  </label>
+                  <label class="option-row">
+                    <input v-model="options.super_seeding" type="checkbox" />
+                    <span>{{ t("options.superSeeding") }}</span>
+                  </label>
+                  <label class="option-row">
+                    <input v-model="options.stop_at_ratio" type="checkbox" />
+                    <span>{{ t("options.stopAtRatio") }}</span>
+                  </label>
+                  <label class="option-row">
+                    <input
+                      v-model="options.remove_at_ratio"
+                      type="checkbox"
+                      :disabled="!options.stop_at_ratio"
+                    />
+                    <span>{{ t("options.removeAtRatio") }}</span>
+                  </label>
+                  <div class="options-grid">
+                    <label>
+                      <span>{{ t("options.stopRatio") }}</span>
+                      <input
+                        v-model.number="options.stop_ratio"
+                        type="number"
+                        min="0.5"
+                        max="100"
+                        step="0.1"
+                      />
+                    </label>
+                    <label>
+                      <span>{{ t("options.maxConnections") }}</span>
+                      <input
+                        v-model.number="options.max_connections"
+                        type="number"
+                        min="-1"
+                        max="9000"
+                        step="1"
+                      />
+                    </label>
+                    <label>
+                      <span>{{ t("options.maxSlots") }}</span>
+                      <input
+                        v-model.number="options.max_upload_slots"
+                        type="number"
+                        min="-1"
+                        max="9000"
+                        step="1"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    class="action primary"
+                    :disabled="optionsSaving || isMoving || !optionsValid"
+                    @click="saveOptions"
+                  >
+                    {{ t("sheet.save") }}
+                  </button>
+                  <p class="limits-hint">{{ t("options.hint") }}</p>
+                </template>
+              </div>
+            </section>
           </template>
           <p v-else class="readonly-note">{{ t("auth.readonly") }}</p>
 

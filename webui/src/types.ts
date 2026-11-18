@@ -44,6 +44,18 @@ export interface QueueSettings {
   queue_new_to_top: boolean;
 }
 
+export interface TorrentOptions {
+  sequential_download: boolean;
+  prioritize_first_last_pieces: boolean;
+  auto_managed: boolean;
+  super_seeding: boolean;
+  stop_at_ratio: boolean;
+  stop_ratio: number;
+  remove_at_ratio: boolean;
+  max_connections: number;
+  max_upload_slots: number;
+}
+
 export interface Session {
   download_rate: number;
   upload_rate: number;

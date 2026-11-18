@@ -836,7 +836,8 @@ dialog.sheet {
   gap: 8px;
 }
 
-.limits-row label {
+.limits-row label,
+.options-grid label {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -845,7 +846,8 @@ dialog.sheet {
 }
 
 .limits-row input,
-.limit-input {
+.limit-input,
+.options-grid input {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--line);
@@ -871,8 +873,60 @@ dialog.sheet {
   font-size: 10px;
 }
 
-.queue-row {
+.queue-row,
+.options-grid {
   grid-template-columns: repeat(3, 1fr);
+}
+
+.torrent-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.options-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.options-icon {
+  font-size: 12px;
+}
+
+.options-chevron {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.options-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.option-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
 }
 
 .queue-top {

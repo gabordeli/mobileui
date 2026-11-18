@@ -240,6 +240,84 @@ def set_torrent_limits(
     return {"id": torrent_id, **status}
 
 
+BOOL_TORRENT_OPTIONS = {
+    "sequential_download",
+    "prioritize_first_last_pieces",
+    "auto_managed",
+    "super_seeding",
+    "stop_at_ratio",
+    "remove_at_ratio",
+}
+INT_TORRENT_OPTIONS = {"max_connections", "max_upload_slots"}
+TORRENT_OPTION_KEYS = (
+    "sequential_download",
+    "prioritize_first_last_pieces",
+    "auto_managed",
+    "super_seeding",
+    "stop_at_ratio",
+    "stop_ratio",
+    "remove_at_ratio",
+    "max_connections",
+    "max_upload_slots",
+)
+
+
+def _torrent_options(torrent):
+    options = torrent.get_options()
+    return {key: options[key] for key in TORRENT_OPTION_KEYS if key in options}
+
+
+def get_torrent_options(core, torrent_id):
+    torrent = _torrent(core, torrent_id)
+    return {"id": torrent_id, "options": _torrent_options(torrent)}
+
+
+def _option_ratio(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise BadRequest("stop_ratio must be a number")
+    ratio = float(value)
+    if not 0.5 <= ratio <= 100:
+        raise BadRequest("stop_ratio must be between 0.5 and 100")
+    return ratio
+
+
+def _option_int(value, key):
+    if isinstance(value, bool):
+        raise BadRequest(f"{key} must be an integer")
+    if isinstance(value, float) and not value.is_integer():
+        raise BadRequest(f"{key} must be an integer")
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        raise BadRequest(f"{key} must be an integer") from None
+    if not -1 <= number <= 9000:
+        raise BadRequest(f"{key} must be between -1 and 9000")
+    return number
+
+
+def set_torrent_options(core, torrent_id, options):
+    torrent = _torrent(core, torrent_id)
+    if not isinstance(options, dict) or not options:
+        raise BadRequest("at least one torrent option is required")
+    unknown = sorted(set(options) - set(TORRENT_OPTION_KEYS))
+    if unknown:
+        raise BadRequest(f"unknown torrent option: {unknown[0]}")
+
+    updates = {}
+    for key, value in options.items():
+        if key in BOOL_TORRENT_OPTIONS:
+            if not isinstance(value, bool):
+                raise BadRequest(f"{key} must be a bool")
+            updates[key] = value
+        elif key == "stop_ratio":
+            updates[key] = _option_ratio(value)
+        elif key in INT_TORRENT_OPTIONS:
+            updates[key] = _option_int(value, key)
+
+    torrent.set_options(updates)
+    return {"id": torrent_id, "options": _torrent_options(torrent)}
+
+
 def _apply_file_changes(files, priorities, changes, only):
     if only is not None:
         index = int(only)

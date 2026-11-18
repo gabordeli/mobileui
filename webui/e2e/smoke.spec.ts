@@ -82,6 +82,18 @@ const files = {
   ],
 };
 
+const torrentOptions = {
+  sequential_download: false,
+  prioritize_first_last_pieces: false,
+  auto_managed: true,
+  super_seeding: false,
+  stop_at_ratio: false,
+  stop_ratio: 1,
+  remove_at_ratio: false,
+  max_connections: -1,
+  max_upload_slots: -1,
+};
+
 const authTokenOnly = { mode: "token", modes: ["token"], token_set: true };
 
 async function mockApi(
@@ -134,6 +146,19 @@ async function mockApi(
             max_download_speed: -1,
             max_upload_speed: -1,
           },
+        });
+      case "/api/torrents/demo-movie/options":
+        if (route.request().method() === "PATCH") {
+          const payload = route.request().postDataJSON() as Record<string, unknown>;
+          return route.fulfill({
+            json: {
+              id: "demo-movie",
+              options: { ...torrentOptions, ...payload },
+            },
+          });
+        }
+        return route.fulfill({
+          json: { id: "demo-movie", options: torrentOptions },
         });
       case "/api/torrents/demo-movie/files":
         if (route.request().method() === "PATCH") {
@@ -240,6 +265,23 @@ test.describe("authenticated UI", () => {
 
     await dialog.getByRole("checkbox", { name: /^Letöltés:/ }).uncheck();
     await expect(dialog.getByText("Kihagyva")).toBeVisible();
+  });
+
+  test("edits the torrent options", async ({ page }) => {
+    await page.getByRole("button", { name: "Demo Movie 2024" }).click();
+    const dialog = page.getByRole("dialog", { name: "Torrent részletek" });
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByRole("button", { name: /Torrent opciók/ }).click();
+    const sequential = dialog.getByRole("checkbox", {
+      name: "Sorrendben töltse le",
+    });
+    await expect(sequential).not.toBeChecked();
+    await sequential.check();
+    await dialog.locator(".options-panel .action.primary").click();
+
+    await expect(page.getByText("Torrent opciók mentve")).toBeVisible();
+    await expect(sequential).toBeChecked();
   });
 
   test("opens the session sheet", async ({ page }) => {

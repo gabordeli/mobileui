@@ -233,6 +233,16 @@ class StubPlugin:
             "max_upload_speed": max_upload_speed,
         }
 
+    def get_torrent_options(self, torrent_id):
+        return {
+            "id": torrent_id,
+            "options": {"sequential_download": False, "stop_ratio": 1.0},
+        }
+
+    def set_torrent_options(self, torrent_id, options):
+        self.write_calls.append(("options", torrent_id, options))
+        return {"id": torrent_id, "options": options}
+
     def list_torrent_ids(self, state=None, label=None, q=None):
         self.list_calls.append((state, label, q))
         return {"ids": ["abc"], "total": 1, "limit": 1000}
@@ -476,6 +486,13 @@ def mutation_cases(plugin):
             {"max_download_speed": 0},
         ),
         case(
+            "torrent options",
+            child(torrent, b"options", [b"api", b"torrents", b"abc", b"options"]),
+            "render_PATCH",
+            [b"api", b"torrents", b"abc", b"options"],
+            {"sequential_download": True},
+        ),
+        case(
             "label add",
             labels,
             "render_POST",
@@ -665,6 +682,30 @@ def test_torrent_limits_patch_forwards_values():
     assert request.responseCode == 200
     assert json.loads(body)["id"] == "abc"
     assert plugin.write_calls == [("limits", "abc", 0, None)]
+
+
+def test_torrent_options_get_and_patch():
+    plugin = StubPlugin(authorized=True)
+    torrent = torrent_resource(plugin)
+
+    request = DummyRequest([b"api", b"torrents", b"abc", b"options"])
+    body = torrent.getChildWithDefault(b"options", request).render_GET(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body)["options"]["stop_ratio"] == 1.0
+
+    request = post_request([b"api", b"torrents", b"abc", b"options"])
+    request.method = b"PATCH"
+    request.content = io.BytesIO(
+        b'{"sequential_download":true,"stop_ratio":2.5}'
+    )
+    body = torrent.getChildWithDefault(b"options", request).render_PATCH(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body)["options"]["stop_ratio"] == 2.5
+    assert plugin.write_calls == [
+        ("options", "abc", {"sequential_download": True, "stop_ratio": 2.5})
+    ]
 
 
 def test_labels_add_and_remove():

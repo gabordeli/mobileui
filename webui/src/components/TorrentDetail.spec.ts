@@ -4,13 +4,27 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../api";
 import { formatRate } from "../format";
 import { setLocale, t } from "../i18n";
-import type { TorrentFile } from "../types";
+import type { TorrentFile, TorrentOptions } from "../types";
 import { detail, files, labels } from "./__fixtures__";
 import TorrentDetail from "./TorrentDetail.vue";
+
+const torrentOptions: TorrentOptions = {
+  sequential_download: false,
+  prioritize_first_last_pieces: false,
+  auto_managed: true,
+  super_seeding: false,
+  stop_at_ratio: false,
+  stop_ratio: 1,
+  remove_at_ratio: false,
+  max_connections: -1,
+  max_upload_slots: -1,
+};
 
 vi.mock("../api", () => ({
   getTorrent: vi.fn(),
   getTorrentFiles: vi.fn(),
+  getTorrentOptions: vi.fn(),
+  setTorrentOptions: vi.fn(),
   setFilePriorities: vi.fn(),
   setTorrentLimits: vi.fn(),
   pauseTorrent: vi.fn(),
@@ -49,6 +63,14 @@ beforeEach(() => {
     max_download_speed: -1,
     max_upload_speed: -1,
   });
+  vi.mocked(api.getTorrentOptions).mockResolvedValue({
+    id: detail.id,
+    options: { ...torrentOptions },
+  });
+  vi.mocked(api.setTorrentOptions).mockImplementation(async (id, payload) => ({
+    id,
+    options: { ...torrentOptions, ...payload },
+  }));
   vi.mocked(api.reannounceTorrent).mockResolvedValue({
     id: detail.id,
     reannounced: true,
@@ -327,6 +349,28 @@ describe("TorrentDetail", () => {
     ]);
   });
 
+  it("loads and saves the torrent options", async () => {
+    const wrapper = factory();
+    await flushPromises();
+
+    await wrapper.get(".options-bar").trigger("click");
+    await flushPromises();
+
+    expect(api.getTorrentOptions).toHaveBeenCalledWith(detail.id);
+
+    await wrapper.findAll(".option-row input")[0].setValue(true);
+    await wrapper.findAll(".options-grid input")[0].setValue(2.5);
+    await wrapper.get(".options-panel .action.primary").trigger("click");
+    await flushPromises();
+
+    expect(api.setTorrentOptions).toHaveBeenCalledWith(detail.id, {
+      ...torrentOptions,
+      sequential_download: true,
+      stop_ratio: 2.5,
+    });
+    expect(wrapper.emitted("toast")?.[0]).toEqual([t("toast.options")]);
+  });
+
   it("starts a storage move", async () => {
     const wrapper = factory();
     await flushPromises();
@@ -383,6 +427,7 @@ describe("TorrentDetail", () => {
     expect(wrapper.find("select").exists()).toBe(false);
     expect(wrapper.find(".file-check").exists()).toBe(false);
     expect(wrapper.find(".trackers-head .action").exists()).toBe(false);
+    expect(wrapper.find(".torrent-options").exists()).toBe(false);
     expect(wrapper.find(".detail-path .action").exists()).toBe(false);
     await wrapper.get(".tracker-bar").trigger("click");
     expect(wrapper.text()).toContain("tracker.example/announce");

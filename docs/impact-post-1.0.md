@@ -6,7 +6,7 @@ follow-up ideas opened as **#32–#38**. It was an assessment, not an implementa
 plan; at the time of writing no item was started.
 
 **Status (v1.1.0, 2026-11-18):** all seven items shipped in v1.1.0. The current
-suite is 195 backend / 155 frontend tests plus 9 E2E, with Sonar still at zero
+suite is 198 backend / 157 frontend tests plus 10 E2E, with Sonar still at zero
 open issues; the numbers below remain the v1.0.0 baseline of the study.
 
 ## Method
@@ -154,7 +154,7 @@ validation” into separate issues.
 
 ## Verification baseline for any item
 
-- Backend `pytest` + `ruff`, frontend `vue-tsc` + Vitest, E2E 9/9.
+- Backend `pytest` + `ruff`, frontend `vue-tsc` + Vitest, E2E 10/10.
 - Sonar gate stays blocking with 0 new violations.
 - Any mutation endpoint gets the read-only (403) / normal (200/201) authz test.
 - Deploy remains manual; release tags only after `git ls-remote --tags` check.

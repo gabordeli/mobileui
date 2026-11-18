@@ -8,6 +8,9 @@
 - Active-torrent queue settings in the session sheet
   (`PATCH /api/session/queue`): max active downloading/seeding/total and
   "new torrents to top".
+- Torrent options panel in the detail (`GET/PATCH /api/torrents/{id}/options`):
+  sequential download, first/last pieces, auto-managed, super seeding, stop
+  ratio and the per-torrent connection/upload-slot limits.
 - Docs: D15 now describes the server-side file search, and the post-1.0 impact
   study carries a v1.1.0 status note.
 

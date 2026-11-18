@@ -219,6 +219,16 @@ class Core(CorePluginBase):
             max_upload_speed,
         )
 
+    def get_torrent_options(self, torrent_id):
+        from . import write
+
+        return write.get_torrent_options(component.get("Core"), torrent_id)
+
+    def set_torrent_options(self, torrent_id, options):
+        from . import write
+
+        return write.set_torrent_options(component.get("Core"), torrent_id, options)
+
     def _register_push_events(self):
         try:
             manager = component.get("EventManager")

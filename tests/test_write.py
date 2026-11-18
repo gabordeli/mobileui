@@ -22,6 +22,18 @@ class FakeTorrent:
         self.rechecked = 0
         self.move_result = True
         self.move_calls = []
+        self.set_options_calls = []
+        self.options = {
+            "sequential_download": False,
+            "prioritize_first_last_pieces": False,
+            "auto_managed": True,
+            "super_seeding": False,
+            "stop_at_ratio": False,
+            "stop_ratio": 1.0,
+            "remove_at_ratio": False,
+            "max_connections": -1,
+            "max_upload_slots": -1,
+        }
 
     def force_reannounce(self):
         self.reannounced += 1
@@ -58,6 +70,13 @@ class FakeTorrent:
             "max_download_speed": self.max_download_speed,
             "max_upload_speed": self.max_upload_speed,
         }
+
+    def get_options(self):
+        return dict(self.options)
+
+    def set_options(self, options):
+        self.options.update(options)
+        self.set_options_calls.append(dict(options))
 
 
 class FakeCore:
@@ -455,6 +474,65 @@ def test_torrent_limits_are_applied():
         "max_upload_speed": -1,
     }
     assert torrent.set_speed_calls == [("down", 0)]
+
+
+def test_torrent_options_roundtrip():
+    core = FakeCore()
+
+    result = write.get_torrent_options(core, "abc")
+
+    assert result["id"] == "abc"
+    assert set(result["options"]) == set(write.TORRENT_OPTION_KEYS)
+    assert result["options"]["sequential_download"] is False
+
+    updated = write.set_torrent_options(
+        core,
+        "abc",
+        {
+            "sequential_download": True,
+            "stop_at_ratio": True,
+            "stop_ratio": 2.5,
+            "max_connections": 50,
+        },
+    )
+
+    assert updated["options"]["sequential_download"] is True
+    assert updated["options"]["stop_ratio"] == 2.5
+    assert updated["options"]["max_connections"] == 50
+    assert core.torrentmanager["abc"].set_options_calls == [
+        {
+            "sequential_download": True,
+            "stop_at_ratio": True,
+            "stop_ratio": 2.5,
+            "max_connections": 50,
+        }
+    ]
+
+    with pytest.raises(KeyError):
+        write.get_torrent_options(core, "missing")
+    with pytest.raises(KeyError):
+        write.set_torrent_options(core, "missing", {"auto_managed": False})
+
+
+def test_torrent_options_validate_input():
+    core = FakeCore()
+
+    with pytest.raises(write.BadRequest):
+        write.set_torrent_options(core, "abc", {})
+    with pytest.raises(write.BadRequest):
+        write.set_torrent_options(core, "abc", {"unknown": True})
+    with pytest.raises(write.BadRequest):
+        write.set_torrent_options(core, "abc", {"auto_managed": 1})
+    with pytest.raises(write.BadRequest):
+        write.set_torrent_options(core, "abc", {"stop_ratio": 0.4})
+    with pytest.raises(write.BadRequest):
+        write.set_torrent_options(core, "abc", {"stop_ratio": 101})
+    with pytest.raises(write.BadRequest):
+        write.set_torrent_options(core, "abc", {"stop_ratio": True})
+    with pytest.raises(write.BadRequest):
+        write.set_torrent_options(core, "abc", {"max_connections": 9001})
+    with pytest.raises(write.BadRequest):
+        write.set_torrent_options(core, "abc", {"max_upload_slots": 1.5})
 
 
 def test_session_queue_is_applied():

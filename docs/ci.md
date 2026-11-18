@@ -41,9 +41,9 @@
 ## Coverage
 
 - The `test` job runs with `--cov-fail-under=80`; the current backend coverage
-  is 83% (195 tests).
+  is 83% (198 tests).
 - The `webui-test` Vitest thresholds: statements 75, branches 65, functions 75,
-  lines 78; the current 82.75 / 74.41 / 80.69 / 86.1 (155 tests, with `.vue`
+  lines 78; the current 82.62 / 75.27 / 79.45 / 85.91 (157 tests, with `.vue`
   files).
 - GitLab reads the number from the job log with the `coverage:` regex, and
   displays it in the pipeline / MR view — private, no external badge.
@@ -72,9 +72,9 @@ runs with the stubs (fast, without Deluge); the two together give the coverage.
 ## E2E
 
 The `webui-e2e` job runs `webui/e2e/smoke.spec.ts`: token gate, account
-login, read-only UI, list + detail, file priority, session sheet, bulk
-selection, shared magnet, add sheet. The API is mocked with `page.route`, so it
-runs without Deluge. The job runs in the official
+login, read-only UI, list + detail, file priority, torrent options, session
+sheet, bulk selection, shared magnet, add sheet. The API is mocked with
+`page.route`, so it runs without Deluge. The job runs in the official
 `mcr.microsoft.com/playwright:v1.65.1-jammy` image
 (Docker), so no system Chromium libs are needed on the runner. The image tag
 must be matched to the `@playwright/test` version (now 1.65.1); for local

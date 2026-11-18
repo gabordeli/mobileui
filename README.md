@@ -35,8 +35,8 @@ instance.
   long-press selection, live SSE updates.
 - **Torrent details:** compact primary stats (down/up/ETA) plus a muted
   ratio/peers/seeds/size/added line; collapsible tracker bar; per-file download
-  checkboxes and "Only this"; speed limits; label, reannounce, force recheck
-  and storage move.
+  checkboxes and "Only this"; speed limits and torrent options (sequential,
+  ratio, connections); label, reannounce, force recheck and storage move.
 - **Session sheet:** free space, torrent count, rates, 60-second speed
   sparkline, global pause/resume, global/torrent speed limits with a nightly
   preset, and the active-torrent queue settings.

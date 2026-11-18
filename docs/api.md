@@ -95,7 +95,8 @@ Token-protected index:
     "/api/session/queue",
     "/api/labels",
     "/api/torrents", "/api/torrents/ids", "/api/torrents/bulk",
-    "/api/torrents/{id}", "/api/torrents/{id}/reannounce",
+    "/api/torrents/{id}", "/api/torrents/{id}/options",
+    "/api/torrents/{id}/reannounce",
     "/api/torrents/{id}/recheck",
     "/api/torrents/{id}/move", "/api/push/config",
     "/api/push/subscribe", "/api/push/test", "/api/push/subscriptions",
@@ -409,6 +410,48 @@ is required:
 
 `200 {"id": "...", "max_download_speed": 64.0, "max_upload_speed": 32.0}`;
 `-2` → 400. The two fields also appear in the `get_torrent` response.
+
+## GET /api/torrents/{id}/options
+
+The editable Deluge torrent options (read-only accounts allowed):
+
+```json
+{
+  "id": "b1d2…",
+  "options": {
+    "sequential_download": false,
+    "prioritize_first_last_pieces": false,
+    "auto_managed": true,
+    "super_seeding": false,
+    "stop_at_ratio": false,
+    "stop_ratio": 1.0,
+    "remove_at_ratio": false,
+    "max_connections": -1,
+    "max_upload_slots": -1
+  }
+}
+```
+
+Unknown torrent → 404.
+
+## PATCH /api/torrents/{id}/options
+
+Set one or more torrent options (write level; read-only → 403). Unknown key or
+empty body → 400:
+
+```json
+{"sequential_download": true, "stop_ratio": 2.0}
+```
+
+- The booleans must be JSON booleans.
+- `stop_ratio`: 0.5–100.
+- `max_connections` / `max_upload_slots`: -1 (global) to 9000; Deluge
+  normalizes 0/1 for connections.
+- `prioritize_first_last_pieces` is a no-op without metadata; the other values
+  apply immediately.
+
+`200` returns the complete option set after applying the changes, in the same
+shape as the GET response.
 
 ## POST /api/torrents/bulk
 

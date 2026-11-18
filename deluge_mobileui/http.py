@@ -667,6 +667,42 @@ class TorrentLimitsResource(ApiJsonResource):
         return self.write_json(request, 200, payload)
 
 
+class TorrentOptionsResource(ApiJsonResource):
+    isLeaf = True
+
+    def __init__(self, plugin, torrent_id):
+        super().__init__(plugin)
+        self.torrent_id = torrent_id
+
+    def render_GET(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        try:
+            payload = self.plugin.get_torrent_options(self.torrent_id)
+        except (KeyError, Conflict, TypeError, ValueError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+    def render_PATCH(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
+        try:
+            body = read_json_body(request)
+            payload = self.plugin.set_torrent_options(self.torrent_id, body)
+        except (KeyError, Conflict, TypeError, ValueError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
 class TorrentReannounceResource(ApiJsonResource):
     isLeaf = True
 
@@ -756,6 +792,8 @@ class TorrentResource(ApiJsonResource):
             return TorrentFilesResource(self.plugin, self.torrent_id)
         if action == "limits":
             return TorrentLimitsResource(self.plugin, self.torrent_id)
+        if action == "options":
+            return TorrentOptionsResource(self.plugin, self.torrent_id)
         if action == "reannounce":
             return TorrentReannounceResource(self.plugin, self.torrent_id)
         if action == "recheck":
@@ -985,6 +1023,7 @@ class ApiRootResource(JsonResource):
                     "/api/torrents/bulk",
                     "/api/torrents/ids",
                     "/api/torrents/{id}",
+                    "/api/torrents/{id}/options",
                     "/api/torrents/{id}/reannounce",
                     "/api/torrents/{id}/recheck",
                     "/api/torrents/{id}/move",

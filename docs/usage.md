@@ -72,6 +72,9 @@ The detail is intentionally compact:
 - **Force recheck** – rechecks the downloaded pieces; the torrent enters
   `Checking` and the detail follows it over SSE. Disabled while `Moving` or
   already `Checking`.
+- **Torrent options** – a collapsible panel for sequential download,
+  first/last pieces, auto-managed, super seeding, stop/remove ratio, and the
+  per-torrent connection/upload-slot limits (`-1` = global).
 - **Label** – choose a label and save.
 - **Speed limits** – per-torrent KiB/s; `-1` uses the global value, `0` means
   unlimited.

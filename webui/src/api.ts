@@ -17,6 +17,7 @@ import type {
   TorrentFilters,
   TorrentIds,
   TorrentList,
+  TorrentOptions,
 } from "./types";
 
 const TOKEN_KEY = "mobileui.token";
@@ -211,6 +212,24 @@ export function setFilePriorities(
 ): Promise<FilePriorityResult> {
   return request<FilePriorityResult>(
     `/api/torrents/${encodeURIComponent(id)}/files`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
+}
+
+export function getTorrentOptions(
+  id: string,
+): Promise<{ id: string; options: TorrentOptions }> {
+  return request<{ id: string; options: TorrentOptions }>(
+    `/api/torrents/${encodeURIComponent(id)}/options`,
+  );
+}
+
+export function setTorrentOptions(
+  id: string,
+  payload: Partial<TorrentOptions>,
+): Promise<{ id: string; options: TorrentOptions }> {
+  return request<{ id: string; options: TorrentOptions }>(
+    `/api/torrents/${encodeURIComponent(id)}/options`,
     { method: "PATCH", body: JSON.stringify(payload) },
   );
 }
