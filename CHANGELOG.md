@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-18
+
 - Web Push: language-neutral payloads rendered HU/EN by the service worker, a
   per-device test notification (`POST /api/push/test`), a device list with
   revocation (`GET/DELETE /api/push/subscriptions`), and loopback/private
