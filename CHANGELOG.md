@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-18
+
 - The torrent list can be sorted by the added date (`time_added`), newest
   first.
 - Force recheck from the torrent detail (`POST /api/torrents/{id}/recheck`).
