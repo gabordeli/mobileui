@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-18
+
+- Release 1.1.1.
+
 ## [1.1.0] - 2026-11-18
 
 - Web Push: language-neutral payloads rendered HU/EN by the service worker, a
