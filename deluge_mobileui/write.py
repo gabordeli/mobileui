@@ -438,34 +438,80 @@ def _add_label_id(label_plugin, label):
     return label
 
 
+def _added_payload(torrent_id, label_plugin, label_id, download_location):
+    if not torrent_id:
+        raise Conflict("Deluge did not return a torrent id")
+    if label_id:
+        label_plugin.set_torrent(torrent_id, label_id)
+    return {
+        "id": torrent_id,
+        "label": label_id or NO_LABEL,
+        "download_location": download_location or "",
+    }
+
+
+def _on_url_error(failure):
+    if failure.check(defer.CancelledError, defer.TimeoutError):
+        raise BadRequest("torrent URL timed out")
+    if failure.check(AddTorrentError):
+        _raise_add_error(failure.value)
+    if failure.check(TypeError, ValueError):
+        raise BadRequest(str(failure.value))
+    message = failure.getErrorMessage() or str(failure.value)
+    raise BadRequest(f"could not fetch torrent: {message}")
+
+
 def _finish_url_add(deferred, label_plugin, label_id, download_location):
-    def on_added(torrent_id):
-        if not torrent_id:
-            raise Conflict("Deluge did not return a torrent id")
-        if label_id:
-            label_plugin.set_torrent(torrent_id, label_id)
-        return {
-            "id": torrent_id,
-            "label": label_id or NO_LABEL,
-            "download_location": download_location or "",
-        }
-
-    def on_error(failure):
-        if failure.check(defer.CancelledError, defer.TimeoutError):
-            raise BadRequest("torrent URL timed out")
-        if failure.check(AddTorrentError):
-            message = str(failure.value)
-            if "already" in message.lower():
-                raise Conflict(message)
-            raise BadRequest(message)
-        if failure.check(TypeError, ValueError):
-            raise BadRequest(str(failure.value))
-        message = failure.getErrorMessage() or str(failure.value)
-        raise BadRequest(f"could not fetch torrent: {message}")
-
-    deferred.addCallback(on_added)
-    deferred.addErrback(on_error)
+    deferred.addCallback(
+        _added_payload, label_plugin, label_id, download_location
+    )
+    deferred.addErrback(_on_url_error)
     return deferred
+
+
+def _raise_add_error(ex):
+    message = str(ex)
+    if "already" in message.lower():
+        raise Conflict(message) from ex
+    raise BadRequest(message) from ex
+
+
+def _add_from_url(core, label_plugin, url, options, label_id, download_location):
+    try:
+        deferred = core.add_torrent_url(url, options)
+    except AddTorrentError as ex:
+        _raise_add_error(ex)
+    except (TypeError, ValueError) as ex:
+        raise BadRequest(str(ex)) from ex
+    return _finish_url_add(deferred, label_plugin, label_id, download_location)
+
+
+def _add_from_source(
+    core,
+    label_plugin,
+    magnet,
+    filename,
+    filedump,
+    options,
+    label_id,
+    download_location,
+):
+    try:
+        if magnet:
+            torrent_id = core.add_torrent_magnet(magnet, options)
+        else:
+            encoded = base64.b64encode(filedump).decode("ascii")
+            torrent_id = core.add_torrent_file(
+                filename or "upload.torrent", encoded, options
+            )
+    except AddTorrentError as ex:
+        _raise_add_error(ex)
+    except (TypeError, ValueError) as ex:
+        raise BadRequest(str(ex)) from ex
+
+    return _added_payload(
+        torrent_id, label_plugin, label_id, download_location
+    )
 
 
 def add(
@@ -488,44 +534,19 @@ def add(
     label_id = _add_label_id(label_plugin, label)
 
     if url:
-        try:
-            deferred = core.add_torrent_url(url, options)
-        except AddTorrentError as ex:
-            message = str(ex)
-            if "already" in message.lower():
-                raise Conflict(message) from ex
-            raise BadRequest(message) from ex
-        except (TypeError, ValueError) as ex:
-            raise BadRequest(str(ex)) from ex
-        return _finish_url_add(deferred, label_plugin, label_id, download_location)
-
-    try:
-        if magnet:
-            torrent_id = core.add_torrent_magnet(magnet, options)
-        else:
-            encoded = base64.b64encode(filedump).decode("ascii")
-            torrent_id = core.add_torrent_file(
-                filename or "upload.torrent", encoded, options
-            )
-    except AddTorrentError as ex:
-        message = str(ex)
-        if "already" in message.lower():
-            raise Conflict(message) from ex
-        raise BadRequest(message) from ex
-    except (TypeError, ValueError) as ex:
-        raise BadRequest(str(ex)) from ex
-
-    if not torrent_id:
-        raise Conflict("Deluge did not return a torrent id")
-
-    if label_id:
-        label_plugin.set_torrent(torrent_id, label_id)
-
-    return {
-        "id": torrent_id,
-        "label": label_id or NO_LABEL,
-        "download_location": download_location or "",
-    }
+        return _add_from_url(
+            core, label_plugin, url, options, label_id, download_location
+        )
+    return _add_from_source(
+        core,
+        label_plugin,
+        magnet,
+        filename,
+        filedump,
+        options,
+        label_id,
+        download_location,
+    )
 
 
 def _torrent(core, torrent_id):

@@ -937,49 +937,44 @@ class TorrentsResource(ApiJsonResource):
             return self.internal_error(request)
         return self.write_json(request, 200, payload)
 
-    def render_POST(self, request):
-        unauthorized = self.unauthorized(request)
-        if unauthorized is not None:
-            return unauthorized
-        forbidden = self.forbidden(request)
-        if forbidden is not None:
-            return forbidden
-        try:
-            if is_json_request(request):
-                body = read_json_body(request)
-                filedump = None
-                if body.get("file_base64") is not None:
-                    try:
-                        filedump = base64.b64decode(body["file_base64"], validate=True)
-                    except (TypeError, ValueError) as ex:
-                        raise BadRequest(f"invalid file_base64: {ex}") from ex
-                payload = self.plugin.add_torrent(
-                    magnet=body.get("magnet"),
-                    filename=body.get("filename"),
-                    filedump=filedump,
-                    url=body.get("url"),
-                    label=body.get("label"),
-                    download_location=body.get("download_location"),
-                    add_paused=body.get("add_paused", False),
-                )
-            else:
-                content = getattr(request, "content", None)
-                raw = content.read() if content is not None else b""
-                if not raw:
-                    raise BadRequest("empty torrent file")
-                payload = self.plugin.add_torrent(
-                    filename=query_arg(request, "filename", "upload.torrent"),
-                    filedump=raw,
-                    label=query_arg(request, "label"),
-                    download_location=query_arg(request, "download_location"),
-                    add_paused=query_arg(request, "add_paused", "false").lower()
-                    == "true",
-                )
-        except (KeyError, Conflict, ValueError, TypeError) as ex:
-            return self.api_error(request, ex)
-        except Exception:
-            return self.internal_error(request)
+    def _json_add_kwargs(self, request):
+        body = read_json_body(request)
+        filedump = None
+        if body.get("file_base64") is not None:
+            try:
+                filedump = base64.b64decode(body["file_base64"], validate=True)
+            except (TypeError, ValueError) as ex:
+                raise BadRequest(f"invalid file_base64: {ex}") from ex
+        return {
+            "magnet": body.get("magnet"),
+            "filename": body.get("filename"),
+            "filedump": filedump,
+            "url": body.get("url"),
+            "label": body.get("label"),
+            "download_location": body.get("download_location"),
+            "add_paused": body.get("add_paused", False),
+        }
 
+    def _raw_add_kwargs(self, request):
+        content = getattr(request, "content", None)
+        raw = content.read() if content is not None else b""
+        if not raw:
+            raise BadRequest("empty torrent file")
+        return {
+            "filename": query_arg(request, "filename", "upload.torrent"),
+            "filedump": raw,
+            "label": query_arg(request, "label"),
+            "download_location": query_arg(request, "download_location"),
+            "add_paused": query_arg(request, "add_paused", "false").lower()
+            == "true",
+        }
+
+    def _add_kwargs(self, request):
+        if is_json_request(request):
+            return self._json_add_kwargs(request)
+        return self._raw_add_kwargs(request)
+
+    def _finish_add(self, request, payload):
         if isinstance(payload, defer.Deferred):
             payload.addCallback(
                 lambda result: self.finish_async(request, 201, result)
@@ -989,6 +984,21 @@ class TorrentsResource(ApiJsonResource):
             )
             return server.NOT_DONE_YET
         return self.write_json(request, 201, payload)
+
+    def render_POST(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
+        try:
+            payload = self.plugin.add_torrent(**self._add_kwargs(request))
+        except (KeyError, Conflict, ValueError, TypeError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self._finish_add(request, payload)
 
 
 class EventsResource(ApiJsonResource):
