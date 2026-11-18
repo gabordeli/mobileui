@@ -63,6 +63,19 @@ describe("FilterBar", () => {
     expect(wrapper.emitted("update")?.[2]).toEqual([{ sort: "-ratio" }]);
   });
 
+  it("offers sorting by the added date", async () => {
+    const wrapper = factory();
+    const sort = wrapper.findAll("select")[2];
+    const option = sort
+      .findAll("option")
+      .find((item) => item.element.value === "-time_added");
+
+    expect(option?.text()).toBe(t("sort.added"));
+
+    await sort.setValue("-time_added");
+    expect(wrapper.emitted("update")?.[0]).toEqual([{ sort: "-time_added" }]);
+  });
+
   it("emits manageLabels from the labels button", async () => {
     const wrapper = factory();
 

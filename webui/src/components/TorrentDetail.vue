@@ -214,6 +214,24 @@ async function reannounce(): Promise<void> {
   }
 }
 
+async function recheck(): Promise<void> {
+  actionLoading.value = true;
+  actionError.value = "";
+  try {
+    const result = await api.recheckTorrent(props.torrentId);
+    emit(
+      "toast",
+      result.rechecked
+        ? t("detail.recheckStarted")
+        : t("detail.recheckFailed"),
+    );
+  } catch (err) {
+    actionError.value = messageOf(err);
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
 async function copyText(text: string): Promise<void> {
   try {
     if (navigator.clipboard?.writeText) {
@@ -547,6 +565,13 @@ onBeforeUnmount(() => {
                 <button class="action" :disabled="actionLoading" @click="queue('down')">{{ t("sheet.down") }}</button>
                 <button class="action" :disabled="actionLoading" @click="queue('bottom')">{{ t("sheet.bottom") }}</button>
               </div>
+              <button
+                class="action"
+                :disabled="actionLoading || isMoving || detail.state === 'Checking'"
+                @click="recheck"
+              >
+                {{ t("detail.recheck") }}
+              </button>
             </div>
 
             <label class="field">

@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { trapFocus } from "../focus";
 import { formatBytes, formatRate } from "../format";
 import { t } from "../i18n";
-import type { LimitPayload, Session } from "../types";
+import type { LimitPayload, QueueSettings, Session } from "../types";
 import PushToggle from "./PushToggle.vue";
 import Sparkline from "./Sparkline.vue";
 
@@ -18,6 +18,7 @@ const emit = defineEmits<{
   close: [];
   toggle: [];
   limits: [payload: LimitPayload];
+  queue: [payload: Partial<QueueSettings>];
 }>();
 
 const closeButton = ref<HTMLButtonElement | null>(null);
@@ -25,6 +26,10 @@ const dialogEl = ref<HTMLElement | null>(null);
 let releaseFocus: (() => void) | null = null;
 const downLimit = ref(props.session.max_download_speed);
 const upLimit = ref(props.session.max_upload_speed);
+const queueDown = ref(props.session.queue.max_active_downloading);
+const queueSeed = ref(props.session.queue.max_active_seeding);
+const queueTotal = ref(props.session.queue.max_active_limit);
+const queueTop = ref(props.session.queue.queue_new_to_top);
 const freeSpace = computed(() =>
   props.session.free_space === null ? "—" : formatBytes(props.session.free_space),
 );
@@ -46,6 +51,15 @@ function unlimited(): void {
   downLimit.value = -1;
   upLimit.value = -1;
   applyLimits();
+}
+
+function applyQueue(): void {
+  emit("queue", {
+    max_active_downloading: Number(queueDown.value),
+    max_active_seeding: Number(queueSeed.value),
+    max_active_limit: Number(queueTotal.value),
+    queue_new_to_top: queueTop.value,
+  });
 }
 
 onMounted(() => {
@@ -131,6 +145,34 @@ onBeforeUnmount(() => releaseFocus?.());
             <button class="action" @click="unlimited">{{ t("limits.unlimited") }}</button>
           </div>
           <p class="limits-hint">{{ t("limits.hint") }}</p>
+        </div>
+
+        <div v-if="canWrite" class="limits">
+          <h3>{{ t("queue.title") }}</h3>
+          <div class="limits-row queue-row">
+            <label>
+              <span>{{ t("queue.downloading") }}</span>
+              <input v-model.number="queueDown" type="number" min="-1" max="9999" step="1" />
+            </label>
+            <label>
+              <span>{{ t("queue.seeding") }}</span>
+              <input v-model.number="queueSeed" type="number" min="-1" max="9999" step="1" />
+            </label>
+            <label>
+              <span>{{ t("queue.total") }}</span>
+              <input v-model.number="queueTotal" type="number" min="-1" max="9999" step="1" />
+            </label>
+          </div>
+          <label class="queue-top">
+            <input v-model="queueTop" type="checkbox" />
+            <span>{{ t("queue.newToTop") }}</span>
+          </label>
+          <div class="limits-actions">
+            <button class="action primary" @click="applyQueue">
+              {{ t("sheet.save") }}
+            </button>
+          </div>
+          <p class="limits-hint">{{ t("queue.hint") }}</p>
         </div>
 
         <PushToggle />

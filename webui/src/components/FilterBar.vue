@@ -28,6 +28,7 @@ const states = [
 ];
 const sorts = [
   { value: "name", key: "sort.name" },
+  { value: "-time_added", key: "sort.added" },
   { value: "-progress", key: "sort.progress" },
   { value: "-download_payload_rate", key: "sort.download" },
   { value: "-ratio", key: "sort.ratio" },

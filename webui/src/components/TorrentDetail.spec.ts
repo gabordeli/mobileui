@@ -20,6 +20,7 @@ vi.mock("../api", () => ({
   addLabel: vi.fn(),
   removeLabel: vi.fn(),
   reannounceTorrent: vi.fn(),
+  recheckTorrent: vi.fn(),
   moveTorrent: vi.fn(),
   removeTorrent: vi.fn(),
 }));
@@ -51,6 +52,10 @@ beforeEach(() => {
   vi.mocked(api.reannounceTorrent).mockResolvedValue({
     id: detail.id,
     reannounced: true,
+  });
+  vi.mocked(api.recheckTorrent).mockResolvedValue({
+    id: detail.id,
+    rechecked: true,
   });
   vi.mocked(api.moveTorrent).mockResolvedValue({
     id: detail.id,
@@ -151,6 +156,9 @@ describe("TorrentDetail", () => {
     expect(wrapper.get(".detail-path .action").attributes("disabled")).toBeDefined();
     expect(
       wrapper.get(".detail-actions .action.primary").attributes("disabled"),
+    ).toBeDefined();
+    expect(
+      button(wrapper, t("detail.recheck")).attributes("disabled"),
     ).toBeDefined();
     expect(
       wrapper.get(".detail-remove .action.danger").attributes("disabled"),
@@ -303,6 +311,19 @@ describe("TorrentDetail", () => {
     expect(api.reannounceTorrent).toHaveBeenCalledWith(detail.id);
     expect(wrapper.emitted("toast")?.[0]).toEqual([
       t("detail.reannounceSent"),
+    ]);
+  });
+
+  it("starts a recheck", async () => {
+    const wrapper = factory();
+    await flushPromises();
+
+    await button(wrapper, t("detail.recheck")).trigger("click");
+    await flushPromises();
+
+    expect(api.recheckTorrent).toHaveBeenCalledWith(detail.id);
+    expect(wrapper.emitted("toast")?.[0]).toEqual([
+      t("detail.recheckStarted"),
     ]);
   });
 

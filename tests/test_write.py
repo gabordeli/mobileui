@@ -18,12 +18,18 @@ class FakeTorrent:
         self.set_speed_calls = []
         self.reannounce_result = True
         self.reannounced = 0
+        self.recheck_result = True
+        self.rechecked = 0
         self.move_result = True
         self.move_calls = []
 
     def force_reannounce(self):
         self.reannounced += 1
         return self.reannounce_result
+
+    def force_recheck(self):
+        self.rechecked += 1
+        return self.recheck_result
 
     def move_storage(self, dest):
         self.move_calls.append(dest)
@@ -65,7 +71,14 @@ class FakeCore:
         self.add_error = None
         self.paused = False
         self.session = SimpleNamespace(is_paused=lambda: self.paused)
-        self.config = {"max_download_speed": -1.0, "max_upload_speed": -1.0}
+        self.config = {
+            "max_download_speed": -1.0,
+            "max_upload_speed": -1.0,
+            "max_active_downloading": 3,
+            "max_active_seeding": 5,
+            "max_active_limit": 8,
+            "queue_new_to_top": False,
+        }
 
     def set_config(self, updates):
         self.config.update(updates)
@@ -444,6 +457,51 @@ def test_torrent_limits_are_applied():
     assert torrent.set_speed_calls == [("down", 0)]
 
 
+def test_session_queue_is_applied():
+    core = FakeCore()
+
+    result = write.set_session_queue(
+        core,
+        max_active_downloading=2,
+        max_active_limit=-1,
+        queue_new_to_top=True,
+    )
+
+    assert result == {
+        "max_active_downloading": 2,
+        "max_active_limit": -1,
+        "queue_new_to_top": True,
+    }
+    assert core.config["max_active_seeding"] == 5
+    assert core.calls[-1] == (
+        "config",
+        {
+            "max_active_downloading": 2,
+            "max_active_limit": -1,
+            "queue_new_to_top": True,
+        },
+    )
+
+
+def test_session_queue_validates_input():
+    core = FakeCore()
+
+    with pytest.raises(write.BadRequest):
+        write.set_session_queue(core)
+    with pytest.raises(write.BadRequest):
+        write.set_session_queue(core, max_active_downloading=True)
+    with pytest.raises(write.BadRequest):
+        write.set_session_queue(core, max_active_downloading=2.5)
+    with pytest.raises(write.BadRequest):
+        write.set_session_queue(core, max_active_seeding=-2)
+    with pytest.raises(write.BadRequest):
+        write.set_session_queue(core, max_active_limit=10000)
+    with pytest.raises(write.BadRequest):
+        write.set_session_queue(core, max_active_limit="x")
+    with pytest.raises(write.BadRequest):
+        write.set_session_queue(core, queue_new_to_top="yes")
+
+
 def test_limits_validate_input():
     core = FakeCore()
 
@@ -492,6 +550,18 @@ def test_reannounce():
 
     with pytest.raises(KeyError):
         write.reannounce(core, "missing")
+
+
+def test_recheck():
+    core = FakeCore()
+
+    assert write.recheck(core, "abc") == {"id": "abc", "rechecked": True}
+
+    core.torrentmanager["abc"].recheck_result = False
+    assert write.recheck(core, "abc")["rechecked"] is False
+
+    with pytest.raises(KeyError):
+        write.recheck(core, "missing")
 
 
 def test_move_storage_delegates_to_torrent():

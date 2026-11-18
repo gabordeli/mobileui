@@ -124,6 +124,11 @@ def reannounce(core, torrent_id):
     return {"id": torrent_id, "reannounced": bool(torrent.force_reannounce())}
 
 
+def recheck(core, torrent_id):
+    torrent = _torrent(core, torrent_id)
+    return {"id": torrent_id, "rechecked": bool(torrent.force_recheck())}
+
+
 def move_storage(core, torrent_id, location):
     torrent = _torrent(core, torrent_id)
     if not isinstance(location, str) or not location.strip():
@@ -160,6 +165,47 @@ def set_session_limits(
         updates["max_upload_speed"] = _limit(max_upload_speed, "max_upload_speed")
     if not updates:
         raise BadRequest("at least one speed limit is required")
+
+    core.set_config(updates)
+    values = core.get_config_values(list(updates))
+    return {key: values[key] for key in updates}
+
+
+def _queue_int(value, key):
+    if isinstance(value, bool):
+        raise BadRequest(f"{key} must be an integer")
+    if isinstance(value, float) and not value.is_integer():
+        raise BadRequest(f"{key} must be an integer")
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        raise BadRequest(f"{key} must be an integer") from None
+    if not -1 <= number <= 9999:
+        raise BadRequest(f"{key} must be between -1 and 9999")
+    return number
+
+
+def set_session_queue(
+    core,
+    max_active_downloading=None,
+    max_active_seeding=None,
+    max_active_limit=None,
+    queue_new_to_top=None,
+):
+    updates = {}
+    for key, value in (
+        ("max_active_downloading", max_active_downloading),
+        ("max_active_seeding", max_active_seeding),
+        ("max_active_limit", max_active_limit),
+    ):
+        if value is not None:
+            updates[key] = _queue_int(value, key)
+    if queue_new_to_top is not None:
+        if not isinstance(queue_new_to_top, bool):
+            raise BadRequest("queue_new_to_top must be a bool")
+        updates["queue_new_to_top"] = queue_new_to_top
+    if not updates:
+        raise BadRequest("at least one queue setting is required")
 
     core.set_config(updates)
     values = core.get_config_values(list(updates))

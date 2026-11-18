@@ -166,6 +166,10 @@ class StubPlugin:
         self.write_calls.append(("reannounce", torrent_id))
         return {"id": torrent_id, "reannounced": True}
 
+    def recheck_torrent(self, torrent_id):
+        self.write_calls.append(("recheck", torrent_id))
+        return {"id": torrent_id, "rechecked": True}
+
     def move_torrent(self, torrent_id, location):
         self.write_calls.append(("move", torrent_id, location))
         return {"id": torrent_id, "destination": location, "moving": True}
@@ -211,6 +215,11 @@ class StubPlugin:
             "max_download_speed": max_download_speed,
             "max_upload_speed": max_upload_speed,
         }
+
+    def set_session_queue(self, **kwargs):
+        values = {key: value for key, value in kwargs.items() if value is not None}
+        self.write_calls.append(("queue_settings", values))
+        return values
 
     def set_torrent_limits(
         self, torrent_id, max_download_speed=None, max_upload_speed=None
@@ -453,6 +462,13 @@ def mutation_cases(plugin):
             {"max_download_speed": 512, "max_upload_speed": 128},
         ),
         case(
+            "session queue",
+            child(session, b"queue", [b"api", b"session", b"queue"]),
+            "render_PATCH",
+            [b"api", b"session", b"queue"],
+            {"max_active_downloading": 2},
+        ),
+        case(
             "torrent limits",
             child(torrent, b"limits", [b"api", b"torrents", b"abc", b"limits"]),
             "render_PATCH",
@@ -481,6 +497,16 @@ def mutation_cases(plugin):
             ),
             "render_POST",
             [b"api", b"torrents", b"abc", b"reannounce"],
+        ),
+        case(
+            "recheck",
+            child(
+                torrent,
+                b"recheck",
+                [b"api", b"torrents", b"abc", b"recheck"],
+            ),
+            "render_POST",
+            [b"api", b"torrents", b"abc", b"recheck"],
         ),
         case(
             "move",
@@ -603,6 +629,30 @@ def test_session_limits_patch_forwards_values():
     assert plugin.write_calls == [("limits", "session", 512, 128)]
 
 
+def test_session_queue_patch_forwards_values():
+    plugin = StubPlugin(authorized=True)
+    session = api_child(plugin, b"session")
+    request = post_request([b"api", b"session", b"queue"])
+    request.method = b"PATCH"
+    request.content = io.BytesIO(
+        b'{"max_active_downloading":2,"queue_new_to_top":true}'
+    )
+
+    body = session.getChildWithDefault(b"queue", request).render_PATCH(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body) == {
+        "max_active_downloading": 2,
+        "queue_new_to_top": True,
+    }
+    assert plugin.write_calls == [
+        (
+            "queue_settings",
+            {"max_active_downloading": 2, "queue_new_to_top": True},
+        )
+    ]
+
+
 def test_torrent_limits_patch_forwards_values():
     plugin = StubPlugin(authorized=True)
     torrent = torrent_resource(plugin)
@@ -648,6 +698,18 @@ def test_reannounce_endpoint():
     assert request.responseCode == 200
     assert json.loads(body)["reannounced"] is True
     assert plugin.write_calls == [("reannounce", "abc")]
+
+
+def test_recheck_endpoint():
+    plugin = StubPlugin(authorized=True)
+    torrent = torrent_resource(plugin)
+    request = post_request([b"api", b"torrents", b"abc", b"recheck"])
+
+    body = torrent.getChildWithDefault(b"recheck", request).render_POST(request)
+
+    assert request.responseCode == 200
+    assert json.loads(body)["rechecked"] is True
+    assert plugin.write_calls == [("recheck", "abc")]
 
 
 def test_move_endpoint_forwards_location():

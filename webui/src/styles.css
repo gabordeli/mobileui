@@ -871,6 +871,24 @@ dialog.sheet {
   font-size: 10px;
 }
 
+.queue-row {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.queue-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.queue-top input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
 .push-toggle {
   display: flex;
   align-items: center;

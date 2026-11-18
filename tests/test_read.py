@@ -57,7 +57,7 @@ class FakeLabel:
         return self.labels
 
 
-def make_torrent(torrent_id, name, state="Paused", progress=0.0, eta=-1):
+def make_torrent(torrent_id, name, state="Paused", progress=0.0, eta=-1, time_added=0):
     return FakeTorrent(
         torrent_id,
         name=name,
@@ -69,6 +69,7 @@ def make_torrent(torrent_id, name, state="Paused", progress=0.0, eta=-1):
         ratio=1.0,
         total_size=100,
         save_path="/downloads",
+        time_added=time_added,
     )
 
 
@@ -133,6 +134,23 @@ def test_list_sorts_eta_with_infinity_last():
     result = read.list_torrents(core, None, sort="eta")
 
     assert [row["name"] for row in result["torrents"]] == ["Five", "Ten", "NoEta"]
+
+
+def test_list_sorts_by_time_added():
+    core = make_core(
+        make_torrent("a", "Old", time_added=100),
+        make_torrent("b", "Newest", time_added=300),
+        make_torrent("c", "Middle", time_added=200),
+    )
+
+    result = read.list_torrents(core, None, sort="-time_added")
+
+    assert [row["name"] for row in result["torrents"]] == [
+        "Newest",
+        "Middle",
+        "Old",
+    ]
+    assert result["torrents"][0]["time_added"] == 300
 
 
 @pytest.mark.parametrize(

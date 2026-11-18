@@ -14,6 +14,7 @@ import type {
   GatePayload,
   LabelInfo,
   LimitPayload,
+  QueueSettings,
   Session,
   Torrent,
   TorrentEvent,
@@ -455,6 +456,20 @@ async function applySessionLimits(payload: LimitPayload): Promise<void> {
   }
 }
 
+async function applySessionQueue(
+  payload: Partial<QueueSettings>,
+): Promise<void> {
+  try {
+    const result = await api.setSessionQueue(payload);
+    if (session.value) {
+      session.value.queue = { ...session.value.queue, ...result };
+    }
+    showToast(t("toast.queueSettings"));
+  } catch (error) {
+    reportError(error);
+  }
+}
+
 async function reloadLabels(): Promise<void> {
   const data = await api.getLabels();
   labels.value = data.labels;
@@ -726,6 +741,7 @@ onBeforeUnmount(() => {
       @close="sessionOpen = false"
       @toggle="toggleSession"
       @limits="applySessionLimits"
+      @queue="applySessionQueue"
     />
 
     <LabelsSheet

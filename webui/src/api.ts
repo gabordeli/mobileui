@@ -9,6 +9,7 @@ import type {
   LimitPayload,
   LimitState,
   LoginResult,
+  QueueSettings,
   Session,
   Torrent,
   TorrentDetail,
@@ -133,6 +134,15 @@ export function resumeSession(): Promise<{ paused: boolean }> {
 
 export function setSessionLimits(payload: LimitPayload): Promise<LimitState> {
   return request<LimitState>("/api/session/limits", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function setSessionQueue(
+  payload: Partial<QueueSettings>,
+): Promise<Partial<QueueSettings>> {
+  return request<Partial<QueueSettings>>("/api/session/queue", {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
@@ -306,6 +316,14 @@ export function reannounceTorrent(
   id: string,
 ): Promise<{ id: string; reannounced: boolean }> {
   return request(`/api/torrents/${encodeURIComponent(id)}/reannounce`, {
+    method: "POST",
+  });
+}
+
+export function recheckTorrent(
+  id: string,
+): Promise<{ id: string; rechecked: boolean }> {
+  return request(`/api/torrents/${encodeURIComponent(id)}/recheck`, {
     method: "POST",
   });
 }

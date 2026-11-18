@@ -22,6 +22,7 @@ import {
   pauseTorrent,
   queueTorrent,
   reannounceTorrent,
+  recheckTorrent,
   removeLabel,
   removePushSubscription,
   removeTorrent,
@@ -29,6 +30,7 @@ import {
   setFilePriorities,
   setLabel,
   setSessionLimits,
+  setSessionQueue,
   setToken,
   setTorrentLimits,
 } from "./api";
@@ -263,6 +265,22 @@ describe("torrent actions", () => {
     );
   });
 
+  it("patches the session queue settings", async () => {
+    const fetchMock = mockFetch({
+      max_active_downloading: 2,
+      max_active_seeding: 4,
+      max_active_limit: 6,
+      queue_new_to_top: true,
+    });
+
+    await setSessionQueue({ max_active_downloading: 2 });
+
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/session/queue");
+    expect(init.method).toBe("PATCH");
+    expect(init.body).toBe(JSON.stringify({ max_active_downloading: 2 }));
+  });
+
   it("patches the torrent limits", async () => {
     const fetchMock = mockFetch({
       id: "abc",
@@ -301,6 +319,16 @@ describe("torrent actions", () => {
 
     const [path, init] = fetchMock.mock.calls[0];
     expect(path).toBe("/api/torrents/abc/reannounce");
+    expect(init.method).toBe("POST");
+  });
+
+  it("forces a recheck", async () => {
+    const fetchMock = mockFetch({ id: "abc", rechecked: true });
+
+    await recheckTorrent("abc");
+
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/torrents/abc/recheck");
     expect(init.method).toBe("POST");
   });
 

@@ -14,6 +14,7 @@ export const torrent: Torrent = {
   ratio: 0.5,
   total_size: 734003200,
   save_path: "/data/downloads",
+  time_added: 1763380000,
   message: "OK",
 };
 
@@ -30,7 +31,6 @@ export const detail: TorrentDetail = {
   total_seeds: 5,
   is_finished: false,
   is_seed: false,
-  time_added: 1763380000,
   tracker: "https://tracker.example/announce",
   tracker_host: "tracker.example",
   comment: "",

@@ -202,6 +202,11 @@ class Core(CorePluginBase):
             component.get("Core"), max_download_speed, max_upload_speed
         )
 
+    def set_session_queue(self, **kwargs):
+        from . import write
+
+        return write.set_session_queue(component.get("Core"), **kwargs)
+
     def set_torrent_limits(
         self, torrent_id, max_download_speed=None, max_upload_speed=None
     ):
@@ -400,6 +405,11 @@ class Core(CorePluginBase):
         from . import write
 
         return write.reannounce(component.get("Core"), torrent_id)
+
+    def recheck_torrent(self, torrent_id):
+        from . import write
+
+        return write.recheck(component.get("Core"), torrent_id)
 
     def move_torrent(self, torrent_id, location):
         from . import write

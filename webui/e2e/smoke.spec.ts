@@ -14,7 +14,12 @@ const session = {
   download_location: "/downloads",
   max_download_speed: -1,
   max_upload_speed: -1,
-  queue: {},
+  queue: {
+    max_active_downloading: 3,
+    max_active_seeding: 5,
+    max_active_limit: 8,
+    queue_new_to_top: false,
+  },
 };
 
 const labels = { labels: [], no_label: 1 };
@@ -212,6 +217,9 @@ test.describe("authenticated UI", () => {
   test("lists torrents and opens the detail", async ({ page }) => {
     const row = page.getByRole("button", { name: "Demo Movie 2024" });
     await expect(row).toBeVisible();
+    await expect(
+      page.locator('select[aria-label="Rendezés"] option[value="-time_added"]'),
+    ).toHaveCount(1);
     await row.click();
 
     const dialog = page.getByRole("dialog", { name: "Torrent részletek" });
@@ -220,6 +228,9 @@ test.describe("authenticated UI", () => {
       dialog.getByRole("heading", { name: "Demo Movie 2024" }),
     ).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Folytatás" })).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Újraellenőrzés" }),
+    ).toBeVisible();
   });
 
   test("skips a file from the detail", async ({ page }) => {
@@ -238,6 +249,10 @@ test.describe("authenticated UI", () => {
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText("Szabad hely")).toBeVisible();
     await expect(dialog.locator(".sparkline")).toBeVisible();
+    await expect(
+      dialog.getByRole("heading", { name: "Aktív torrentek" }),
+    ).toBeVisible();
+    await expect(dialog.locator(".queue-row input")).toHaveCount(3);
     await expect(
       dialog.getByRole("button", { name: "Összes szüneteltetése" }),
     ).toBeVisible();

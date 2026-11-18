@@ -202,15 +202,18 @@ The ContextSheet is gone (the detail already knew the same operations); the
 single-torrent queue/label/remove stayed in the detail. v1 has no undo,
 no cross-filter exception and no bulk queue.
 
-## D15 – File priority: 0/1/4/7, "Only this", client-side search (2026-11-17)
+## D15 – File priority: 0/1/4/7, "Only this", server-side search (2026-11-17, updated 2026-11-18)
 
 The detail's file list uses the Deluge `set_file_priorities`, which expects the
 **complete** list; the handler reads the current priorities, and applies only the
 changes, so because of the paginated list the client does not need to know all
 files. The checkbox toggles 0/4, "Only this" sets all to 0 and the
-selected one to 4. The search is client-side, it filters only the loaded files
-(because of the pagination), and indicates the loaded/total ratio. The 1/7
-(low/high) priority is available in the API, the UI for now uses 0/4.
+selected one to 4. Since v1.1.0 the search is server-side: the `q` parameter of
+`GET /api/torrents/{id}/files` filters the full path list **before** pagination,
+so files beyond the first page are found, and `total` is the filtered count.
+The UI debounces the input (300 ms) and keeps the request sequence so a slower
+response cannot overwrite a newer one. The 1/7 (low/high) priority is available
+in the API, the UI for now uses 0/4.
 
 ## D16 – Speed limit: global vs. per-torrent (2026-11-17)
 

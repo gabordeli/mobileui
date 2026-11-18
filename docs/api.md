@@ -92,9 +92,11 @@ Token-protected index:
   "endpoints": [
     "/api/auth", "/api/login", "/api/logout", "/api/session",
     "/api/session/pause", "/api/session/resume", "/api/session/limits",
+    "/api/session/queue",
     "/api/labels",
     "/api/torrents", "/api/torrents/ids", "/api/torrents/bulk",
     "/api/torrents/{id}", "/api/torrents/{id}/reannounce",
+    "/api/torrents/{id}/recheck",
     "/api/torrents/{id}/move", "/api/push/config",
     "/api/push/subscribe", "/api/push/test", "/api/push/subscriptions",
     "/api/events"
@@ -152,6 +154,25 @@ At least one of the fields is required:
 `200 {"max_download_speed": 512.0, "max_upload_speed": 128.0}`; `-2` → 400.
 It writes into the Deluge `core.conf`, the PreferencesManager callback applies it immediately.
 
+## PATCH /api/session/queue
+
+Active-torrent queue settings (write level, read-only → 403). At least one of the
+fields is required; the values match the Deluge `core.conf` ranges
+(`-1` = unlimited, max. 9999):
+
+```json
+{
+  "max_active_downloading": 3,
+  "max_active_seeding": 5,
+  "max_active_limit": 8,
+  "queue_new_to_top": false
+}
+```
+
+`200` returns the updated fields; the same values are in the `queue` object of
+`GET /api/session`. `queue_new_to_top` is a bool, the three counts are integers
+(bad field → 400).
+
 ## GET /api/labels
 
 ```json
@@ -194,7 +215,7 @@ Query parameters:
 | `state` | – | exact state (`Paused`, `Downloading`, …) or `All` |
 | `label` | – | label id, or `No Label` |
 | `q` | – | case-insensitive substring in the name |
-| `sort` | `name` | `name`, `state`, `progress`, `ratio`, `eta`, `total_size`, `download_payload_rate`, `upload_payload_rate`, `label`; `-` prefix = descending |
+| `sort` | `name` | `name`, `state`, `progress`, `ratio`, `eta`, `total_size`, `time_added`, `download_payload_rate`, `upload_payload_rate`, `label`; `-` prefix = descending |
 | `offset` | `0` | >= 0 |
 | `limit` | `50` | 1–200 |
 
@@ -218,6 +239,7 @@ Response:
       "ratio": 0.0,
       "total_size": 11073742312,
       "save_path": "/data/downloads",
+      "time_added": 1763380000,
       "message": "OK"
     }
   ]
@@ -336,6 +358,14 @@ Force tracker reannounce (write level; read-only → 403):
 
 `200 {"id": "...", "reannounced": true}`; if Deluge could not send it,
 `reannounced: false`; unknown torrent → 404.
+
+## POST /api/torrents/{id}/recheck
+
+Force a piece recheck (write level; read-only → 403):
+
+`200 {"id": "...", "rechecked": true}`; if libtorrent could not start it,
+`rechecked: false`; unknown torrent → 404. The torrent enters `Checking` and
+the UI follows the state through SSE.
 
 ## POST /api/torrents/{id}/move
 

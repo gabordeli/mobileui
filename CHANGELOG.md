@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- The torrent list can be sorted by the added date (`time_added`), newest
+  first.
+- Force recheck from the torrent detail (`POST /api/torrents/{id}/recheck`).
+- Active-torrent queue settings in the session sheet
+  (`PATCH /api/session/queue`): max active downloading/seeding/total and
+  "new torrents to top".
+- Docs: D15 now describes the server-side file search, and the post-1.0 impact
+  study carries a v1.1.0 status note.
+
 ## [1.1.1] - 2026-11-18
 
 - Release 1.1.1.

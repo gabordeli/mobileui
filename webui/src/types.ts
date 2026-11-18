@@ -10,6 +10,7 @@ export interface Torrent {
   ratio: number;
   total_size: number;
   save_path: string;
+  time_added: number;
   message: string;
 }
 
@@ -36,6 +37,13 @@ export interface Health {
   port: number | null;
 }
 
+export interface QueueSettings {
+  max_active_downloading: number;
+  max_active_seeding: number;
+  max_active_limit: number;
+  queue_new_to_top: boolean;
+}
+
 export interface Session {
   download_rate: number;
   upload_rate: number;
@@ -48,7 +56,7 @@ export interface Session {
   download_location: string;
   max_download_speed: number;
   max_upload_speed: number;
-  queue: Record<string, unknown>;
+  queue: QueueSettings;
 }
 
 export interface LimitPayload {
@@ -81,7 +89,6 @@ export interface TorrentDetail extends Torrent {
   total_seeds: number;
   is_finished: boolean;
   is_seed: boolean;
-  time_added: number;
   tracker: string;
   tracker_host: string;
   comment: string;

@@ -185,6 +185,7 @@ class SessionResource(ApiJsonResource):
         self.putChild(b"pause", SessionActionResource(plugin, "pause"))
         self.putChild(b"resume", SessionActionResource(plugin, "resume"))
         self.putChild(b"limits", SessionLimitsResource(plugin))
+        self.putChild(b"queue", SessionQueueResource(plugin))
 
     def render_GET(self, request):
         unauthorized = self.unauthorized(request)
@@ -238,6 +239,31 @@ class SessionLimitsResource(ApiJsonResource):
             payload = self.plugin.set_session_limits(
                 max_download_speed=body.get("max_download_speed"),
                 max_upload_speed=body.get("max_upload_speed"),
+            )
+        except (KeyError, Conflict, TypeError, ValueError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
+class SessionQueueResource(ApiJsonResource):
+    isLeaf = True
+
+    def render_PATCH(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
+        try:
+            body = read_json_body(request)
+            payload = self.plugin.set_session_queue(
+                max_active_downloading=body.get("max_active_downloading"),
+                max_active_seeding=body.get("max_active_seeding"),
+                max_active_limit=body.get("max_active_limit"),
+                queue_new_to_top=body.get("queue_new_to_top"),
             )
         except (KeyError, Conflict, TypeError, ValueError) as ex:
             return self.api_error(request, ex)
@@ -664,6 +690,29 @@ class TorrentReannounceResource(ApiJsonResource):
         return self.write_json(request, 200, payload)
 
 
+class TorrentRecheckResource(ApiJsonResource):
+    isLeaf = True
+
+    def __init__(self, plugin, torrent_id):
+        super().__init__(plugin)
+        self.torrent_id = torrent_id
+
+    def render_POST(self, request):
+        unauthorized = self.unauthorized(request)
+        if unauthorized is not None:
+            return unauthorized
+        forbidden = self.forbidden(request)
+        if forbidden is not None:
+            return forbidden
+        try:
+            payload = self.plugin.recheck_torrent(self.torrent_id)
+        except (KeyError, Conflict, TypeError, ValueError) as ex:
+            return self.api_error(request, ex)
+        except Exception:
+            return self.internal_error(request)
+        return self.write_json(request, 200, payload)
+
+
 class TorrentMoveResource(ApiJsonResource):
     isLeaf = True
 
@@ -709,6 +758,8 @@ class TorrentResource(ApiJsonResource):
             return TorrentLimitsResource(self.plugin, self.torrent_id)
         if action == "reannounce":
             return TorrentReannounceResource(self.plugin, self.torrent_id)
+        if action == "recheck":
+            return TorrentRecheckResource(self.plugin, self.torrent_id)
         if action == "move":
             return TorrentMoveResource(self.plugin, self.torrent_id)
         return NotFoundResource()
@@ -928,12 +979,14 @@ class ApiRootResource(JsonResource):
                     "/api/session/pause",
                     "/api/session/resume",
                     "/api/session/limits",
+                    "/api/session/queue",
                     "/api/labels",
                     "/api/torrents",
                     "/api/torrents/bulk",
                     "/api/torrents/ids",
                     "/api/torrents/{id}",
                     "/api/torrents/{id}/reannounce",
+                    "/api/torrents/{id}/recheck",
                     "/api/torrents/{id}/move",
                     "/api/push/config",
                     "/api/push/subscribe",

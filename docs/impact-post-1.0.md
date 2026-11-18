@@ -2,8 +2,12 @@
 
 Baseline: **v1.0.0** (2026-11-17), live on the Deluge host, 180 backend tests /
 83%, 142 frontend tests, 9 E2E, Sonar 0 open issues. This study covers the seven
-follow-up ideas opened as **#32–#38**. It is an assessment, not an implementation
-plan; no item is started.
+follow-up ideas opened as **#32–#38**. It was an assessment, not an implementation
+plan; at the time of writing no item was started.
+
+**Status (v1.1.0, 2026-11-18):** all seven items shipped in v1.1.0. The current
+suite is 195 backend / 155 frontend tests plus 9 E2E, with Sonar still at zero
+open issues; the numbers below remain the v1.0.0 baseline of the study.
 
 ## Method
 

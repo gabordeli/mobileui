@@ -40,6 +40,7 @@ vi.mock("./api", () => {
     pauseSession: vi.fn(),
     resumeSession: vi.fn(),
     setSessionLimits: vi.fn(),
+    setSessionQueue: vi.fn(),
     getLabels: vi.fn(),
     listTorrents: vi.fn(),
     listTorrentIds: vi.fn(),
@@ -75,7 +76,12 @@ const session: Session = {
   download_location: "/data/downloads",
   max_download_speed: -1,
   max_upload_speed: -1,
-  queue: {},
+  queue: {
+    max_active_downloading: 3,
+    max_active_seeding: 5,
+    max_active_limit: 8,
+    queue_new_to_top: false,
+  },
 };
 
 class FakeEventSource {
@@ -138,6 +144,12 @@ beforeEach(() => {
   vi.mocked(api.setSessionLimits).mockResolvedValue({
     max_download_speed: -1,
     max_upload_speed: -1,
+  });
+  vi.mocked(api.setSessionQueue).mockResolvedValue({
+    max_active_downloading: 2,
+    max_active_seeding: 5,
+    max_active_limit: 8,
+    queue_new_to_top: true,
   });
   vi.mocked(api.addLabel).mockResolvedValue({ id: "new-label" });
   vi.mocked(api.removeLabel).mockResolvedValue({
@@ -494,6 +506,31 @@ describe("App", () => {
       max_upload_speed: 128,
     });
     expect(wrapper.text()).toContain(t("toast.limits"));
+  });
+
+  it("applies the active torrent queue settings", async () => {
+    const wrapper = mountApp();
+    await flushPromises();
+
+    await wrapper
+      .get(`button[aria-label="${t("session.open")}"]`)
+      .trigger("click");
+
+    const dialog = wrapper.get(
+      `dialog[aria-label="${t("session.title")}"]`,
+    );
+    await dialog.findAll(".queue-row input")[0].setValue(2);
+    await dialog.get(".queue-top input").setValue(true);
+    await dialog.findAll(".limits-actions .action").at(-1)!.trigger("click");
+    await flushPromises();
+
+    expect(api.setSessionQueue).toHaveBeenCalledWith({
+      max_active_downloading: 2,
+      max_active_seeding: 5,
+      max_active_limit: 8,
+      queue_new_to_top: true,
+    });
+    expect(wrapper.text()).toContain(t("toast.queueSettings"));
   });
 
   it("manages labels from the filter bar", async () => {

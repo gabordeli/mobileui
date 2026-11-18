@@ -28,8 +28,9 @@ Home screen"). The installed app gets the share target and a standalone window.
 4. **Account** – the person icon opens the account panel (login/logout), not
    the settings.
 5. **Search** – filters by name; the list reloads after a short debounce.
-6. **State / label / sort** – server-side filters; the chosen values stay in
-   the URL/state while the page is open.
+6. **State / label / sort** – server-side filters; the sort menu includes the
+   added date (newest first). The chosen values stay in the URL/state while the
+   page is open.
 7. **Labels** – manage labels (see below).
 
 The list is virtualized: scrolling loads the next page automatically. The
@@ -68,11 +69,15 @@ The detail is intentionally compact:
 - **Copy magnet / Copy infohash** – copies to the clipboard.
 - **Resume/Pause** – changes the torrent state.
 - **Queue** – move to top, up, down or bottom of the queue.
+- **Force recheck** – rechecks the downloaded pieces; the torrent enters
+  `Checking` and the detail follows it over SSE. Disabled while `Moving` or
+  already `Checking`.
 - **Label** – choose a label and save.
 - **Speed limits** – per-torrent KiB/s; `-1` uses the global value, `0` means
   unlimited.
 - **Files** – when metadata is available, each file has a download checkbox
-  and an "Only this" action. The search box filters the loaded pages.
+  and an "Only this" action. The search box queries the full file list on the
+  server, so files beyond the loaded page are found too.
 - **Remove** – optionally deletes the downloaded data; a confirmation is
   required.
 
@@ -113,6 +118,8 @@ Open it from the header stats. It contains:
 - free space, torrent count, current download/upload rates;
 - a 60-second speed sparkline;
 - global speed limits (KiB/s), with **Night mode** and **Unlimited** presets;
+- active-torrent queue settings: max downloading / seeding / total
+  (`-1` = unlimited) and **New torrents to top**;
 - **Notifications** – enable/disable Web Push for this browser;
 - **Pause all / Resume all** – session-wide controls.
 

@@ -20,7 +20,12 @@ const session: Session = {
   download_location: "/data/downloads",
   max_download_speed: -1,
   max_upload_speed: -1,
-  queue: {},
+  queue: {
+    max_active_downloading: 3,
+    max_active_seeding: 5,
+    max_active_limit: 8,
+    queue_new_to_top: false,
+  },
 };
 
 function factory(overrides: Record<string, unknown> = {}) {
@@ -97,6 +102,26 @@ describe("SessionSheet", () => {
     ]);
     expect(wrapper.emitted("limits")?.[1]).toEqual([
       { max_download_speed: -1, max_upload_speed: -1 },
+    ]);
+  });
+
+  it("emits the queue settings", async () => {
+    const wrapper = factory();
+    const inputs = wrapper.findAll(".queue-row input");
+
+    await inputs[0].setValue(2);
+    await inputs[1].setValue(4);
+    await inputs[2].setValue(-1);
+    await wrapper.get(".queue-top input").setValue(true);
+    await wrapper.findAll(".limits-actions .action").at(-1)!.trigger("click");
+
+    expect(wrapper.emitted("queue")?.[0]).toEqual([
+      {
+        max_active_downloading: 2,
+        max_active_seeding: 4,
+        max_active_limit: -1,
+        queue_new_to_top: true,
+      },
     ]);
   });
 

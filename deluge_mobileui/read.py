@@ -19,6 +19,7 @@ LIST_KEYS = [
     "ratio",
     "total_size",
     "save_path",
+    "time_added",
     "message",
 ]
 
@@ -72,6 +73,7 @@ SORT_FIELDS = {
     "eta",
     "ratio",
     "total_size",
+    "time_added",
     "label",
 }
 
