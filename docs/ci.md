@@ -107,6 +107,12 @@ Before the release, write the changes into the `## [Unreleased]` section of
 and empties the Unreleased. If it is empty, it becomes `- Release x.y.z.`. The
 GitHub release uses the same section.
 
+The release commit is pushed with the CI job token, which does not create a new
+pipeline. Before deploying, create a pipeline on `main` (UI or API) so the job
+checks out the release commit, then run that pipeline's `deploy` job. Do not run
+the deploy job of the pre-release pipeline: its checkout still has the old
+version.
+
 ## Release artifact
 
 ```bash
@@ -209,21 +215,22 @@ Check: `deploy_gitlab_runner_toolchain.yml --limit gitlab-runner --check --diff`
 
 ## Verified run
 
-- Pipeline 6715: `lint`, `test`, `webui-test`, `webui-e2e`, `deluge-compat`,
-  `sonar` and `build` success; the release job created `chore(release) v1.1.0`
-  and the `v1.1.0` tag; the deploy job succeeded.
-- On the deploy host `/health` is **1.1.0**, the SPA is served with the release
-  assets; the stock `deluge-web` on 8112 is untouched.
-- GitLab and GitHub both expose **v1.1.0** and keep **v1.0.0** as the first
-  public release; the GitHub releases have four assets each (wheel, sdist, egg,
-  sha256), and the GitLab releases link the egg + sha256. The earlier
-  v0.1.1–v0.2.0 tags/releases were removed from both remotes.
-- The release job now pushes only the new tag (not `--tags`); deleting an old
-  tag stays effective after the next release.
+- Pipeline 6722 on the `chore(release) v1.2.0` commit (`3a2f26a`): `lint`,
+  `test`, `webui-test`, `webui-e2e`, `deluge-compat`, `sonar` and `build`
+  success; the release job (6721) created the commit and the `v1.2.0` tag; the
+  deploy job `25709` succeeded.
+- On the deploy host `/health` is **1.2.0**, the SPA is served with the release
+  assets (`index-BHJGnZny.js`); the stock `deluge-web` on 8112 is untouched.
+- GitLab and GitHub expose **v1.0.0**, **v1.1.0**, **v1.1.1** and **v1.2.0**;
+  the GitHub releases have four assets each (wheel, sdist, egg, sha256), and the
+  GitLab releases link the egg + sha256. The earlier v0.1.1–v0.2.0
+  tags/releases were removed from both remotes.
+- The release job pushes only the new tag (not `--tags`); deleting an old tag
+  stays effective after the next release.
 - Cleaning up old unpacked egg versions (`find ... -type d -name
   'MobileUi-*.egg'`) remains necessary, otherwise the old plugin stays loaded.
-- The GitHub Release workflow (run `44271292434`) completed successfully on the
-  `v1.1.0` tag.
+- The GitHub Release workflow (run `44294019937`) completed successfully on the
+  `v1.2.0` tag.
 
 ## Known limitation
 

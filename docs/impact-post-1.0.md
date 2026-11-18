@@ -5,9 +5,11 @@ Baseline: **v1.0.0** (2026-11-17), live on the Deluge host, 180 backend tests /
 follow-up ideas opened as **#32–#38**. It was an assessment, not an implementation
 plan; at the time of writing no item was started.
 
-**Status (v1.1.0, 2026-11-18):** all seven items shipped in v1.1.0. The current
-suite is 218 backend / 169 frontend tests plus 12 E2E, with Sonar still at zero
-open issues; the numbers below remain the v1.0.0 baseline of the study.
+**Status (v1.2.0, 2026-11-18):** the seven items shipped in v1.1.0; the
+follow-up six (added-date sort, force recheck, queue settings, torrent options,
+URL add, directory picker) shipped in v1.2.0. The current suite is 218 backend /
+169 frontend tests plus 12 E2E, with Sonar still at zero open issues; the
+numbers below remain the v1.0.0 baseline of the study.
 
 ## Method
 

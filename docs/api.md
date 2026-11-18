@@ -79,7 +79,7 @@ When logged in with the static token, `username` is `"token"`.
 Public, even without auth:
 
 ```json
-{"ok": true, "version": "1.1.0", "port": 8113}
+{"ok": true, "version": "1.2.0", "port": 8113}
 ```
 
 ## GET /api
@@ -88,7 +88,7 @@ Token-protected index:
 
 ```json
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "endpoints": [
     "/api/auth", "/api/login", "/api/logout", "/api/session",
     "/api/session/pause", "/api/session/resume", "/api/session/limits",
@@ -573,7 +573,7 @@ First event:
 
 ```text
 event: hello
-data: {"version":"1.1.0","heartbeat":15,"num_torrents":42}
+data: {"version":"1.2.0","heartbeat":15,"num_torrents":42}
 ```
 
 After that torrent deltas (`event: torrent`) and session deltas (`event: session`):

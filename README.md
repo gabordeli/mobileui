@@ -24,7 +24,7 @@ Demo data from the local `scripts/dev-daemon.sh` (fictional names), dark theme.
 
 ## 📊 Status
 
-Current release: **v1.1.0** (GitLab + GitHub), deployed on the production
+Current release: **v1.2.0** (GitLab + GitHub), deployed on the production
 instance.
 
 - **Auth:** optional Deluge username/password login next to the static API token
