@@ -130,6 +130,9 @@ async function mockApi(
       case "/api/labels":
         return route.fulfill({ json: labels });
       case "/api/torrents":
+        if (route.request().method() === "POST") {
+          return route.fulfill({ status: 201, json: { id: "newid" } });
+        }
         return route.fulfill({ json: torrentList });
       case "/api/torrents/ids":
         return route.fulfill({
@@ -333,6 +336,32 @@ test.describe("authenticated UI", () => {
     const dialog = page.getByRole("dialog", { name: "Torrent hozzáadása" });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole("textbox", { name: "Magnet link" })).toBeVisible();
+    await expect(dialog.getByRole("tab", { name: "Magnet" })).toBeVisible();
+    await expect(dialog.getByRole("tab", { name: "URL" })).toBeVisible();
+    await expect(dialog.getByRole("tab", { name: ".torrent fájl" })).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Hozzáadás" })).toBeVisible();
+  });
+
+  test("adds a torrent from a URL", async ({ page }) => {
+    await page.getByRole("button", { name: "Torrent hozzáadása" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Torrent hozzáadása" });
+    await dialog.getByRole("tab", { name: "URL" }).click();
+    await dialog
+      .getByPlaceholder("https://tracker.example/file.torrent")
+      .fill("https://example.com/demo.torrent");
+
+    const posted = page.waitForRequest(
+      (request) =>
+        request.url().endsWith("/api/torrents") &&
+        request.method() === "POST",
+    );
+    await dialog.getByRole("button", { name: "Hozzáadás" }).click();
+
+    const request = await posted;
+    expect(request.postDataJSON()).toMatchObject({
+      url: "https://example.com/demo.torrent",
+    });
+    await expect(page.getByText("Torrent hozzáadva")).toBeVisible();
   });
 });

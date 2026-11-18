@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 from deluge.error import AddTorrentError
+from twisted.internet import defer
 
 from deluge_mobileui import write
 
@@ -88,6 +89,9 @@ class FakeCore:
         self.remove_result = True
         self.add_result = "newid"
         self.add_error = None
+        self.url_result = "urlid"
+        self.url_error = None
+        self.url_calls = []
         self.paused = False
         self.session = SimpleNamespace(is_paused=lambda: self.paused)
         self.config = {
@@ -147,6 +151,12 @@ class FakeCore:
         if self.add_error:
             raise self.add_error
         return self.add_result
+
+    def add_torrent_url(self, url, options, headers=None):
+        self.url_calls.append((url, options))
+        if self.url_error is not None:
+            return defer.fail(self.url_error)
+        return defer.succeed(self.url_result)
 
 
 class FakeLabel:
@@ -307,6 +317,65 @@ def test_add_file_base64_encodes_dump():
     assert call[3] == {}
 
 
+def test_add_url_is_deferred_and_applies_label():
+    core = FakeCore()
+    labels = FakeLabel()
+
+    deferred = write.add(
+        core,
+        labels,
+        url=" https://example.com/x.torrent ",
+        label="movies",
+        download_location="/downloads",
+        add_paused=True,
+    )
+
+    assert isinstance(deferred, defer.Deferred)
+    results = []
+    deferred.addCallback(results.append)
+
+    assert results == [
+        {
+            "id": "urlid",
+            "label": "movies",
+            "download_location": "/downloads",
+        }
+    ]
+    assert core.url_calls == [
+        (
+            "https://example.com/x.torrent",
+            {"download_location": "/downloads", "add_paused": True},
+        )
+    ]
+    assert labels.calls == [("urlid", "movies")]
+
+
+def test_add_url_errors_are_mapped():
+    core = FakeCore()
+    labels = FakeLabel()
+
+    core.url_error = AddTorrentError("Torrent already in session (abc).")
+    failures = []
+    write.add(core, labels, url="https://example.com/x.torrent").addErrback(
+        failures.append
+    )
+    assert failures[0].check(write.Conflict)
+
+    core.url_error = RuntimeError("connection refused")
+    failures = []
+    write.add(core, labels, url="https://example.com/x.torrent").addErrback(
+        failures.append
+    )
+    assert failures[0].check(write.BadRequest)
+
+    core.url_error = defer.CancelledError()
+    failures = []
+    write.add(core, labels, url="https://example.com/x.torrent").addErrback(
+        failures.append
+    )
+    assert failures[0].check(write.BadRequest)
+
+
 def test_add_duplicate_is_conflict():
     core = FakeCore()
     labels = FakeLabel()
@@ -334,6 +403,13 @@ def test_add_invalid_torrent_is_bad_request():
         {"magnet": "magnet:?x", "download_location": "rel"},
         {"magnet": "magnet:?x", "add_paused": "yes"},
         {"magnet": "magnet:?x", "label": "nope"},
+        {"url": ""},
+        {"url": "   "},
+        {"url": "ftp://example.com/x.torrent"},
+        {"url": "not-a-url"},
+        {"magnet": "magnet:?x", "url": "https://example.com/x.torrent"},
+        {"url": "https://example.com/x.torrent", "download_location": "rel"},
+        {"url": "https://example.com/x.torrent", "add_paused": "yes"},
     ],
 )
 def test_add_validation(kwargs):

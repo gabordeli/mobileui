@@ -37,12 +37,12 @@ set live. With an empty DSN the frontend does not initialize Sentry.
 ## Tests
 
 - `npm run test` / `npm run test:coverage` — Vitest (App, components, theme,
-  api, format, i18n, main, push); 157 tests, the coverage threshold is in
+  api, format, i18n, main, push); 160 tests, the coverage threshold is in
   `vite.config.ts`.
 - `npm run test:e2e` — Playwright smoke: token gate, account login, read-only UI,
   list+detail, file priority, torrent options, session sheet, bulk selection,
-  shared magnet, add sheet. The API is mocked with `page.route`, so it runs
-  without Deluge;
+  shared magnet, add sheet, URL add. The API is mocked with `page.route`, so it
+  runs without Deluge;
   `npx playwright install chromium` is needed before the first run.
 - The CI `webui-e2e` job runs the same; it downloads the browser into the
   `webui/.playwright/` cache.

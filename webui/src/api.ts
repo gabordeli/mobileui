@@ -260,6 +260,16 @@ export function addTorrentMagnet(
   });
 }
 
+export function addTorrentUrl(
+  url: string,
+  options: AddTorrentOptions = {},
+): Promise<{ id: string }> {
+  return request("/api/torrents", {
+    method: "POST",
+    body: JSON.stringify({ url, ...options }),
+  });
+}
+
 export function addTorrentFile(
   file: File,
   options: AddTorrentOptions = {},

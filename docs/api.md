@@ -480,7 +480,7 @@ One operation on several torrents. Write level required (read-only → 403).
 
 ## POST /api/torrents
 
-New torrent from a magnet or a `.torrent` file.
+New torrent from a magnet, a `.torrent` file or an http(s) URL.
 
 JSON body:
 
@@ -504,6 +504,17 @@ Or the file as base64:
 }
 ```
 
+Or a URL that Deluge downloads:
+
+```json
+{
+  "url": "https://tracker.example/x.torrent",
+  "label": "movies",
+  "download_location": "/data/downloads",
+  "add_paused": true
+}
+```
+
 Raw upload (not a JSON content-type), with query parameters:
 
 ```bash
@@ -516,6 +527,9 @@ curl -X POST \
 
 - `download_location` must be an absolute path; if not given, the Deluge default.
 - `add_paused` is optional (default `false`); with `true` it does not start.
+- `url` must be an absolute `http(s)` URL; Deluge fetches the `.torrent` file
+  (the response waits for the download, internally `NOT_DONE_YET`; 60 s
+  timeout). Unreachable or invalid URL → 400.
 - `201 {"id": "...", "label": "...", "download_location": "..."}`.
 - Duplicate torrent → 409; invalid magnet/file/field → 400.
 

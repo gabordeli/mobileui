@@ -42,9 +42,9 @@ instance.
   preset, and the active-torrent queue settings.
 - **Bulk selection:** long-press, bottom action bar for pause/resume/label/remove
   across N torrents, "All" using the filtered IDs (max 1000).
-- **Add flow:** magnet or `.torrent` file, label, absolute save path and
-  "start paused"; remembers the last path/label; copy magnet/infohash from the
-  detail.
+- **Add flow:** magnet, `.torrent` URL or `.torrent` file, label, absolute save
+  path and "start paused"; remembers the last path/label; copy magnet/infohash
+  from the detail.
 - **PWA:** manifest/icons/service worker, Android share target, light/dark
   theme, HU/EN i18n, skeleton/offline/error states, safe-area and a11y basics.
   The SW caches the last read-only API responses and labels them as stale after

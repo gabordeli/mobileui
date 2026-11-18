@@ -103,14 +103,15 @@ Tap **Move** next to the save path, enter an absolute destination and confirm.
 
 ![Add torrent](assets/screenshot-add.png)
 
-- **Magnet / torrent file** – switch between the two tabs.
+- **Magnet / URL / torrent file** – switch between the three tabs. With a URL,
+  Deluge downloads the `.torrent` file first, so adding can take a few seconds.
 - **Label** – optional; "No label" leaves it unlabeled.
 - **Save path** – absolute path. The **Default** button restores the session
   default. The last used path and label are remembered locally.
 - **Start paused** – adds the torrent without starting it.
 
 The sheet validates the input and shows the backend error message for an
-invalid magnet, file or path.
+invalid magnet, URL, file or path.
 
 ## Session sheet
 

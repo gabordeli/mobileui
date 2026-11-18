@@ -18,8 +18,9 @@ const emit = defineEmits<{
   toast: [message: string];
 }>();
 
-const mode = ref<"magnet" | "file">("magnet");
+const mode = ref<"magnet" | "url" | "file">("magnet");
 const magnet = ref(props.initialMagnet ?? "");
+const torrentUrl = ref("");
 const file = ref<File | null>(null);
 const STORAGE_PATH = "mobileui.add.path";
 const STORAGE_LABEL = "mobileui.add.label";
@@ -75,6 +76,10 @@ async function submit(): Promise<void> {
     error.value = t("add.needMagnet");
     return;
   }
+  if (mode.value === "url" && !torrentUrl.value.trim()) {
+    error.value = t("add.needUrl");
+    return;
+  }
   if (mode.value === "file" && !file.value) {
     error.value = t("add.needFile");
     return;
@@ -87,10 +92,14 @@ async function submit(): Promise<void> {
     add_paused: addPaused.value,
   };
   try {
-    const result =
-      mode.value === "magnet"
-        ? await api.addTorrentMagnet(magnet.value.trim(), options)
-        : await api.addTorrentFile(file.value as File, options);
+    let result: { id: string };
+    if (mode.value === "magnet") {
+      result = await api.addTorrentMagnet(magnet.value.trim(), options);
+    } else if (mode.value === "url") {
+      result = await api.addTorrentUrl(torrentUrl.value.trim(), options);
+    } else {
+      result = await api.addTorrentFile(file.value as File, options);
+    }
     store(STORAGE_PATH, downloadLocation.value.trim());
     store(STORAGE_LABEL, label.value);
     emit("added", result);
@@ -148,6 +157,15 @@ async function submit(): Promise<void> {
           </button>
           <button
             class="segment"
+            :class="{ active: mode === 'url' }"
+            role="tab"
+            :aria-selected="mode === 'url'"
+            @click="mode = 'url'"
+          >
+            {{ t("add.urlTab") }}
+          </button>
+          <button
+            class="segment"
             :class="{ active: mode === 'file' }"
             role="tab"
             :aria-selected="mode === 'file'"
@@ -166,6 +184,17 @@ async function submit(): Promise<void> {
               :placeholder="t('add.magnetPlaceholder')"
               spellcheck="false"
             />
+          </label>
+          <label v-else-if="mode === 'url'" class="field">
+            <span>{{ t("add.url") }}</span>
+            <input
+              v-model="torrentUrl"
+              type="url"
+              :placeholder="t('add.urlPlaceholder')"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+            <small>{{ t("add.urlHint") }}</small>
           </label>
           <label v-else class="field">
             <span>{{ t("add.file") }}</span>

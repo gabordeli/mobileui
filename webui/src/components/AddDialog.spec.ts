@@ -8,6 +8,7 @@ import AddDialog from "./AddDialog.vue";
 
 vi.mock("../api", () => ({
   addTorrentMagnet: vi.fn(),
+  addTorrentUrl: vi.fn(),
   addTorrentFile: vi.fn(),
 }));
 
@@ -15,6 +16,7 @@ beforeEach(() => {
   setLocale("en");
   vi.clearAllMocks();
   vi.mocked(api.addTorrentMagnet).mockResolvedValue({ id: "abc" });
+  vi.mocked(api.addTorrentUrl).mockResolvedValue({ id: "ghi" });
   vi.mocked(api.addTorrentFile).mockResolvedValue({ id: "def" });
 });
 
@@ -129,10 +131,39 @@ describe("AddDialog", () => {
     expect(wrapper.emitted("close")).toHaveLength(1);
   });
 
+  it("adds a torrent from a URL", async () => {
+    const wrapper = factory();
+    await button(wrapper, t("add.urlTab")).trigger("click");
+    await wrapper
+      .get('input[type="url"]')
+      .setValue("https://example.com/demo.torrent");
+
+    await button(wrapper, t("add.submit")).trigger("click");
+    await flushPromises();
+
+    expect(api.addTorrentUrl).toHaveBeenCalledWith(
+      "https://example.com/demo.torrent",
+      {
+        label: undefined,
+        download_location: "/data/downloads",
+        add_paused: false,
+      },
+    );
+    expect(wrapper.emitted("added")?.[0]).toEqual([{ id: "ghi" }]);
+  });
+
+  it("requires a URL before submitting", async () => {
+    const wrapper = factory();
+    await button(wrapper, t("add.urlTab")).trigger("click");
+    await button(wrapper, t("add.submit")).trigger("click");
+
+    expect(wrapper.get('[role="alert"]').text()).toBe(t("add.needUrl"));
+    expect(api.addTorrentUrl).not.toHaveBeenCalled();
+  });
+
   it("uploads a .torrent file", async () => {
     const wrapper = factory();
     await button(wrapper, t("add.fileTab")).trigger("click");
-
     const file = new File(["x"], "demo.torrent", {
       type: "application/x-bittorrent",
     });

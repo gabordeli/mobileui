@@ -6,6 +6,8 @@ import logging
 from pathlib import Path
 
 from deluge.common import AUTH_LEVEL_NORMAL
+from twisted.internet import defer
+from twisted.web import server
 from twisted.web.resource import Resource
 from twisted.web.static import File
 
@@ -148,6 +150,22 @@ class ApiJsonResource(JsonResource):
             403,
             {"error": "forbidden", "message": "Read-only account"},
         )
+
+    def finish_async(self, request, status, payload):
+        if request.finished:
+            return
+        request.write(self.write_json(request, status, payload))
+        request.finish()
+
+    def finish_async_error(self, request, failure):
+        if request.finished:
+            return
+        try:
+            failure.raiseException()
+        except Exception as ex:
+            body = self.api_error(request, ex)
+        request.write(body)
+        request.finish()
 
     def api_error(self, request, ex):
         if isinstance(ex, KeyError):
@@ -939,6 +957,7 @@ class TorrentsResource(ApiJsonResource):
                     magnet=body.get("magnet"),
                     filename=body.get("filename"),
                     filedump=filedump,
+                    url=body.get("url"),
                     label=body.get("label"),
                     download_location=body.get("download_location"),
                     add_paused=body.get("add_paused", False),
@@ -960,6 +979,15 @@ class TorrentsResource(ApiJsonResource):
             return self.api_error(request, ex)
         except Exception:
             return self.internal_error(request)
+
+        if isinstance(payload, defer.Deferred):
+            payload.addCallback(
+                lambda result: self.finish_async(request, 201, result)
+            )
+            payload.addErrback(
+                lambda failure: self.finish_async_error(request, failure)
+            )
+            return server.NOT_DONE_YET
         return self.write_json(request, 201, payload)
 
 

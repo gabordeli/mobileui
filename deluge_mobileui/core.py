@@ -429,7 +429,10 @@ class Core(CorePluginBase):
     def add_torrent(self, **kwargs):
         from . import write
 
-        return write.add(component.get("Core"), self._label_plugin(), **kwargs)
+        result = write.add(component.get("Core"), self._label_plugin(), **kwargs)
+        if isinstance(result, defer.Deferred):
+            result.addTimeout(60, reactor)
+        return result
 
     def subscribe_events(self, request):
         if self.events is None:

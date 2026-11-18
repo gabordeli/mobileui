@@ -6,6 +6,7 @@ import {
   addLabel,
   addTorrentFile,
   addTorrentMagnet,
+  addTorrentUrl,
   eventsUrl,
   getAuthInfo,
   getHealth,
@@ -147,6 +148,31 @@ describe("addTorrentMagnet", () => {
     expect(init.body).toBe(
       JSON.stringify({
         magnet: "magnet:?xt=urn:btih:abc",
+        label: "test",
+        add_paused: true,
+      }),
+    );
+  });
+});
+
+describe("addTorrentUrl", () => {
+  it("posts the URL and options", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ id: "abc" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await addTorrentUrl("https://example.com/demo.torrent", {
+      label: "test",
+      add_paused: true,
+    });
+
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/torrents");
+    expect(init.method).toBe("POST");
+    expect(init.body).toBe(
+      JSON.stringify({
+        url: "https://example.com/demo.torrent",
         label: "test",
         add_paused: true,
       }),

@@ -11,6 +11,8 @@
 - Torrent options panel in the detail (`GET/PATCH /api/torrents/{id}/options`):
   sequential download, first/last pieces, auto-managed, super seeding, stop
   ratio and the per-torrent connection/upload-slot limits.
+- Add torrent from an http(s) URL in the add sheet; Deluge downloads the
+  `.torrent` file asynchronously (`POST /api/torrents {"url": ...}`).
 - Docs: D15 now describes the server-side file search, and the post-1.0 impact
   study carries a v1.1.0 status note.
 

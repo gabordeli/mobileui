@@ -1,6 +1,7 @@
 import io
 import json
 
+from twisted.internet import defer
 from twisted.web.server import NOT_DONE_YET
 from twisted.web.test.requesthelper import DummyRequest
 
@@ -42,6 +43,7 @@ class StubPlugin:
         self.level = level
         self.list_calls = []
         self.write_calls = []
+        self.add_deferred = None
 
     def is_authorized(self, request):
         return self.authorized
@@ -110,6 +112,8 @@ class StubPlugin:
         if kwargs.get("magnet") == "magnet:?dup":
             raise http.Conflict("Torrent already in session")
         self.write_calls.append(("add", kwargs))
+        if self.add_deferred is not None:
+            return self.add_deferred
         return {"id": "newid", "label": "movies", "download_location": "/x"}
 
     def list_torrents(self, **kwargs):
@@ -1031,6 +1035,7 @@ def test_add_magnet_via_json():
             "magnet": "magnet:?xt=urn:btih:x",
             "filename": None,
             "filedump": None,
+            "url": None,
             "label": "movies",
             "download_location": "/downloads",
             "add_paused": True,
@@ -1048,6 +1053,40 @@ def test_add_magnet_conflict():
 
     assert request.responseCode == 409
     assert json.loads(body)["error"] == "conflict"
+
+
+def test_add_url_deferred_success():
+    plugin = StubPlugin(authorized=True)
+    plugin.add_deferred = defer.succeed(
+        {"id": "urlid", "label": "No Label", "download_location": ""}
+    )
+    torrents = api_child(plugin, b"torrents")
+    request = post_request([b"api", b"torrents"])
+    request.content = io.BytesIO(b'{"url": "https://example.com/x.torrent"}')
+
+    result = torrents.render_POST(request)
+
+    assert result is NOT_DONE_YET
+    assert request.responseCode == 201
+    assert json.loads(b"".join(request.written))["id"] == "urlid"
+    assert request.finished == 1
+
+
+def test_add_url_deferred_conflict():
+    plugin = StubPlugin(authorized=True)
+    plugin.add_deferred = defer.fail(
+        http.Conflict("Torrent already in session")
+    )
+    torrents = api_child(plugin, b"torrents")
+    request = post_request([b"api", b"torrents"])
+    request.content = io.BytesIO(b'{"url": "https://example.com/x.torrent"}')
+
+    result = torrents.render_POST(request)
+
+    assert result is NOT_DONE_YET
+    assert request.responseCode == 409
+    assert json.loads(b"".join(request.written))["error"] == "conflict"
+    assert request.finished == 1
 
 
 def test_add_raw_torrent_file():

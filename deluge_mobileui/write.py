@@ -3,8 +3,10 @@
 import base64
 import logging
 import os
+from urllib.parse import urlparse
 
 from deluge.error import AddTorrentError, InvalidTorrentError
+from twisted.internet import defer
 
 from .read import MAX_BULK_IDS, NO_LABEL
 
@@ -402,11 +404,17 @@ def bulk(core, label_plugin, torrent_ids, action, label=None, remove_data=False)
     return {"ok": ok, "failed": failed}
 
 
-def _add_options(magnet, filedump, download_location, add_paused):
-    if bool(magnet) == bool(filedump):
-        raise BadRequest("exactly one of magnet or torrent file is required")
+def _add_options(magnet, filedump, url, download_location, add_paused):
+    if sum(bool(value) for value in (magnet, filedump, url)) != 1:
+        raise BadRequest(
+            "exactly one of magnet, torrent file or url is required"
+        )
     if magnet and not str(magnet).startswith("magnet:?"):
         raise BadRequest("magnet must start with magnet:?")
+    if url:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise BadRequest("url must be an absolute http(s) URL")
     if download_location and not os.path.isabs(download_location):
         raise BadRequest("download_location must be an absolute path")
     if not isinstance(add_paused, bool):
@@ -430,18 +438,66 @@ def _add_label_id(label_plugin, label):
     return label
 
 
+def _finish_url_add(deferred, label_plugin, label_id, download_location):
+    def on_added(torrent_id):
+        if not torrent_id:
+            raise Conflict("Deluge did not return a torrent id")
+        if label_id:
+            label_plugin.set_torrent(torrent_id, label_id)
+        return {
+            "id": torrent_id,
+            "label": label_id or NO_LABEL,
+            "download_location": download_location or "",
+        }
+
+    def on_error(failure):
+        if failure.check(defer.CancelledError, defer.TimeoutError):
+            raise BadRequest("torrent URL timed out")
+        if failure.check(AddTorrentError):
+            message = str(failure.value)
+            if "already" in message.lower():
+                raise Conflict(message)
+            raise BadRequest(message)
+        if failure.check(TypeError, ValueError):
+            raise BadRequest(str(failure.value))
+        message = failure.getErrorMessage() or str(failure.value)
+        raise BadRequest(f"could not fetch torrent: {message}")
+
+    deferred.addCallback(on_added)
+    deferred.addErrback(on_error)
+    return deferred
+
+
 def add(
     core,
     label_plugin,
     magnet=None,
     filename=None,
     filedump=None,
+    url=None,
     label=None,
     download_location=None,
     add_paused=False,
 ):
-    options = _add_options(magnet, filedump, download_location, add_paused)
+    if url is not None:
+        if not isinstance(url, str) or not url.strip():
+            raise BadRequest("url must be a non-empty string")
+        url = url.strip()
+
+    options = _add_options(magnet, filedump, url, download_location, add_paused)
     label_id = _add_label_id(label_plugin, label)
+
+    if url:
+        try:
+            deferred = core.add_torrent_url(url, options)
+        except AddTorrentError as ex:
+            message = str(ex)
+            if "already" in message.lower():
+                raise Conflict(message) from ex
+            raise BadRequest(message) from ex
+        except (TypeError, ValueError) as ex:
+            raise BadRequest(str(ex)) from ex
+        return _finish_url_add(deferred, label_plugin, label_id, download_location)
 
     try:
         if magnet:
